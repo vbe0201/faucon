@@ -127,7 +127,20 @@ pub enum Instruction {
     LD,
     ST,
     PUSH,
+    MPUSH,
     POP,
+    MPOP,
+    MPOPRET,
+    MPOPADD,
+    MPOPADDRET,
+    // ======= Branch instructions =======
+    BRA,
+    LBRA,
+    JMP,
+    CALL,
+    LCALL,
+    RET,
+    IRET,
     // ===================================
 }
 
