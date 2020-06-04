@@ -34,6 +34,30 @@ impl From<u8> for OperandSize {
     }
 }
 
+/// Possible locations in where subopcodes are stored.
+///
+/// These vary from instruction to instruction.
+pub enum SubopcodeLocation {
+    /// Subopcode is stored in the low 4 bits of byte 0.
+    O1,
+    /// Subopcode is stored in the low 4 bits of byte 1.
+    O2,
+    /// Subopcode is stored in the low 6 bits of byte 1.
+    OL,
+    /// Subopcode is stored in the low 4 bits of byte 2.
+    O3,
+}
+
+/// Extracts the subopcode from the opcode, given its location.
+fn extract_subopcode(opcode: &[u8], location: SubopcodeLocation) -> u8 {
+    match location {
+        SubopcodeLocation::O1 => opcode[0] & 0xF,
+        SubopcodeLocation::O2 => opcode[1] & 0xF,
+        SubopcodeLocation::OL => opcode[1] & 0x3F,
+        SubopcodeLocation::O3 => opcode[2] & 0xF,
+    }
+}
+
 /// Reads the contents of a given binary file into a byte array.
 pub fn read_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
     let mut binary_buffer = Vec::new();
