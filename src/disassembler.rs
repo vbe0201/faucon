@@ -47,6 +47,42 @@ pub enum SubopcodeLocation {
     O3,
 }
 
+/// Possible locations in where a register is stored.
+pub enum RegisterLocation {
+    /// Register is encoded in low 4 bits of byte 1.
+    Low1,
+    /// Register is encoded in high 4 bits of byte 1.
+    High1,
+    /// Register is encoded in high 4 bits of byte 2.
+    High2,
+}
+
+/// Possible directions in which a register is used.
+pub enum RegisterDirection {
+    /// The register is encoded as a source register.
+    Source,
+    /// The register is encoded as a destination register.
+    Destination,
+    /// The register is encoded as both, source and destination.
+    SourceDestination,
+}
+
+/// Represents a CPU register as it is encoded within an instruction.
+///
+/// Given are the information on where a register is exactly stored and
+/// how it is exactly utilised.
+pub struct Register(RegisterLocation, RegisterDirection);
+
+/// Supported types of operands that can be accessed.
+pub enum Operand {
+    /// An encoded register.
+    R(Register),
+    /// 8-bit immediate encoded in byte 2.
+    I8,
+    /// 16-bit immediate encoded in bytes 2 (low part) and 3 (high part).
+    I16,
+}
+
 /// Extracts the subopcode from the opcode, given its location.
 pub fn extract_subopcode(opcode: &[u8], location: SubopcodeLocation) -> u8 {
     match location {
@@ -55,26 +91,6 @@ pub fn extract_subopcode(opcode: &[u8], location: SubopcodeLocation) -> u8 {
         SubopcodeLocation::OL => opcode[1] & 0x3F,
         SubopcodeLocation::O3 => opcode[2] & 0xF,
     }
-}
-
-/// Supported types of operands that can be accessed.
-pub enum Operand {
-    /// Register encoded in low 4 bits of byte 1.
-    R1x,
-    /// Register encoded in high 4 bits of byte 1.
-    R2x,
-    /// Register encoded in high 4 bits of byte 2.
-    R3x,
-    /// Register used as source.
-    RxS,
-    /// Register used as destination.
-    RxD,
-    /// Register used as both, source and destination.
-    RxSD,
-    /// 8-bit immediate encoded in byte 2.
-    I8,
-    /// 16-bit immediate encoded in bytes 2 (low part) and 3 (high part).
-    I16,
 }
 
 /// Reads the contents of a given binary file into a byte array.
