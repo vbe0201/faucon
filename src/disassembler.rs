@@ -206,8 +206,8 @@ pub struct Instruction {
     pub mnemonic: Mnemonic,
     /// The operand size this instruction has set.
     pub operand_size: OperandSize,
-    /// An array containing the operands for this instruction.
-    operands: Box<[Operand]>,
+    /// An vector containing the operands for this instruction.
+    operands: Vec<Operand>,
 }
 
 /// Extracts the subopcode from the opcode, given its location.
