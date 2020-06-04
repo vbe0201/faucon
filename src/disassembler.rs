@@ -141,6 +141,10 @@ pub enum Instruction {
     LCALL,
     RET,
     IRET,
+    // ======== Processor control ========
+    EXIT,
+    SLEEP,
+    TRAP,
     // ===================================
 }
 
