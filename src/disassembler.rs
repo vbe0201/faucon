@@ -145,6 +145,10 @@ pub enum Instruction {
     EXIT,
     SLEEP,
     TRAP,
+    // ======= Code virtual memory =======
+    PTLB,
+    VTLB,
+    ITLB,
     // ===================================
 }
 
