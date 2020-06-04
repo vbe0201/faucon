@@ -156,6 +156,10 @@ pub enum Instruction {
     XDST,
     XCWAIT,
     XDWAIT,
+    // ==== Input/Output instructions ====
+    IOWR,
+    IOWRS,
+    IORD,
     // ===================================
 }
 
