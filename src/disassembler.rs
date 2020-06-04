@@ -10,14 +10,13 @@ use std::path::Path;
 /// the first byte of each instruction.
 #[derive(Debug)]
 pub enum OperandSize {
-    /// Denotes an operand size of 8-bit.
+    /// An operand size of 8-bit.
     EightBit,
-    /// Denotes an operand size of 16-bit.
+    /// An operand size of 16-bit.
     SixteenBit,
-    /// Denotes an operand size of 32-bit.
+    /// An operand size of 32-bit.
     ThirtyTwoBit,
-
-    /// Denotes an unknown/variable operand size.
+    /// An unknown/variable operand size.
     Unsized,
 }
 
@@ -29,7 +28,7 @@ impl From<u8> for OperandSize {
             0b01 => OperandSize::SixteenBit,
             0b10 => OperandSize::ThirtyTwoBit,
             0b11 => OperandSize::Unsized,
-            _ => panic!("Invalid instruction hit!"),
+            _ => panic!(),
         }
     }
 }
@@ -49,13 +48,33 @@ pub enum SubopcodeLocation {
 }
 
 /// Extracts the subopcode from the opcode, given its location.
-fn extract_subopcode(opcode: &[u8], location: SubopcodeLocation) -> u8 {
+pub fn extract_subopcode(opcode: &[u8], location: SubopcodeLocation) -> u8 {
     match location {
         SubopcodeLocation::O1 => opcode[0] & 0xF,
         SubopcodeLocation::O2 => opcode[1] & 0xF,
         SubopcodeLocation::OL => opcode[1] & 0x3F,
         SubopcodeLocation::O3 => opcode[2] & 0xF,
     }
+}
+
+/// Supported types of operands that can be accessed.
+pub enum Operand {
+    /// Register encoded in low 4 bits of byte 1.
+    R1x,
+    /// Register encoded in high 4 bits of byte 1.
+    R2x,
+    /// Register encoded in high 4 bits of byte 2.
+    R3x,
+    /// Register used as source.
+    RxS,
+    /// Register used as destination.
+    RxD,
+    /// Register used as both, source and destination.
+    RxSD,
+    /// 8-bit immediate encoded in byte 2.
+    I8,
+    /// 16-bit immediate encoded in bytes 2 (low part) and 3 (high part).
+    I16,
 }
 
 /// Reads the contents of a given binary file into a byte array.
