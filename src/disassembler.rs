@@ -140,15 +140,16 @@ pub enum Instruction {
     CALL,
     LCALL,
     RET,
-    IRET,
     // ======== Processor control ========
     EXIT,
     SLEEP,
-    TRAP,
     // ======= Code virtual memory =======
     PTLB,
     VTLB,
     ITLB,
+    // ============ Interrupts ===========
+    IRET,
+    TRAP,
     // ===================================
 }
 
