@@ -83,6 +83,85 @@ pub enum Operand {
     I16,
 }
 
+/// Assembly Instructions described by the ISA.
+#[derive(Debug)]
+pub enum Instruction {
+    // ===== Arithmetic instructions =====
+    /// Compares values.
+    CMP,
+    /// Compares unsigned values.
+    CMPU,
+    /// Compares signed values.
+    CMPS,
+    /// Performs an addition.
+    ADD,
+    /// Performs an addition with carry.
+    ADC,
+    /// Performs a subtraction.
+    SUB,
+    /// Performs a subtraction with borrow.
+    SBB,
+    /// Performs a bitwise left shift.
+    SHL,
+    /// Performs a bitwise right shift.
+    SHR,
+    /// Performs a signed bitwise right shift.
+    SAR,
+    /// Performs a bitwise left shift with carry.
+    SHLC,
+    /// Performs a bitwise right shift with carry.
+    SHRC,
+    /// Performs a bitwise NOT operation.
+    NOT,
+    /// Negates a value.
+    NEG,
+    /// Moves a value.
+    MOV,
+    /// Moves a value and sets the corresponding flags.
+    MOVF,
+    /// Rotates a value by half its size.
+    HSWAP,
+    /// Sets the high 16 bits of a register to an immediate.
+    SETHI,
+    /// Clears a register.
+    CLEAR,
+    /// Sets flags based on a value.
+    SETF,
+    /// Performs an unsigned multiplication.
+    MULU,
+    /// Performs a signed multiplication.
+    MULS,
+    /// Sign-extends the bits of a value.
+    SEXT,
+    /// Extracts an unsigned bitfield.
+    EXTR,
+    /// Extracts a signed bitfield.
+    EXTRS,
+    /// Inserts a bitfield.
+    INS,
+    /// Performs a bitwise AND operation.
+    AND,
+    /// Performs a bitwise OR operation.
+    OR,
+    /// Performs a bitwise XOR operation.
+    XOR,
+    /// Extracts a single bit from a register.
+    XBIT,
+    /// Sets a specified bit in a register.
+    BSET,
+    /// Clears a specified bit in a register.
+    BCLR,
+    /// Flips a specified bit in a register.
+    BTGL,
+    /// Performs an unsigned 32-bit division.
+    DIV,
+    /// Performs an unsigned 32-bit modulus.
+    MOD,
+    /// Sets a predicate in the flags register.
+    SETP,
+    // ===================================
+}
+
 /// Extracts the subopcode from the opcode, given its location.
 pub fn extract_subopcode(opcode: &[u8], location: SubopcodeLocation) -> u8 {
     match location {
