@@ -8,7 +8,8 @@ use std::path::Path;
 pub fn read_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
     let mut binary_buffer = Vec::new();
 
-    let mut file = File::open(path).expect("Failed to read the binary!");
+    let mut file = File::open(path)
+        .expect("Failed to read the given binary! Please verify that its path is valid!");
     file.read_to_end(&mut binary_buffer).unwrap();
 
     binary_buffer.into_boxed_slice()
