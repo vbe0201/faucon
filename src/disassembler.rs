@@ -150,6 +150,12 @@ pub enum Instruction {
     // ============ Interrupts ===========
     IRET,
     TRAP,
+    // == Xfers to/from external memory ==
+    XCLD,
+    XDLD,
+    XDST,
+    XCWAIT,
+    XDWAIT,
     // ===================================
 }
 
