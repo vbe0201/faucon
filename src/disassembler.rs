@@ -83,9 +83,9 @@ pub enum Operand {
     I16,
 }
 
-/// Assembly Instructions described by the ISA.
+/// Assembly Instruction mnemonics described by the ISA.
 #[derive(Debug)]
-pub enum Instruction {
+pub enum Mnemonic {
     // ===== Arithmetic instructions =====
     CMP,
     CMPU,
@@ -188,6 +188,26 @@ pub enum Instruction {
     CSIGCLR,
     CSIGENC,
     // ===================================
+}
+
+/// A Falcon CPU instruction.
+#[derive(Debug)]
+pub struct Instruction {
+    /// The general opcode this instruction belongs to.
+    pub opcode: u8,
+    /// The subopcode location for the instruction.
+    ///
+    /// This is an internally used property that is relevant for
+    /// extracting further information from a given set of bytes.
+    subopcode_location: SubopcodeLocation,
+    /// The particular subopcode for this instruction.
+    pub subopcode: u8,
+    /// The instruction mnemonic.
+    pub mnemonic: Mnemonic,
+    /// The operand size this instruction has set.
+    pub operand_size: OperandSize,
+    /// An array containing the operands for this instruction.
+    operands: Box<[Operand]>,
 }
 
 /// Extracts the subopcode from the opcode, given its location.
