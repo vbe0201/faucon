@@ -3,3 +3,8 @@
 [[package]]
 name = "faucon"
 version = "0.1.0"
+
+[[package]]
+name = "faucon-asm"
+version = "0.1.0"
+
