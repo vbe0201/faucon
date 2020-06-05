@@ -83,6 +83,9 @@ pub enum Operand {
     I16,
 }
 
+/// Parses an operand notation into the corresponding [`Operand`] representation.
+///
+/// [`Operand`]: struct.Operand.html
 macro_rules! operand {
     (R1S) => {
         Operand::R(Register(RegisterLocation::Low1, RegisterDirection::S))
