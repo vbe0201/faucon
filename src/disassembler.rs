@@ -21,9 +21,9 @@ pub enum OperandSize {
 }
 
 impl From<u8> for OperandSize {
-    fn from(first_byte: u8) -> Self {
+    fn from(opcode: u8) -> Self {
         // Check the highest two bits.
-        match first_byte >> 6 {
+        match opcode >> 6 {
             0b00 => OperandSize::EightBit,
             0b01 => OperandSize::SixteenBit,
             0b10 => OperandSize::ThirtyTwoBit,
@@ -277,12 +277,12 @@ pub fn get_subopcode_location(opcode: u8) -> Option<SubopcodeLocation> {
 }
 
 /// Extracts the subopcode from the opcode, given its location.
-pub fn extract_subopcode(opcode: &[u8], location: SubopcodeLocation) -> u8 {
+pub fn extract_subopcode(instruction: &[u8], location: SubopcodeLocation) -> u8 {
     match location {
-        SubopcodeLocation::O1 => opcode[0] & 0xF,
-        SubopcodeLocation::O2 => opcode[1] & 0xF,
-        SubopcodeLocation::OL => opcode[1] & 0x3F,
-        SubopcodeLocation::O3 => opcode[2] & 0xF,
+        SubopcodeLocation::O1 => instruction[0] & 0xF,
+        SubopcodeLocation::O2 => instruction[1] & 0xF,
+        SubopcodeLocation::OL => instruction[1] & 0x3F,
+        SubopcodeLocation::O3 => instruction[2] & 0xF,
     }
 }
 
