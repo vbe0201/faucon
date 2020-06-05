@@ -60,18 +60,18 @@ pub enum RegisterLocation {
 /// Possible directions in which a register is used.
 pub enum RegisterDirection {
     /// The register is encoded as a source register.
-    Source,
+    S,
     /// The register is encoded as a destination register.
-    Destination,
+    D,
     /// The register is encoded as both, source and destination.
-    SourceDestination,
+    SD,
 }
 
 /// Represents a CPU register as it is encoded within an instruction.
 ///
 /// Given are the information on where a register is exactly stored and
 /// how it is exactly utilised.
-pub struct Register(RegisterLocation, RegisterDirection);
+pub struct Register(pub RegisterLocation, pub RegisterDirection);
 
 /// Supported types of operands that can be accessed.
 pub enum Operand {
@@ -81,6 +81,42 @@ pub enum Operand {
     I8,
     /// 16-bit immediate encoded in bytes 2 (low part) and 3 (high part).
     I16,
+}
+
+macro_rules! operand {
+    (R1S) => {
+        Operand::R(Register(RegisterLocation::Low1, RegisterDirection::S))
+    };
+    (R2S) => {
+        Operand::R(Register(RegisterLocation::High1, RegisterDirection::S))
+    };
+    (R3S) => {
+        Operand::R(Register(RegisterLocation::High2, RegisterDirection::S))
+    };
+    (R1D) => {
+        Operand::R(Register(RegisterLocation::Low1, RegisterDirection::D))
+    };
+    (R2D) => {
+        Operand::R(Register(RegisterLocation::High1, RegisterDirection::D))
+    };
+    (R3D) => {
+        Operand::R(Register(RegisterLocation::High2, RegisterDirection::D))
+    };
+    (R1SD) => {
+        Operand::R(Register(RegisterLocation::Low1, RegisterDirection::SD))
+    };
+    (R2SD) => {
+        Operand::R(Register(RegisterLocation::High1, RegisterDirection::SD))
+    };
+    (R3SD) => {
+        Operand::R(Register(RegisterLocation::High2, RegisterDirection::SD))
+    };
+    (I8) => {
+        Operand::I8
+    };
+    (I16) => {
+        Operand::I16
+    };
 }
 
 /// Assembly Instruction mnemonics described by the ISA.
@@ -191,7 +227,6 @@ pub enum Mnemonic {
 }
 
 /// A Falcon CPU instruction.
-#[derive(Debug)]
 pub struct Instruction {
     /// The general opcode this instruction belongs to.
     pub opcode: u8,
