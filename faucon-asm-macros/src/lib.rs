@@ -32,7 +32,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
         }
 
         Ok(quote! {
-            impl From<(u8, u8)> for Instruction {
+            impl From<(u8, u8)> for #ast.ident {
                 fn from(op: (u8, u8)) -> Option<Self> {
                     #(#fields),*
                 }
