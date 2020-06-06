@@ -12,19 +12,10 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RegisterLocation {
     /// The register is encoded in the low 4 bits of byte 1.
-    ///
-    /// NOTE: This notation refers to the operand bytes, which resolves,
-    /// including the opcode, to the second byte of an instruction.
     Low1,
     /// The register is encoded in the high 4 bits of byte 1.
-    ///
-    /// NOTE: This notation refers to the operand bytes, which resolves,
-    /// including the opcode, to the second byte of an instruction.
     High1,
     /// The register is encoded in the high 4 bits of byte 2.
-    ///
-    /// NOTE: This notation refers to the operand bytes, which resolves,
-    /// including the opcode, to the third byte of an instruction.
     High2,
 }
 
@@ -73,16 +64,13 @@ pub enum Operand {
     /// An encoded register operand.
     R(RegisterMeta),
     /// 8-bit immediate encoded in byte 2.
-    ///
-    /// NOTE: This notation refers to the operand bytes, which resolves,
-    /// including the opcode, to the third byte of an instruction.
     I8,
     /// 16-bit immediate encoded in little-endian byteorder, starting
     /// from byte 2.
-    ///
-    /// NOTE: This notation refers to the operand bytes, which resolves,
-    /// including the opcode, to the third byte of an instruction.
     I16,
+    /// 32-bit immediate encoded in little-endian byteorder, starting
+    /// from byte 2.
+    I32,
 }
 
 impl Operand {
