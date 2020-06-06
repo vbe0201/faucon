@@ -59,9 +59,28 @@ pub enum RegisterDirection {
 ///
 /// [`Operand`]: enum.Operand.html
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct RegisterMeta {
-    /// The location in which the register is encoded in an instruction.
-    pub location: RegisterLocation,
-    /// The direction in which the register is used by the instruction.
-    pub direction: RegisterDirection,
+pub struct RegisterMeta(pub RegisterLocation, pub RegisterDirection);
+
+/// An operand in a Falcon Assembly instruction.
+///
+/// Operands can either be a register, in which case, the [`RegisterMeta`]
+/// object carrying all the important details is exposed or a numeric type
+/// in various sizes.
+///
+/// [`RegisterMeta`]: struct.RegisterMeta.html
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Operand {
+    /// An encoded register operand.
+    R(RegisterMeta),
+    /// 8-bit immediate encoded in byte 2.
+    ///
+    /// NOTE: This notation refers to the operand bytes, which resolves,
+    /// including the opcode, to the third byte of an instruction.
+    I8,
+    /// 16-bit immediate encoded in little-endian byteorder, starting
+    /// from byte 2.
+    ///
+    /// NOTE: This notation refers to the operand bytes, which resolves,
+    /// including the opcode, to the third byte of an instruction.
+    I16,
 }
