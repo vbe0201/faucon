@@ -84,3 +84,43 @@ pub enum Operand {
     /// including the opcode, to the third byte of an instruction.
     I16,
 }
+
+impl Operand {
+    /// Checks whether the operand is a register instead of an
+    /// immediate.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use faucon_asm::operand::*;
+    ///
+    /// assert_eq!(
+    ///     Operand::R(RegisterMeta(
+    ///         RegisterLocation::Low1,
+    ///         RegisterDirection::Source
+    ///     ))
+    ///     .is_register(),
+    ///     true
+    /// );
+    /// ```
+    pub fn is_register(&self) -> bool {
+        !self.is_immediate()
+    }
+
+    /// Checks whether the operand is an immediate instead of a
+    /// register.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use faucon_asm::operand::Operand;
+    ///
+    /// assert_eq!(Operand::I8.is_immediate(), true);
+    /// ```
+    pub fn is_immediate(&self) -> bool {
+        match self {
+            Operand::R(_) => false,
+            _ => true,
+        }
+    }
+}
