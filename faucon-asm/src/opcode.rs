@@ -37,3 +37,17 @@ impl From<u8> for SubopcodeLocation {
         }
     }
 }
+
+/// Parses the subopcode from an instruction, given its location.
+///
+/// The subopcode is what identifies instructions uniquely, in
+/// combination with the opcode. As a result of that,
+/// `(opcode, subopcode)` is needed for instruction lookup.
+pub fn parse_subopcode(insn: &[u8], location: SubopcodeLocation) -> u8 {
+    match location {
+        SubopcodeLocation::O1 => insn[0] & 0xF,
+        SubopcodeLocation::O2 => insn[1] & 0xF,
+        SubopcodeLocation::OL => insn[1] & 0x3F,
+        SubopcodeLocation::O3 => insn[2] & 0xF,
+    }
+}
