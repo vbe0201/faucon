@@ -1,14 +1,13 @@
 [package]
-name = "faucon"
+name = "faucon-asm-macros"
 version = "0.1.0"
 authors = ["Valentin B. <valentin.be@protonmail.com>"]
-description = "NVIDIA Falcon CPU emulator"
+description = "Helper macros for the faucon-asm crate."
 license = "Apache-2.0/MIT"
-readme = "../README.md"
 homepage = "https://github.com/vbe0201/faucon"
 edition = "2018"
 
-[workspace]
-members = ["faucon-asm", "faucon-asm-macros"]
+[lib]
+proc-macro = true
 
 [dependencies]

@@ -8,3 +8,7 @@ version = "0.1.0"
 name = "faucon-asm"
 version = "0.1.0"
 
+[[package]]
+name = "faucon-asm-macros"
+version = "0.1.0"
+
