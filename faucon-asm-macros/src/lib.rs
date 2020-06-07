@@ -100,7 +100,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     match identifier {
                         #(#match_cases),*
 
-                        _ => Instruction::XXX,
+                        _ => #name::XXX,
                     }
                 }
             }
