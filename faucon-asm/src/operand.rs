@@ -1,3 +1,31 @@
+/// Denotes the operand size of an instruction.
+///
+/// The value is determined by the highest two
+/// bits of an opcode.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OperandSize {
+    /// An operand size of 8 bits.
+    EightBit,
+    /// An operand size of 16 bits.
+    SixteenBit,
+    /// An operand size of 32 bits.
+    ThirtyTwoBit,
+    /// An unsized operand size.
+    Unsized,
+}
+
+impl From<u8> for OperandSize {
+    fn from(opcode: u8) -> Self {
+        match opcode >> 6 {
+            0b00 => OperandSize::EightBit,
+            0b01 => OperandSize::SixteenBit,
+            0b10 => OperandSize::ThirtyTwoBit,
+            0b11 => OperandSize::Unsized,
+            _ => panic!("Cannot decode operand size"),
+        }
+    }
+}
+
 /// Denotes the location of a register operand in an instruction.
 ///
 /// In Falcon Assembly, register operands individually have information
