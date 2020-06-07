@@ -54,6 +54,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
 
         Ok(quote! {
             impl #name {
+                /// Whether the instruction is invalid or unknown.
                 pub fn invalid(&self) -> bool {
                     match self {
                         #name::XXX => true,
@@ -61,6 +62,9 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     }
                 }
 
+                /// Gets the opcode of the instruction, if possible.
+                ///
+                /// Returns `None` if the instruction is invalid.
                 pub fn opcode(&self) -> Option<u8> {
                     match self {
                         #(#opcode_variants),*
@@ -68,6 +72,9 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     }
                 }
 
+                /// Gets the subopcode of the instruction, if possible.
+                ///
+                /// Returns `None` if the instruction is invalid.
                 pub fn subopcode(&self) -> Option<u8> {
                     match self {
                         #(#subopcode_variants),*
@@ -75,6 +82,9 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     }
                 }
 
+                /// Gets a vector of instruction operands, if possible.
+                ///
+                /// Returns `None` if the instruction is invalid.
                 pub fn operands(&self) -> Option<Vec<Operand>> {
                     let operands = match self {
                         #(#operand_variants),*
