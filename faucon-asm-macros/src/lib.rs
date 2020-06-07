@@ -54,9 +54,9 @@ fn extract_insn_attributes(variant: &syn::Variant) -> Result<(u8, u8, String)> {
                     }
                 }
 
-                let opcode = parse_int_arg(&arguments[0].lit)?;
-                let subopcode = parse_int_arg(&arguments[1].lit)?;
-                let operands = parse_str_arg(&arguments[2].lit)?;
+                let opcode = parse_int_arg(arguments[0], "opcode")?;
+                let subopcode = parse_int_arg(arguments[1], "subopcode")?;
+                let operands = parse_str_arg(&arguments[2], "operands")?;
                 Ok((opcode, subopcode, operands))
             } else {
                 Err(Error::new(
@@ -78,24 +78,39 @@ fn extract_insn_attributes(variant: &syn::Variant) -> Result<(u8, u8, String)> {
     }
 }
 
-fn parse_int_arg(lit: &syn::Lit) -> Result<u8> {
-    if let syn::Lit::Int(ref int) = lit {
+fn parse_int_arg(meta: &syn::MetaNameValue, name: &str) -> Result<u8> {
+    verify_ident_name(&meta.path, name)?;
+
+    if let syn::Lit::Int(ref int) = meta.lit {
         Ok(int.base10_parse().unwrap())
     } else {
         Err(Error::new(
             Span::call_site(),
-            "Failed to parse the integer literal",
+            format!("Failed to parse the \"{}\" integer literal", name),
         ))
     }
 }
 
-fn parse_str_arg(lit: &syn::Lit) -> Result<String> {
-    if let syn::Lit::Str(ref str) = lit {
+fn parse_str_arg(meta: &syn::MetaNameValue, name: &str) -> Result<String> {
+    verify_ident_name(&meta.path, name)?;
+
+    if let syn::Lit::Str(ref str) = meta.lit {
         Ok(str.value())
     } else {
         Err(Error::new(
             Span::call_site(),
-            "Failed to parse the string literal",
+            format!("Failed to parse the \"{}\" string literal", name),
         ))
+    }
+}
+
+fn verify_ident_name(path: &syn::Path, name: &str) -> Result<()> {
+    if !path.is_ident(&syn::Ident::new(name, Span::call_site())) {
+        Err(Error::new(
+            Span::call_site(),
+            format!("#[insn] must have a \"{}\" argument", name),
+        ))
+    } else {
+        Ok(())
     }
 }
