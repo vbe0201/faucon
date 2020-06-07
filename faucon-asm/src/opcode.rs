@@ -15,25 +15,25 @@ pub enum SubopcodeLocation {
 }
 
 impl From<u8> for SubopcodeLocation {
-    fn from(opcode: u8) -> Option<Self> {
+    fn from(opcode: u8) -> Self {
         match opcode {
             // Sized opcodes
-            0x00..=0x2F => Some(SubopcodeLocation::O1),
-            0x30..=0x37 => Some(SubopcodeLocation::O2),
-            0x38..=0x3C => Some(SubopcodeLocation::O3),
-            0x3D => Some(SubopcodeLocation::O2),
+            0x00..=0x2F => SubopcodeLocation::O1,
+            0x30..=0x37 => SubopcodeLocation::O2,
+            0x38..=0x3C => SubopcodeLocation::O3,
+            0x3D => SubopcodeLocation::O2,
 
             // Unsized opcodes
-            0xC0..=0xEF => Some(SubopcodeLocation::O1),
-            0xF0..=0xF2 => Some(SubopcodeLocation::O2),
-            0xF4..=0xF5 => Some(SubopcodeLocation::OL),
-            0xF8..=0xF9 => Some(SubopcodeLocation::O2),
-            0xFA => Some(SubopcodeLocation::O3),
-            0xFC => Some(SubopcodeLocation::O2),
-            0xFD..=0xFF => Some(SubopcodeLocation::O3),
+            0xC0..=0xEF => SubopcodeLocation::O1,
+            0xF0..=0xF2 => SubopcodeLocation::O2,
+            0xF4..=0xF5 => SubopcodeLocation::OL,
+            0xF8..=0xF9 => SubopcodeLocation::O2,
+            0xFA => SubopcodeLocation::O3,
+            0xFC => SubopcodeLocation::O2,
+            0xFD..=0xFF => SubopcodeLocation::O3,
 
             // Unknown/Invalid
-            _ => None,
+            _ => panic!("Failed to parse invalid opcode"),
         }
     }
 }
