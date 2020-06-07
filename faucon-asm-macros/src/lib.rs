@@ -21,7 +21,12 @@ pub fn instruction(input: TokenStream) -> TokenStream {
 fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
     if let syn::Data::Enum(data) = &ast.data {
         let mut fields: Vec<proc_macro2::TokenStream> = Vec::new();
-        for variant in data.variants.iter() {
+        for variant in data
+            .variants
+            .iter()
+            .filter(|v| v.ident != syn::Ident::new("XXX", Span::call_site()))
+            .collect::<Vec<&syn::Variant>>()
+        {
             let (opcode, subopcode, operands) = extract_insn_attributes(variant)?;
 
             panic!(format!("{} {} {}", opcode, subopcode, operands));
