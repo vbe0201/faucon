@@ -29,7 +29,10 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
 
         unimplemented!()
     } else {
-        panic!("#[derive(Instruction)] can only be applied to enums")
+        Err(Error::new(
+            Span::call_site(),
+            "#[derive(Instruction)] can only be applied to enums",
+        ))
     }
 }
 
