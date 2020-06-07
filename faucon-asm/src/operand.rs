@@ -112,3 +112,50 @@ impl Operand {
         }
     }
 }
+
+impl<'a> From<&'a str> for Operand {
+    fn from(fmt: &'a str) -> Self {
+        match fmt.trim() {
+            "R1S" => Operand::R(RegisterMeta(
+                RegisterLocation::Low1,
+                RegisterDirection::Source,
+            )),
+            "R1D" => Operand::R(RegisterMeta(
+                RegisterLocation::Low1,
+                RegisterDirection::Destination,
+            )),
+            "R1SD" => Operand::R(RegisterMeta(
+                RegisterLocation::Low1,
+                RegisterDirection::SourceDestination,
+            )),
+            "R2S" => Operand::R(RegisterMeta(
+                RegisterLocation::High1,
+                RegisterDirection::Source,
+            )),
+            "R2D" => Operand::R(RegisterMeta(
+                RegisterLocation::High1,
+                RegisterDirection::Destination,
+            )),
+            "R2SD" => Operand::R(RegisterMeta(
+                RegisterLocation::High1,
+                RegisterDirection::SourceDestination,
+            )),
+            "R3S" => Operand::R(RegisterMeta(
+                RegisterLocation::High2,
+                RegisterDirection::Source,
+            )),
+            "R3D" => Operand::R(RegisterMeta(
+                RegisterLocation::High2,
+                RegisterDirection::Destination,
+            )),
+            "R3SD" => Operand::R(RegisterMeta(
+                RegisterLocation::High2,
+                RegisterDirection::SourceDestination,
+            )),
+            "I8" => Operand::I8,
+            "I16" => Operand::I16,
+            "I32" => Operand::I32,
+            _ => panic!("Cannot parse invalid operand notation"),
+        }
+    }
+}

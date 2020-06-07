@@ -48,7 +48,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
             });
 
             operand_variants.push(quote! {
-                #name::#vname(_, _, operands) => Some(*operands),
+                #name::#vname(_, _, operands) => Some(operands.as_str()),
             });
         }
 
