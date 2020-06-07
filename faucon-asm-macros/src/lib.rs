@@ -20,19 +20,81 @@ pub fn instruction(input: TokenStream) -> TokenStream {
 
 fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
     if let syn::Data::Enum(data) = &ast.data {
-        let mut fields: Vec<proc_macro2::TokenStream> = Vec::new();
+        let mut match_cases = Vec::new();
+        let mut opcode_variants = Vec::new();
+        let mut subopcode_variants = Vec::new();
+        let mut operand_variants = Vec::new();
+
+        let name = &ast.ident;
         for variant in data
             .variants
             .iter()
             .filter(|v| v.ident != syn::Ident::new("XXX", Span::call_site()))
             .collect::<Vec<&syn::Variant>>()
         {
+            let vname = &variant.ident;
             let (opcode, subopcode, operands) = extract_insn_attributes(variant)?;
 
-            panic!(format!("{} {} {}", opcode, subopcode, operands));
+            match_cases.push(quote! {
+                (#opcode, #subopcode) => #name::#vname(#opcode, #subopcode, #operands.to_string()),
+            });
+
+            opcode_variants.push(quote! {
+                #name::#vname(opcode, _, _) => Some(*opcode),
+            });
+
+            subopcode_variants.push(quote! {
+                #name::#vname(_, subopcode, _) => Some(*subopcode),
+            });
+
+            operand_variants.push(quote! {
+                #name::#vname(_, _, operands) => Some(*operands),
+            });
         }
 
-        unimplemented!()
+        Ok(quote! {
+            impl #name {
+                pub fn invalid(&self) -> bool {
+                    match self {
+                        #name::XXX => true,
+                        _ => false,
+                    }
+                }
+
+                pub fn opcode(&self) -> Option<u8> {
+                    match self {
+                        #(#opcode_variants),*
+                        _ => None
+                    }
+                }
+
+                pub fn subopcode(&self) -> Option<u8> {
+                    match self {
+                        #(#subopcode_variants),*
+                        _ => None,
+                    }
+                }
+
+                pub fn operands(&self) -> Option<Vec<Operand>> {
+                    let operands = match self {
+                        #(#operand_variants),*
+                        _ => None,
+                    }?;
+
+                    Some(operands.split(',').map(|fmt| Operand::from(fmt)).collect())
+                }
+            }
+
+            impl From<(u8, u8)> for #name {
+                fn from(identifier: (u8, u8)) -> Self {
+                    match identifier {
+                        #(#match_cases),*
+
+                        _ => Instruction::XXX,
+                    }
+                }
+            }
+        })
     } else {
         Err(Error::new(
             Span::call_site(),
