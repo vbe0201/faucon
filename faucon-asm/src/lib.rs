@@ -1,14 +1,15 @@
+pub use disassembler::*;
 pub use instruction::*;
 pub use opcode::*;
 pub use operand::*;
 
+pub mod disassembler;
 pub mod instruction;
 pub mod opcode;
 pub mod operand;
-pub mod parser;
 
 /// A Falcon Assembly instruction.
-pub struct Instruction<'a> {
+pub struct Instruction {
     /// The kind of instruction that is being wrapped.
     ///
     /// [`InstructionKind`]s generally identify instructions and
@@ -18,20 +19,27 @@ pub struct Instruction<'a> {
     /// [`InstructionKind`]: struct.InstructionKind.html
     pub kind: InstructionKind,
     /// The raw bytes of an instruction.
-    bytes: &'a [u8],
+    bytes: Vec<u8>,
 }
 
-impl<'a> Instruction<'a> {
+impl Instruction {
     /// Constructs a new instruction from its kind and bytes representation.
     ///
     /// This function returns `None` if an invalid instruction was supplied.
-    pub fn new(kind: InstructionKind, bytes: &'a [u8]) -> Option<Self> {
+    ///
+    /// NOTE: Since users are not supposed to tamper with the internal
+    /// representations of instructions, they should be obtained through a
+    /// factory function, rather than creating own objects of them.
+    pub(crate) fn new(kind: InstructionKind) -> Option<Self> {
         // Filter out invalid instructions.
         if kind.invalid() {
             return None;
         }
 
-        Some(Instruction { kind, bytes })
+        Some(Instruction {
+            kind,
+            bytes: Vec::new(),
+        })
     }
 
     /// Gets the opcode of the instruction.
@@ -71,5 +79,15 @@ impl<'a> Instruction<'a> {
     /// The size is derived from the first byte of an instruction.
     pub fn operand_size(&self) -> OperandSize {
         OperandSize::from(self.opcode())
+    }
+
+    /// Feeds a slice of bytes to the internal representation of the instruction.
+    ///
+    /// This method is supposed to be called by the factory function that creates
+    /// the instruction. For the reasoning behind this choice, see [`Instruction::new`].
+    ///
+    /// [`Instruction::new`]: struct.Instruction.html#method.new
+    pub(crate) fn feed(&mut self, bytes: &[u8]) {
+        self.bytes.extend(bytes);
     }
 }
