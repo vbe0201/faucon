@@ -1,5 +1,5 @@
 [package]
-name = "faucon-asm-macros"
+name = "faucon-asm-derive"
 version = "0.1.0"
 authors = ["Valentin B. <valentin.be@protonmail.com>"]
 description = "Helper macros for the faucon-asm crate."

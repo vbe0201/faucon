@@ -8,11 +8,11 @@ version = "0.1.0"
 name = "faucon-asm"
 version = "0.1.0"
 dependencies = [
- "faucon-asm-macros 0.1.0",
+ "faucon-asm-derive 0.1.0",
 ]
 
 [[package]]
-name = "faucon-asm-macros"
+name = "faucon-asm-derive"
 version = "0.1.0"
 dependencies = [
  "proc-macro2 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",

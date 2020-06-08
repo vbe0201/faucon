@@ -9,6 +9,6 @@ homepage = "https://github.com/vbe0201/faucon"
 edition = "2018"
 
 [workspace]
-members = ["faucon-asm", "faucon-asm-macros"]
+members = ["faucon-asm", "faucon-asm-derive"]
 
 [dependencies]

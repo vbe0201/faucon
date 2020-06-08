@@ -1,4 +1,4 @@
-use faucon_asm_macros::Instruction;
+use faucon_asm_derive::Instruction;
 
 use crate::operand::Operand;
 
