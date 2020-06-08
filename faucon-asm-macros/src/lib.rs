@@ -36,19 +36,19 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
             let (opcode, subopcode, operands) = extract_insn_attributes(variant)?;
 
             match_cases.push(quote! {
-                (#opcode, #subopcode) => #name::#vname(#opcode, #subopcode, #operands.to_string()),
+                (#opcode, #subopcode) => #name::#vname(#opcode, #subopcode, #operands.to_string())
             });
 
             opcode_variants.push(quote! {
-                #name::#vname(opcode, _, _) => Some(*opcode),
+                #name::#vname(opcode, _, _) => Some(*opcode)
             });
 
             subopcode_variants.push(quote! {
-                #name::#vname(_, subopcode, _) => Some(*subopcode),
+                #name::#vname(_, subopcode, _) => Some(*subopcode)
             });
 
             operand_variants.push(quote! {
-                #name::#vname(_, _, operands) => Some(operands.as_str()),
+                #name::#vname(_, _, operands) => Some(operands.as_str())
             });
         }
 
@@ -67,7 +67,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 /// Returns `None` if the instruction is invalid.
                 pub fn opcode(&self) -> Option<u8> {
                     match self {
-                        #(#opcode_variants),*
+                        #(#opcode_variants),*,
                         _ => None
                     }
                 }
@@ -77,7 +77,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 /// Returns `None` if the instruction is invalid.
                 pub fn subopcode(&self) -> Option<u8> {
                     match self {
-                        #(#subopcode_variants),*
+                        #(#subopcode_variants),*,
                         _ => None,
                     }
                 }
@@ -87,7 +87,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 /// Returns `None` if the instruction is invalid.
                 pub fn operands(&self) -> Option<Vec<Operand>> {
                     let operands = match self {
-                        #(#operand_variants),*
+                        #(#operand_variants),*,
                         _ => None,
                     }?;
 
@@ -98,7 +98,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
             impl From<(u8, u8)> for #name {
                 fn from(identifier: (u8, u8)) -> Self {
                     match identifier {
-                        #(#match_cases),*
+                        #(#match_cases),*,
 
                         _ => #name::XXX,
                     }
