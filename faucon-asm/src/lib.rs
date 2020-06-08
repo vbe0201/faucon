@@ -5,6 +5,7 @@ pub use operand::*;
 pub mod instruction;
 pub mod opcode;
 pub mod operand;
+pub mod parser;
 
 /// A Falcon Assembly instruction.
 pub struct Instruction<'a> {

@@ -14,6 +14,22 @@ pub enum SubopcodeLocation {
     O3,
 }
 
+impl SubopcodeLocation {
+    /// Gets the location of the subopcode.
+    ///
+    /// The location denotes where the byte is encoded, which
+    /// is crucial for the binary reader to determine how many
+    /// bytes are needed to be read for a single instruction.
+    pub fn location(&self) -> usize {
+        match self {
+            SubopcodeLocation::O1 => 0,
+            SubopcodeLocation::O2 => 1,
+            SubopcodeLocation::OL => 1,
+            SubopcodeLocation::O3 => 2,
+        }
+    }
+}
+
 impl From<u8> for SubopcodeLocation {
     fn from(opcode: u8) -> Self {
         match opcode {
