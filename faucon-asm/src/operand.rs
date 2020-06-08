@@ -158,6 +158,20 @@ impl Operand {
             Operand::I32 => 2,
         }
     }
+
+    /// Gets the size of the operand.
+    ///
+    /// The size indicates over how many bytes an operand spans and is used
+    /// by the parser to determine the amount of bytes that are occupied by
+    /// the operands of a particular instruction.
+    pub fn size(&self) -> usize {
+        match self {
+            Operand::R(_) => 1,
+            Operand::I8 => 1,
+            Operand::I16 => 2,
+            Operand::I32 => 4,
+        }
+    }
 }
 
 impl<'a> From<&'a str> for Operand {
