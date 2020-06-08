@@ -139,6 +139,25 @@ impl Operand {
             _ => true,
         }
     }
+
+    /// Gets the location where an opcode is stored in an array of instruction
+    /// bytes.
+    ///
+    /// This function helps the parser to decide how many bytes to read for the
+    /// particular instruction to cover all operands and also gives details about
+    /// where their value can be obtained.
+    pub fn location(&self) -> usize {
+        match self {
+            Operand::R(meta) => match meta.0 {
+                RegisterLocation::Low1 => 1,
+                RegisterLocation::High1 => 1,
+                RegisterLocation::High2 => 2,
+            },
+            Operand::I8 => 2,
+            Operand::I16 => 2,
+            Operand::I32 => 2,
+        }
+    }
 }
 
 impl<'a> From<&'a str> for Operand {
