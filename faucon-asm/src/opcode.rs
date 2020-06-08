@@ -15,12 +15,12 @@ pub enum SubopcodeLocation {
 }
 
 impl SubopcodeLocation {
-    /// Gets the location of the subopcode.
+    /// Gets the location of the subopcode as a numeral value.
     ///
     /// The location denotes where the byte is encoded, which
     /// is crucial for the binary reader to determine how many
     /// bytes are needed to be read for a single instruction.
-    pub fn location(&self) -> usize {
+    pub fn value(&self) -> usize {
         match self {
             SubopcodeLocation::O1 => 0,
             SubopcodeLocation::O2 => 1,
