@@ -19,7 +19,7 @@ pub struct Instruction {
     /// [`InstructionKind`]: struct.InstructionKind.html
     pub kind: InstructionKind,
     /// The raw bytes of an instruction.
-    bytes: Vec<u8>,
+    pub(crate) bytes: Vec<u8>,
 }
 
 impl Instruction {
