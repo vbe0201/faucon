@@ -4,6 +4,17 @@ use crate::instruction::InstructionKind;
 use crate::opcode::*;
 use crate::{Error, Instruction, Result};
 
+/// Reads an instruction from a given [`Read`]er and attempts to parse it into
+/// an [`Instruction`] object.
+///
+/// The reader is supposed to provide enough bytes to construct an instruction
+/// and it is advised to call this function with a [`Cursor`] that tracks the
+/// position in the bytes provider in a loop to read all the instructions, e.g.
+/// from a input binary.
+///
+/// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+/// [`Instruction`]: ../struct.Instruction.html
+/// [`Cursor`]: https://doc.rust-lang.org/std/io/struct.Cursor.html
 pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     let mut insn = Vec::new();
 
