@@ -21,7 +21,7 @@ impl From<u8> for OperandSize {
             0b01 => OperandSize::SixteenBit,
             0b10 => OperandSize::ThirtyTwoBit,
             0b11 => OperandSize::Unsized,
-            _ => panic!("Cannot decode operand size"),
+            _ => unreachable!(),
         }
     }
 }
