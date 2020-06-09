@@ -8,6 +8,24 @@ pub mod instruction;
 pub mod opcode;
 pub mod operand;
 
+/// The result of a Falcon ISA functions.
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
+/// Error types that are used by the crate.
+///
+/// These help in providing better diagnostics when using the crate
+/// and to provide one uniform [`Result`] type within the crate.
+///
+/// [`Result`]: type.Result.html
+pub enum Error {
+    /// Invalid instruction encountered.
+    ///
+    /// Provides the opcode of the instruction in question.
+    InvalidInstruction(u8),
+    /// An I/O error occurred while working with a reader.
+    IoError,
+}
+
 /// A Falcon Assembly instruction.
 pub struct Instruction {
     /// The kind of instruction that is being wrapped.
