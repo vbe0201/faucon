@@ -30,6 +30,7 @@
 //! use faucon_asm::{disassemble, InstructionKind};
 //!
 //! let instructions = disassemble(&mut Cursor::new(vec![0xfa, 0x9b, 0x00])).unwrap();
+//! assert_eq!(instructions.len(), 1);
 //! assert_eq!(instructions[0].kind, InstructionKind::IOWR(250, 0, "R2S, R1S".to_string()));
 //! ```
 //!
