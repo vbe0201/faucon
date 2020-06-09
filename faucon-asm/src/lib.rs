@@ -68,10 +68,11 @@ impl Instruction {
     ///
     /// See [`Instruction::operand_size`] to determine the size of
     /// operands individually per instruction.
-    pub fn operands(&self) -> Vec<Operand> {
-        // This is considered safe, since only valid instructions
-        // can be used for constructing this type.
-        self.kind.operands().unwrap()
+    pub fn operands(&self) -> Option<Vec<Operand>> {
+        // Since there are instructions that might not take any
+        // operands at all, it is better to return the Option
+        // instead of unwrapping.
+        self.kind.operands()
     }
 
     /// Gets the size of instruction operands.
