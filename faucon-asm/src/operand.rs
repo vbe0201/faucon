@@ -1,3 +1,5 @@
+//! Abstractions over Falcon Assembly operands.
+
 /// Denotes the operand size of an instruction.
 ///
 /// The value is determined by the highest two

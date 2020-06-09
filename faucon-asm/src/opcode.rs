@@ -1,3 +1,5 @@
+//! Helpers for parsing Falcon Assembly opcodes.
+
 /// The location within an instruction where the subopcode is stored.
 ///
 /// In Falcon Assembly, opcodes generally span a variety of instructions,

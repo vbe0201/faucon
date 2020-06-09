@@ -1,3 +1,5 @@
+//! Falcon Assembly instruction listings.
+
 use faucon_asm_derive::Instruction;
 
 use crate::operand::Operand;
@@ -15,6 +17,12 @@ pub enum InstructionKind {
     /// the result.
     #[insn(opcode = 0xC0, subopcode = 6, operands = "R1D, R2S, I8")]
     XOR(u8, u8, String),
+
+    /// The IOWR instruction.
+    ///
+    /// Writes a word to the I/O space of the processor.
+    #[insn(opcode = 0xFA, subopcode = 0, operands = "R2S, R1S")]
+    IOWR(u8, u8, String),
 
     /// An invalid or unknown instruction.
     ///

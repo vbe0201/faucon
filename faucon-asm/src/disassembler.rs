@@ -1,3 +1,5 @@
+//! Disassembler implementation for the Falcon ISA.
+
 use std::io::Read;
 
 use crate::instruction::InstructionKind;

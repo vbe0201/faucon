@@ -1,3 +1,44 @@
+//! Rust library for working with the NVIDIA Falcon ISA.
+//!
+//! # About the Falcon
+//!
+//! The **Fa**st **L**ogic **Con**troller is a series of general-purpose
+//! embedded microprocessors that have been started in ~2005. With over
+//! 3 billion units shipped, the Falcon has been used in many different
+//! places, primarily NVIDIA GPUs starting from G98.
+//!
+//! Falcon units consist of:
+//!
+//! - the core processors with its SRAM for code and data
+//! - the I/O space for communication with host systems
+//! - FIFO interface logic (optional)
+//! - memory interface logic (optional)
+//! - cryptographic AES coprocessor, making the Falcon a "secretful unit" (optional)
+//! - unit-specific logic, depending on how the processor is used (optional)
+//!
+//! # The Falcon Instruction Set Architecture
+//!
+//! This crate is providing abstract mechanisms for simplifying assembling/disassembling
+//! Assembly instructions, while also providing a well-documented and understandable API
+//! that explains the ISA concepts and how they are supposed to be handled.
+//!
+//! ## Disassembling
+//!
+//! ```
+//! use std::io::Cursor;
+//!
+//! use faucon_asm::{disassemble, InstructionKind};
+//!
+//! let instructions = disassemble(&mut Cursor::new(vec![0xfa, 0x9b, 0x00])).unwrap();
+//! assert_eq!(instructions[0].kind, InstructionKind::IOWR(250, 0, "R2S, R1S".to_string()));
+//! ```
+//!
+//! ## Assembling
+//!
+//! **TODO:** Implement this.
+
+#![warn(missing_docs)]
+
 use std::io::Read;
 
 pub use instruction::*;
@@ -33,6 +74,7 @@ pub enum Error {
 }
 
 /// A Falcon Assembly instruction.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
     /// The kind of instruction that is being wrapped.
     ///
