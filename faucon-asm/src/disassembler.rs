@@ -1,46 +1,74 @@
-use std::fs::File;
-use std::io::{Cursor, Read, Result};
-use std::path::Path;
+use std::io::Read;
 
 use crate::instruction::InstructionKind;
 use crate::opcode::*;
-use crate::operand::*;
-use crate::Instruction;
+use crate::{Error, Instruction, Result};
 
 pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     let mut insn = Vec::new();
 
-    // First, read the opcode of an instruction and construct the subopcode's location.
-    reader.take(1).read_to_end(&mut insn)?;
+    // First, read the opcode of an instruction and get the corresponding subopcode.
+    read_bytes(&mut insn, reader, 1)?;
     let subopcode_location =
-        get_subopcode_location(insn[0]).expect("Unrecognized opcode encountered");
+        get_subopcode_location(insn[0]).ok_or(Error::InvalidInstruction(insn[0]))?;
 
-    // Read enough bytes to extract the subopcode into the buffer.
-    reader
-        .take(subopcode_location.value() as u64)
-        .read_to_end(&mut insn)?;
-
-    // Extract the subopcode.
+    // Read and extract the subopcode.
+    read_bytes(&mut insn, reader, subopcode_location.value() as u64)?;
     let subopcode = parse_subopcode(&insn, subopcode_location);
 
-    // Construct the instruction in question through (opcode, subopcode) identifier.
-    let instruction_kind = InstructionKind::from((insn[0], subopcode));
-
-    // Read enough bytes to cover all operands supported by the instruction.
-    let mut instruction = Instruction::new(instruction_kind).expect("Invalid instruction hit.");
-
-    let operand = *instruction
-        .operands()
-        .iter()
-        .max_by_key(|o| o.size())
-        .unwrap();
-    if operand.location() > insn.len() {
-        reader
-            .take((operand.location() - insn.len() + operand.size()) as u64)
-            .read_to_end(&mut insn)?;
-    }
-
+    // Given the extracted information, construct the instruction in question.
+    let insn_kind = InstructionKind::from((insn[0], subopcode));
+    let mut instruction = Instruction::new(insn_kind).ok_or(Error::InvalidInstruction(insn[0]))?;
     instruction.feed(&insn);
 
+    // Read and extract all the operands that belong to the instruction.
+    read_operands(&mut instruction, reader)?;
+
     Ok(instruction)
+}
+
+fn read_operands<R: Read>(insn: &mut Instruction, reader: &mut R) -> Result<()> {
+    // Check if the instruction even has operands. If not, we can safely opt out.
+    let operands = if let Some(o) = insn.operands() {
+        o
+    } else {
+        return Ok(());
+    };
+
+    // If there are operands, read them into the instruction buffer.
+    for operand in operands.iter() {
+        let operand_start = operand.location() as u64;
+        let operand_length = operand.size() as u64;
+
+        // First, check if the operand is already fully available.
+        // In such a case, we can opt out immediately.
+        let operand_bytes = insn.bytes[operand_start as usize..].len() as u64;
+        if operand_bytes >= operand_length {
+            return Ok(());
+        }
+
+        // If that's not the case, continue reading the missing chunk.
+        let mut remainder = Vec::new();
+        read_bytes(&mut remainder, reader, operand_length - operand_bytes)?;
+
+        // Under certain circumstances, the buffer may have not been filled to the
+        // actual start of the operand, so this needs to be taken care of as well.
+        let actual_length = insn.bytes.len() as u64;
+        let required_length = operand_start + operand_length;
+        if actual_length < required_length {
+            read_bytes(&mut remainder, reader, required_length - actual_length)?;
+        }
+
+        // Lastly, feed the bytes to the instruction.
+        insn.feed(&remainder);
+    }
+
+    Ok(())
+}
+
+fn read_bytes<R: Read>(buffer: &mut Vec<u8>, reader: &mut R, amount: u64) -> Result<usize> {
+    reader
+        .take(amount)
+        .read_to_end(buffer)
+        .map_err(|_| Error::IoError)
 }
