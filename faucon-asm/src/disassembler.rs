@@ -78,8 +78,13 @@ fn read_operands<R: Read>(insn: &mut Instruction, reader: &mut R) -> Result<()> 
 }
 
 fn read_bytes<R: Read>(buffer: &mut Vec<u8>, reader: &mut R, amount: u64) -> Result<usize> {
-    reader
-        .take(amount)
-        .read_to_end(buffer)
-        .map_err(|_| Error::IoError)
+    if let Ok(amount_read) = reader.take(amount).read_to_end(buffer) {
+        if amount_read == 0 {
+            Err(Error::Eof)
+        } else {
+            Ok(amount_read)
+        }
+    } else {
+        Err(Error::IoError)
+    }
 }

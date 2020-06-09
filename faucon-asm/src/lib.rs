@@ -1,4 +1,5 @@
-pub use disassembler::*;
+use std::io::Read;
+
 pub use instruction::*;
 pub use opcode::*;
 pub use operand::*;
@@ -17,6 +18,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 /// and to provide one uniform [`Result`] type within the crate.
 ///
 /// [`Result`]: type.Result.html
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     /// Invalid instruction encountered.
     ///
@@ -24,6 +26,10 @@ pub enum Error {
     InvalidInstruction(u8),
     /// An I/O error occurred while working with a reader.
     IoError,
+    /// An EOF has been reached while streaming a binary's content through [`Read`].
+    ///
+    /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+    Eof,
 }
 
 /// A Falcon Assembly instruction.
@@ -108,5 +114,33 @@ impl Instruction {
     /// [`Instruction::new`]: struct.Instruction.html#method.new
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
         self.bytes.extend(bytes);
+    }
+}
+
+/// Disassembles the bytes from a given stream until an EOF is encountered.
+///
+/// This function tries to disassemble as many bytes as provided through the
+/// [`Read`]er, returning a [`Vec`] of [`Instruction`]s on EOF. As a logical
+/// consequence, any [`Error`] variant returned by this instruction is never
+/// an EOF.
+///
+/// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+/// [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+/// [`Instruction`]: struct.Instruction.html
+/// [`Error`]: enum.Error.html
+pub fn disassemble<R: Read>(reader: &mut R) -> Result<Vec<Instruction>> {
+    let mut instructions = Vec::new();
+
+    loop {
+        match disassembler::read_instruction(reader) {
+            Ok(insn) => instructions.push(insn),
+            Err(e) => {
+                return if e == Error::Eof {
+                    Ok(instructions)
+                } else {
+                    Err(e)
+                }
+            }
+        }
     }
 }
