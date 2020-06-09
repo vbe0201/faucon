@@ -14,7 +14,7 @@ pub enum InstructionKind {
     /// Applies a bitwise xor operation on two operands and stores
     /// the result.
     #[insn(opcode = 0xC0, subopcode = 6, operands = "R1D, R2S, I8")]
-    XOR,
+    XOR(u8, u8, String),
 
     /// An invalid or unknown instruction.
     ///

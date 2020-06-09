@@ -36,19 +36,19 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
             let (opcode, subopcode, operands) = extract_insn_attributes(variant)?;
 
             match_cases.push(quote! {
-                (#opcode, #subopcode) => #name::#vname
+                (#opcode, #subopcode) => #name::#vname(#opcode, #subopcode, #operands.to_string())
             });
 
             opcode_variants.push(quote! {
-                #name::#vname => Some(#opcode)
+                #name::#vname(opcode, _, _) => Some(*opcode)
             });
 
             subopcode_variants.push(quote! {
-                #name::#vname => Some(#subopcode)
+                #name::#vname(_, subopcode, _) => Some(*subopcode)
             });
 
             operand_variants.push(quote! {
-                #name::#vname => Some(#operands)
+                #name::#vname(_, _, operands) => Some(operands.as_str())
             });
         }
 
