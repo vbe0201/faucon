@@ -22,6 +22,6 @@ pub enum InstructionKind {
     /// If such an instruction is encountered, the user may halt the
     /// program.
     ///
-    /// [`InstructionKind::invalid`]: struct.InstructionKind.html#method.invalid
+    /// [`InstructionKind::invalid`]: enum.InstructionKind.html#method.invalid
     XXX,
 }

@@ -34,7 +34,7 @@ pub struct Instruction {
     /// their operands individually and provide helper methods for
     /// working with them.
     ///
-    /// [`InstructionKind`]: struct.InstructionKind.html
+    /// [`InstructionKind`]: ./instruction/enum.InstructionKind.html
     pub kind: InstructionKind,
     /// The raw bytes of an instruction.
     pub(crate) bytes: Vec<u8>,
