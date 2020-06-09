@@ -174,6 +174,9 @@ impl Operand {
     }
 }
 
+// This is the counterpart to the operands notation
+// proposed by the faucon-asm-derive crate.
+
 impl<'a> From<&'a str> for Operand {
     fn from(fmt: &'a str) -> Self {
         match fmt.trim() {
