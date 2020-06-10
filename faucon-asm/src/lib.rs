@@ -27,7 +27,7 @@
 //! ```
 //! use std::io::Cursor;
 //!
-//! use faucon_asm::{disassemble, InstructionKind};
+//! use faucon_asm::{disassemble, instruction::InstructionKind};
 //!
 //! let instructions = disassemble(&mut Cursor::new(vec![0xfa, 0x9b, 0x00])).unwrap();
 //! assert_eq!(instructions.len(), 1);
@@ -42,9 +42,10 @@
 
 use std::io::Read;
 
-pub use instruction::*;
-pub use opcode::*;
-pub use operand::*;
+use byteorder::{ByteOrder, LittleEndian};
+
+use instruction::*;
+use operand::*;
 
 pub mod disassembler;
 pub mod instruction;
@@ -74,6 +75,78 @@ pub enum Error {
     Eof,
 }
 
+/// A Falcon CPU register, encoded as an [`Instruction`] [`Operand`].
+///
+/// The Falcon has 16 general-purpose registers, indexed from 0 through 16
+/// (denoted by the `value` field), along with around a dozen special registers.
+///
+/// [`Instruction`]: struct.Instruction.html
+/// [`Operand`]: enum.Operand.html
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Register {
+    /// The [`RegisterMeta`] object that corresponds to the wrapped register.
+    ///
+    /// Provides useful semantic details on its purpose within an [`Instruction`].
+    ///
+    /// [`Instruction`]: struct.Instruction.html
+    pub meta: RegisterMeta,
+    /// The value of the wrapped register.
+    ///
+    /// This is a number ranging from 0-15, denoting the index of the register.
+    pub value: u8,
+}
+
+impl Register {
+    /// Constructs a new register from its byte representation and its meta information.
+    ///
+    /// Registers are a kind of [`Operand`] that is being utilized in [`Instruction`]
+    /// operations.
+    ///
+    /// [`Operand`]: enum.Operand.html
+    /// [`Instruction`]: struct.Instruction.html
+    pub fn new(register_meta: &RegisterMeta, insn: &[u8]) -> Self {
+        let value = parse_register(insn, register_meta);
+        Register {
+            meta: *register_meta,
+            value,
+        }
+    }
+}
+
+/// A Falcon Assembly operand that belongs to an [`Instruction`].
+///
+/// Operands can either be a CPU [`Register`], or an immediate of a
+/// variable size. A [`Vec`] of operands for a particular
+/// [`Instruction`] can be obtained through [`Instruction::operands`].
+/// It is within the user's responsibility to correctly determine
+/// how the operands are meant to be interpreted and handled.
+///
+/// [`Instruction`]: struct.Instruction.html
+/// [`Register`]: struct.Register.html
+/// [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+/// [`Instruction::operands`]: struct.Instruction.html#method.operands
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Operand {
+    /// A CPU [`Register`], wrapping around its value and the
+    /// corresponding [`RegisterMeta`] object.
+    ///
+    /// [`Register`]: struct.Register.html
+    /// [`RegisterMeta`]: ./operand/struct.RegisterMeta.html
+    Register(Register),
+    /// An 8-bit-sized immediate, represented through an [`i8`].
+    ///
+    /// [`i8`]: https://doc.rust-lang.org/stable/std/primitive.i8.html
+    I8(i8),
+    /// A 16-bit-sized immediate, represented through an [`i16`].
+    ///
+    /// [`i16`]: https://doc.rust-lang.org/stable/std/primitive.i16.html
+    I16(i16),
+    /// A 32-bit-sized immediate, represented through an [`i32`].
+    ///
+    /// [`i32`]: https://doc.rust-lang.org/stable/std/primitive.i32.html
+    I32(i32),
+}
+
 /// A Falcon Assembly instruction.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
@@ -93,11 +166,12 @@ impl Instruction {
     /// Constructs a new instruction from its kind and bytes representation.
     ///
     /// This function returns `None` if an invalid instruction was supplied.
+    /// When the instruction was successfully created, its byte representation
+    /// must be supplied through [`Instruction::feed`] before actually using any
+    /// of the provided methods.
     ///
-    /// NOTE: Since users are not supposed to tamper with the internal
-    /// representations of instructions, they should be obtained through a
-    /// factory function, rather than creating own objects of them.
-    pub(crate) fn new(kind: InstructionKind) -> Option<Self> {
+    /// [`Instruction::feed`]: struct.Instruction.html#method.feed
+    pub fn new(kind: InstructionKind) -> Option<Self> {
         // Filter out invalid instructions.
         if kind.invalid() {
             return None;
@@ -107,6 +181,15 @@ impl Instruction {
             kind,
             bytes: Vec::new(),
         })
+    }
+
+    fn parse_operand(&self, operand: &OperandMeta) -> Operand {
+        match operand {
+            OperandMeta::R(meta) => Operand::Register(Register::new(meta, &self.bytes)),
+            OperandMeta::I8 => Operand::I8(self.bytes[2] as i8),
+            OperandMeta::I16 => Operand::I16(LittleEndian::read_i16(&self.bytes[2..])),
+            OperandMeta::I32 => Operand::I32(LittleEndian::read_i32(&self.bytes[2..])),
+        }
     }
 
     /// Gets the opcode of the instruction.
@@ -135,11 +218,18 @@ impl Instruction {
     ///
     /// See [`Instruction::operand_size`] to determine the size of
     /// operands individually per instruction.
+    ///
+    /// [`Operand`]: enum.Operand.html
+    /// [`Instruction::operand_size`]: struct.Instruction.html#method.operand_size
     pub fn operands(&self) -> Option<Vec<Operand>> {
         // Since there are instructions that might not take any
         // operands at all, it is better to return the Option
         // instead of unwrapping.
-        self.kind.operands()
+        if let Some(operands) = self.kind.operands() {
+            Some(operands.iter().map(|o| self.parse_operand(o)).collect())
+        } else {
+            None
+        }
     }
 
     /// Gets the size of instruction operands.
@@ -151,11 +241,11 @@ impl Instruction {
 
     /// Feeds a slice of bytes to the internal representation of the instruction.
     ///
-    /// This method is supposed to be called by the factory function that creates
-    /// the instruction. For the reasoning behind this choice, see [`Instruction::new`].
+    /// This method is supposed to be called right after a successful call to
+    /// [`Instruction::new`] before actually using the object.
     ///
     /// [`Instruction::new`]: struct.Instruction.html#method.new
-    pub(crate) fn feed(&mut self, bytes: &[u8]) {
+    pub fn feed(&mut self, bytes: &[u8]) {
         self.bytes.extend(bytes);
     }
 }

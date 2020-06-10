@@ -82,7 +82,25 @@ pub enum RegisterDirection {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RegisterMeta(pub RegisterLocation, pub RegisterDirection);
 
-/// An operand in a Falcon Assembly instruction.
+/// Parses a register within an instruction, given its corresponding
+/// [`RegisterMeta`] object.
+///
+/// Registers are encoded as numbers within a range of 0-15, denoting
+/// the index of the register. The location where it is encoded can
+/// be derived from the [`RegisterLocation`] member of the
+/// [`RegisterMeta`].
+///
+/// [`RegisterMeta`]: struct.RegisterMeta.html
+/// [`RegisterLocation`]: enum.RegisterLocation.html
+pub fn parse_register(insn: &[u8], meta: &RegisterMeta) -> u8 {
+    match meta.0 {
+        RegisterLocation::Low1 => insn[1] & 0xF,
+        RegisterLocation::High1 => insn[1] >> 4,
+        RegisterLocation::High2 => insn[2] >> 4,
+    }
+}
+
+/// Describes an operand in a Falcon Assembly instruction.
 ///
 /// Operands can either be a register, in which case, the [`RegisterMeta`]
 /// object carrying all the important details is exposed or a numeric type
@@ -90,7 +108,7 @@ pub struct RegisterMeta(pub RegisterLocation, pub RegisterDirection);
 ///
 /// [`RegisterMeta`]: struct.RegisterMeta.html
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Operand {
+pub enum OperandMeta {
     /// An encoded register operand.
     R(RegisterMeta),
     /// 8-bit immediate encoded in byte 2.
@@ -103,45 +121,7 @@ pub enum Operand {
     I32,
 }
 
-impl Operand {
-    /// Checks whether the operand is a register instead of an
-    /// immediate.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use faucon_asm::operand::*;
-    ///
-    /// assert_eq!(
-    ///     Operand::R(RegisterMeta(
-    ///         RegisterLocation::Low1,
-    ///         RegisterDirection::Source
-    ///     ))
-    ///     .is_register(),
-    ///     true
-    /// );
-    /// ```
-    pub fn is_register(&self) -> bool {
-        !self.is_immediate()
-    }
-
-    /// Checks whether the operand is an immediate instead of a
-    /// register.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use faucon_asm::operand::Operand;
-    ///
-    /// assert_eq!(Operand::I8.is_immediate(), true);
-    /// ```
-    pub fn is_immediate(&self) -> bool {
-        match self {
-            Operand::R(_) => false,
-            _ => true,
-        }
-    }
-
+impl OperandMeta {
     /// Gets the location where an opcode is stored in an array of instruction
     /// bytes.
     ///
@@ -150,14 +130,14 @@ impl Operand {
     /// where their value can be obtained.
     pub fn location(&self) -> usize {
         match self {
-            Operand::R(meta) => match meta.0 {
+            OperandMeta::R(meta) => match meta.0 {
                 RegisterLocation::Low1 => 1,
                 RegisterLocation::High1 => 1,
                 RegisterLocation::High2 => 2,
             },
-            Operand::I8 => 2,
-            Operand::I16 => 2,
-            Operand::I32 => 2,
+            OperandMeta::I8 => 2,
+            OperandMeta::I16 => 2,
+            OperandMeta::I32 => 2,
         }
     }
 
@@ -168,10 +148,10 @@ impl Operand {
     /// the operands of a particular instruction.
     pub fn size(&self) -> usize {
         match self {
-            Operand::R(_) => 1,
-            Operand::I8 => 1,
-            Operand::I16 => 2,
-            Operand::I32 => 4,
+            OperandMeta::R(_) => 1,
+            OperandMeta::I8 => 1,
+            OperandMeta::I16 => 2,
+            OperandMeta::I32 => 4,
         }
     }
 }
@@ -179,48 +159,48 @@ impl Operand {
 // This is the counterpart to the operands notation
 // proposed by the faucon-asm-derive crate.
 
-impl<'a> From<&'a str> for Operand {
+impl<'a> From<&'a str> for OperandMeta {
     fn from(fmt: &'a str) -> Self {
         match fmt.trim() {
-            "R1S" => Operand::R(RegisterMeta(
+            "R1S" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::Low1,
                 RegisterDirection::Source,
             )),
-            "R1D" => Operand::R(RegisterMeta(
+            "R1D" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::Low1,
                 RegisterDirection::Destination,
             )),
-            "R1SD" => Operand::R(RegisterMeta(
+            "R1SD" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::Low1,
                 RegisterDirection::SourceDestination,
             )),
-            "R2S" => Operand::R(RegisterMeta(
+            "R2S" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::High1,
                 RegisterDirection::Source,
             )),
-            "R2D" => Operand::R(RegisterMeta(
+            "R2D" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::High1,
                 RegisterDirection::Destination,
             )),
-            "R2SD" => Operand::R(RegisterMeta(
+            "R2SD" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::High1,
                 RegisterDirection::SourceDestination,
             )),
-            "R3S" => Operand::R(RegisterMeta(
+            "R3S" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::High2,
                 RegisterDirection::Source,
             )),
-            "R3D" => Operand::R(RegisterMeta(
+            "R3D" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::High2,
                 RegisterDirection::Destination,
             )),
-            "R3SD" => Operand::R(RegisterMeta(
+            "R3SD" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::High2,
                 RegisterDirection::SourceDestination,
             )),
-            "I8" => Operand::I8,
-            "I16" => Operand::I16,
-            "I32" => Operand::I32,
+            "I8" => OperandMeta::I8,
+            "I16" => OperandMeta::I16,
+            "I32" => OperandMeta::I32,
             _ => panic!("Cannot parse invalid operand notation"),
         }
     }

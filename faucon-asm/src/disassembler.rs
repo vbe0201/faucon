@@ -42,7 +42,7 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
 
 fn read_operands<R: Read>(insn: &mut Instruction, reader: &mut R) -> Result<()> {
     // Check if the instruction even has operands. If not, we can safely opt out.
-    let operands = if let Some(o) = insn.operands() {
+    let operands = if let Some(o) = insn.kind.operands() {
         o
     } else {
         return Ok(());

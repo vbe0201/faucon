@@ -2,7 +2,7 @@
 
 use faucon_asm_derive::Instruction;
 
-use crate::operand::Operand;
+use crate::operand::OperandMeta;
 
 /// Assembly instructions that are supported by the Falcon ISA.
 ///

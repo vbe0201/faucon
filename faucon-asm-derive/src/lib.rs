@@ -85,13 +85,13 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 /// Gets a vector of instruction operands, if possible.
                 ///
                 /// Returns `None` if the instruction is invalid.
-                pub fn operands(&self) -> Option<Vec<Operand>> {
+                pub fn operands(&self) -> Option<Vec<OperandMeta>> {
                     let operands = match self {
                         #(#operand_variants),*,
                         _ => None,
                     }?;
 
-                    Some(operands.split(',').map(|fmt| Operand::from(fmt)).collect())
+                    Some(operands.split(',').map(|fmt| OperandMeta::from(fmt)).collect())
                 }
             }
 
