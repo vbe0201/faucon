@@ -141,6 +141,10 @@ pub enum Operand {
     ///
     /// [`i16`]: https://doc.rust-lang.org/stable/std/primitive.i16.html
     I16(i16),
+    /// A 24-bit-sized immediate, represented through an [`i32`].
+    ///
+    /// [`i32`]: https://doc.rust-lang.org/stable/std/primitive.i32.html
+    I24(i32),
     /// A 32-bit-sized immediate, represented through an [`i32`].
     ///
     /// [`i32`]: https://doc.rust-lang.org/stable/std/primitive.i32.html
@@ -188,6 +192,7 @@ impl Instruction {
             OperandMeta::R(meta) => Operand::Register(Register::new(meta, &self.bytes)),
             OperandMeta::I8 => Operand::I8(self.bytes[2] as i8),
             OperandMeta::I16 => Operand::I16(LittleEndian::read_i16(&self.bytes[2..])),
+            OperandMeta::I24 => Operand::I24(LittleEndian::read_i24(&self.bytes[2..])),
             OperandMeta::I32 => Operand::I32(LittleEndian::read_i32(&self.bytes[2..])),
         }
     }

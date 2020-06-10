@@ -116,6 +116,9 @@ pub enum OperandMeta {
     /// 16-bit immediate encoded in little-endian byteorder, starting
     /// from byte 2.
     I16,
+    /// 24-bit immediate encoded in little-endian byteorder, starting
+    /// from byte 2.
+    I24,
     /// 32-bit immediate encoded in little-endian byteorder, starting
     /// from byte 2.
     I32,
@@ -137,6 +140,7 @@ impl OperandMeta {
             },
             OperandMeta::I8 => 2,
             OperandMeta::I16 => 2,
+            OperandMeta::I24 => 2,
             OperandMeta::I32 => 2,
         }
     }
@@ -151,6 +155,7 @@ impl OperandMeta {
             OperandMeta::R(_) => 1,
             OperandMeta::I8 => 1,
             OperandMeta::I16 => 2,
+            OperandMeta::I24 => 3,
             OperandMeta::I32 => 4,
         }
     }
@@ -200,6 +205,7 @@ impl<'a> From<&'a str> for OperandMeta {
             )),
             "I8" => OperandMeta::I8,
             "I16" => OperandMeta::I16,
+            "I24" => OperandMeta::I24,
             "I32" => OperandMeta::I32,
             _ => panic!("Cannot parse invalid operand notation"),
         }
