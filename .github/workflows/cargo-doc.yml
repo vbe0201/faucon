@@ -1,0 +1,36 @@
+name: Cargo Doc
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+        name: Checkout
+        with:
+          submodules: recursive
+
+      - name: Install latest stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Generate documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --all-features
+        env:
+          RUSTDOCFLAGS: -Z unstable-options --enable-index-page
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@2.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_BRANCH: master
+          BRANCH: gh-pages
+          FOLDER: target/doc
