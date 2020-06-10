@@ -24,8 +24,6 @@ jobs:
         with:
           command: doc
           args: --all-features
-        env:
-          RUSTDOCFLAGS: --enable-index-page
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@2.0.3
