@@ -8,6 +8,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "faucon"
 version = "0.1.0"
+dependencies = [
+ "faucon-asm 0.1.0",
+]
 
 [[package]]
 name = "faucon-asm"
