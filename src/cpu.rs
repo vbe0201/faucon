@@ -47,6 +47,17 @@ pub enum CpuFlag {
     TA = 1 << 24,
 }
 
+/// The execution states a Falcon processor can take.
+#[derive(Debug)]
+pub enum ExecutionState {
+    /// The processor is actively executing instructions.
+    Running,
+    /// The processor is currently halted, unable to recover.
+    Stopped,
+    /// The processor is currently halted, but interrupts can restart execution.
+    Sleeping,
+}
+
 /// Representation of the Falcon processor.
 #[derive(Debug)]
 pub struct Cpu {
@@ -56,6 +67,8 @@ pub struct Cpu {
     pub sprs: [i32; 0x10],
     /// The 16 secretful registers.
     pub crs: [i32; 0x10],
+    /// The current execution state.
+    pub state: ExecutionState,
 }
 
 impl Cpu {
