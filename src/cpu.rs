@@ -76,6 +76,7 @@ pub struct Cpu {
 }
 
 impl Cpu {
+    // Special-purpose register indexes.
     /// Interrupt vector 0 register.
     pub const REG_IV0: usize = 0;
     /// Interrupt vector 1 register.
@@ -102,6 +103,24 @@ impl Cpu {
     pub const REG_XTARGETS: usize = 11;
     /// Trap status register.
     pub const REG_TSTATUS: usize = 12;
+
+    // Trap reasons.
+    /// The trap reason for software trap 0.
+    pub const TRAP_SOFTWARE_0: u32 = 0x0;
+    /// The trap reason for software trap 1.
+    pub const TRAP_SOFTWARE_1: u32 = 0x1;
+    /// The trap reason for software trap 2.
+    pub const TRAP_SOFTWARE_2: u32 = 0x2;
+    /// The trap reason for software trap 3.
+    pub const TRAP_SOFTWARE_3: u32 = 0x3;
+    /// The trap reason for when an invalid opcode occurs.
+    pub const TRAP_INVALID_OPCODE: u32 = 0x8;
+    /// The trap reason for when a page fault occurs due to no hits.
+    pub const TRAP_PAGE_NO_HIT: u32 = 0xA;
+    /// The trap reason for when a page fault occurs due to multiple hits.
+    pub const TRAP_PAGE_MULTI_HIT: u32 = 0xB;
+    /// The trap reason for when a breakpoint is hit.
+    pub const TRAP_BREAKPOINT: u32 = 0xF;
 }
 
 impl Cpu {
@@ -142,5 +161,28 @@ impl Cpu {
         self.sprs[Self::REG_SP] += 4;
 
         value
+    }
+
+    /// Delivers a trap to the processor.
+    ///
+    /// Traps behave similar to interrupts, but are triggered from events
+    /// inside the UC.
+    pub fn trap(&mut self, reason: u32) {
+        // Indicate that a trap is currently active.
+        self.set_flag(CpuFlag::TA, true);
+
+        // Load the faulting `pc` along with the trap reason into `tstatus`.
+        self.sprs[Self::REG_TSTATUS] = self.sprs[Self::REG_PC] | reason << 20;
+
+        // Configure the `flags` register appropriately.
+        // TODO: Missing flags?
+        self.set_flag(CpuFlag::IS0, self.get_flag(CpuFlag::IE0));
+        self.set_flag(CpuFlag::IS1, self.get_flag(CpuFlag::IE1));
+        self.set_flag(CpuFlag::IE0, false);
+        self.set_flag(CpuFlag::IE1, false);
+
+        // Push the faulting `pc` onto the stack and execute the responsible `tv`.
+        self.push(self.sprs[Self::REG_PC]);
+        self.sprs[Self::REG_PC] = self.sprs[Self::REG_TV];
     }
 }
