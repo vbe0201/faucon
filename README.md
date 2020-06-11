@@ -37,6 +37,9 @@ project and the [Falcon LLVM backend insight](https://0x04.net/%7Emwk/Falcon.htm
 
 - Switchbrew contributors for the [TSEC wiki page](https://switchbrew.org/wiki/TSEC)
 
+- [Thog](https://github.com/Thog) and [hthh](https://github.com/hthh) for the
+[ghidra-falcon](https://github.com/Thog/ghidra_falcon) project
+
 ## License
 
 faucon is distributed under the terms of either the Apache License (Version 2.0) or the
