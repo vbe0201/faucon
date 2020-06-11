@@ -1,5 +1,21 @@
 //! Implementation of Falcon code and data spaces.
 
+/// Representation of Falcon memory space.
+///
+/// It mainly consists of a [`DataSpace`] for the stack and program
+/// variables, but also a separate code space for program code.
+///
+/// [`DataSpace`]: struct.DataSpace.html
+#[derive(Debug)]
+pub struct Memory {
+    /// The Falcon data space in memory.
+    ///
+    /// See [`DataSpace`] for details.
+    ///
+    /// [`DataSpace`]: struct.DataSpace.html
+    pub data: DataSpace,
+}
+
 /// The Falcon I/O memory space for data.
 ///
 /// Its size can be determined by looking at the `UC_CAPS` MMIO
@@ -11,7 +27,8 @@
 /// access leads to data corruption.
 ///
 /// [`DataSpace::new`]: struct.DataSpace.html#method.new
-struct DataSpace {
+#[derive(Debug)]
+pub struct DataSpace {
     /// Internal representation of the data space memory.
     memory: Vec<u8>,
 }

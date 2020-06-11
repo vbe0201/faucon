@@ -1,5 +1,7 @@
 //! Falcon CPU abstractions.
 
+use crate::memory::Memory;
+
 // TODO: Figure out bits 26 and 29.
 /// [`Cpu`] flag bits for the `flags` special-purpose register.
 ///
@@ -67,6 +69,8 @@ pub struct Cpu {
     pub sprs: [u32; 0x10],
     /// The 16 secretful registers.
     pub crs: [u32; 0x10],
+    /// The processor memory.
+    pub memory: Memory,
     /// The current execution state.
     pub state: ExecutionState,
 }
@@ -116,5 +120,27 @@ impl Cpu {
     /// Gets a flag from the `flags` register and indicates whether it is set.
     pub fn get_flag(&self, flag: CpuFlag) -> bool {
         (self.sprs[Self::REG_FLAGS] & flag as u32) != 0
+    }
+
+    /// Pushes a value onto the execution stack and decrements `sp` by 4.
+    ///
+    /// NOTE: The execution stack is part of the [`DataSpace`] memory.
+    ///
+    /// [`DataSpace`]: ../memory/struct.DataSpace.html
+    pub fn push(&mut self, value: u32) {
+        self.sprs[Self::REG_SP] -= 4;
+        self.memory.data.write_word(self.sprs[Self::REG_SP], value);
+    }
+
+    /// Pops a value off the execution stack, increments `sp` by 4, and returns it.
+    ///
+    /// NOTE: The execution stack is part of the [`DataSpace`] memory.
+    ///
+    /// [`DataSpace`]: ../memory/struct.DataSpace.html
+    pub fn pop(&mut self) -> u32 {
+        let value = self.memory.data.read_word(self.sprs[Self::REG_SP]);
+        self.sprs[Self::REG_SP] += 4;
+
+        value
     }
 }
