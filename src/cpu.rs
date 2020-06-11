@@ -5,7 +5,7 @@
 ///
 /// [`Cpu`]: struct.Cpu.html
 #[derive(Debug)]
-#[repr(i32)]
+#[repr(u32)]
 pub enum CpuFlag {
     /// General-purpose predicate 0.
     P0 = 1 << 0,
@@ -62,11 +62,11 @@ pub enum ExecutionState {
 #[derive(Debug)]
 pub struct Cpu {
     /// The 16 general-purpose registers.
-    pub gprs: [i32; 0x10],
+    pub gprs: [u32; 0x10],
     /// The 16 special-purpose registers.
-    pub sprs: [i32; 0x10],
+    pub sprs: [u32; 0x10],
     /// The 16 secretful registers.
-    pub crs: [i32; 0x10],
+    pub crs: [u32; 0x10],
     /// The current execution state.
     pub state: ExecutionState,
 }
@@ -107,14 +107,14 @@ impl Cpu {
     /// - `set = false` clears the given flag.
     pub fn set_flag(&mut self, flag: CpuFlag, set: bool) {
         if set {
-            self.sprs[Self::REG_FLAGS] |= flag as i32;
+            self.sprs[Self::REG_FLAGS] |= flag as u32;
         } else {
-            self.sprs[Self::REG_FLAGS] &= !(flag as i32);
+            self.sprs[Self::REG_FLAGS] &= !(flag as u32);
         }
     }
 
     /// Gets a flag from the `flags` register and indicates whether it is set.
     pub fn get_flag(&self, flag: CpuFlag) -> bool {
-        (self.sprs[Self::REG_FLAGS] & flag as i32) != 0
+        (self.sprs[Self::REG_FLAGS] & flag as u32) != 0
     }
 }

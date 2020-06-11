@@ -133,22 +133,22 @@ pub enum Operand {
     /// [`Register`]: struct.Register.html
     /// [`RegisterMeta`]: ./operand/struct.RegisterMeta.html
     Register(Register),
-    /// An 8-bit-sized immediate, represented through an [`i8`].
+    /// An 8-bit-sized immediate, represented through an [`u8`].
     ///
-    /// [`i8`]: https://doc.rust-lang.org/stable/std/primitive.i8.html
-    I8(i8),
-    /// A 16-bit-sized immediate, represented through an [`i16`].
+    /// [`u8`]: https://doc.rust-lang.org/stable/std/primitive.u8.html
+    I8(u8),
+    /// A 16-bit-sized immediate, represented through an [`u16`].
     ///
-    /// [`i16`]: https://doc.rust-lang.org/stable/std/primitive.i16.html
-    I16(i16),
-    /// A 24-bit-sized immediate, represented through an [`i32`].
+    /// [`u16`]: https://doc.rust-lang.org/stable/std/primitive.u16.html
+    I16(u16),
+    /// A 24-bit-sized immediate, represented through an [`u32`].
     ///
-    /// [`i32`]: https://doc.rust-lang.org/stable/std/primitive.i32.html
-    I24(i32),
-    /// A 32-bit-sized immediate, represented through an [`i32`].
+    /// [`u32`]: https://doc.rust-lang.org/stable/std/primitive.u32.html
+    I24(u32),
+    /// A 32-bit-sized immediate, represented through an [`u32`].
     ///
-    /// [`i32`]: https://doc.rust-lang.org/stable/std/primitive.i32.html
-    I32(i32),
+    /// [`u32`]: https://doc.rust-lang.org/stable/std/primitive.u32.html
+    I32(u32),
 }
 
 /// A Falcon Assembly instruction.
@@ -190,10 +190,10 @@ impl Instruction {
     fn parse_operand(&self, operand: &OperandMeta) -> Operand {
         match operand {
             OperandMeta::R(meta) => Operand::Register(Register::new(meta, &self.bytes)),
-            OperandMeta::I8 => Operand::I8(self.bytes[2] as i8),
-            OperandMeta::I16 => Operand::I16(LittleEndian::read_i16(&self.bytes[2..])),
-            OperandMeta::I24 => Operand::I24(LittleEndian::read_i24(&self.bytes[2..])),
-            OperandMeta::I32 => Operand::I32(LittleEndian::read_i32(&self.bytes[2..])),
+            OperandMeta::I8 => Operand::I8(self.bytes[2] as u8),
+            OperandMeta::I16 => Operand::I16(LittleEndian::read_u16(&self.bytes[2..])),
+            OperandMeta::I24 => Operand::I24(LittleEndian::read_u24(&self.bytes[2..])),
+            OperandMeta::I32 => Operand::I32(LittleEndian::read_u32(&self.bytes[2..])),
         }
     }
 
