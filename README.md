@@ -32,7 +32,8 @@ reach out to `Vale#5252` in #mirage.
 
 ## Credits
 
-- Marcin Kościelnicki and contributors for the [envytools](https://github.com/envytools/envytools)
+- [Marcelina Kościelnicka](https://github.com/mwkmwkmwk) and contributors for the
+[envytools](https://github.com/envytools/envytools)
 project and the [Falcon LLVM backend insight](https://0x04.net/%7Emwk/Falcon.html)
 
 - Switchbrew contributors for the [TSEC wiki page](https://switchbrew.org/wiki/TSEC)
