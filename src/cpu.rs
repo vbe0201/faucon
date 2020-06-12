@@ -61,7 +61,6 @@ pub enum ExecutionState {
 }
 
 /// Representation of the Falcon processor.
-#[derive(Debug)]
 pub struct Cpu {
     /// The 16 general-purpose registers.
     pub gprs: [u32; 0x10],
