@@ -111,12 +111,15 @@ pub struct DataSpace {
 impl DataSpace {
     /// Creates a new instance of the data space from the given size.
     ///
-    /// The size can be determined through the `UC_CAPS` MMIO:
-    /// `UC_CAPS[9:16] << 8`
+    /// The size can be determined through `UC_CAPS[9:16] << 8`.
     pub fn new(size: usize) -> Self {
-        DataSpace {
-            memory: Vec::with_capacity(size),
+        // Initialize and zero out the memory.
+        let mut memory = Vec::with_capacity(size);
+        for _ in 0..size {
+            memory.push(0);
         }
+
+        DataSpace { memory }
     }
 
     /// Reads a byte from a given address in memory.
@@ -143,7 +146,7 @@ impl DataSpace {
     /// Writes a halfword to a given address in memory.
     pub fn write_halfword(&mut self, mut address: u32, mut value: u16) {
         // If the address is unaligned, fuck up the written value.
-        if address & 1 != 0 {
+        if (address & 1) != 0 {
             value = (value & 0xFF) << (address as u16 & 1) * 8;
         }
 
@@ -168,9 +171,9 @@ impl DataSpace {
     /// Writes a word to a given address in memory.
     pub fn write_word(&mut self, mut address: u32, mut value: u32) {
         // If the address is unaligned, fuck up the written value.
-        if address & 1 != 0 {
+        if (address & 1) != 0 {
             value = (value & 0xFF) << (address & 3) * 8;
-        } else if address & 2 != 0 {
+        } else if (address & 2) != 0 {
             value = (value & 0xFFFF) << (address & 3) * 8;
         }
 
