@@ -41,6 +41,24 @@ pub struct Tlb {
     pub entries: Vec<TlbCell>,
 }
 
+impl Tlb {
+    /// Creates a new instance of the Translation Lookaside Buffer for the given
+    /// amount of physical memory pages.
+    ///
+    /// The size can be determined through `UC_CAPS2[16:19]`.
+    pub fn new(pages: usize) -> Self {
+        // XXX: pages = 128
+
+        // Initialize the TLB entries.
+        let mut entries = Vec::with_capacity(size);
+        for _ in 0..size {
+            entries.push(TlbCell::new());
+        }
+
+        Tlb { entries }
+    }
+}
+
 /// [`TlbCell`] flag bits for physical memory pages.
 ///
 /// [`TlbCell`]: struct.TlbCell.html
@@ -113,6 +131,8 @@ impl DataSpace {
     ///
     /// The size can be determined through `UC_CAPS[9:16] << 8`.
     pub fn new(size: usize) -> Self {
+        // XXX: size = 0x4000
+
         // Initialize and zero out the memory.
         let mut memory = Vec::with_capacity(size);
         for _ in 0..size {
