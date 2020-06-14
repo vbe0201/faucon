@@ -61,12 +61,12 @@ impl IMem {
     }
 
     /// Reads a word from a given page in memory.
-    pub fn read(&self, page: usize, offset: u8) -> u32 {
-        self.pages[page].read(offset)
+    pub fn read(&self, page: u8, offset: u8) -> u32 {
+        self.pages[page as usize].read(offset)
     }
 
     /// Writes a word to a given page in memory.
-    pub fn write(&mut self, page: usize, offset: u8, value: u32) {
-        self.pages[page].write(offset, value);
+    pub fn write(&mut self, page: u8, offset: u8, value: u32) {
+        self.pages[page as usize].write(offset, value);
     }
 }

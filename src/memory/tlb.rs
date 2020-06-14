@@ -76,12 +76,15 @@ impl TlbCell {
     /// responsibility to upload code and change the flag status before using the page.
     ///
     /// [`PageFlag::Busy`]: enum.PageFlag.html#variant.Busy
-    pub fn map(&mut self, address: u16) {
+    pub fn map(&mut self, mut address: u32) {
         // XXX: Calculate the value through `UC_CAPS2 >> 16 & 0xF`.
         let vm_pages_log2 = 8;
 
+        // Addresses are supposed to be 24 bits in size.
+        address &= 0xFFFFFF;
+
         // Calculate and apply the new TLB settings.
-        self.virtual_page_number = (address >> 8) & ((1 << vm_pages_log2) - 1);
+        self.virtual_page_number = (address >> 8) as u16 & ((1 << vm_pages_log2) - 1);
         self.set_flag(PageFlag::Busy, true);
     }
 
