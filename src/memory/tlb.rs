@@ -62,6 +62,16 @@ impl Tlb {
         Tlb { entries }
     }
 
+    /// Gets the [`TlbCell`] that corresponds to the given physical page index.
+    ///
+    /// NOTE: It is within the caller's responsibilities to ensure that the
+    /// page index is actually valid, otherwise bad things will happen.
+    ///
+    /// [`TlbCell`]: struct.TlbCell.html
+    pub fn get(&mut self, mut page: u32) -> &mut TlbCell {
+        &mut self.entries[page as usize]
+    }
+
     /// Finds a [`TlbCell`] that corresponds to the given virtual address.
     ///
     /// If a page fault occurs, a [`LookupError`] is returned.
@@ -71,9 +81,6 @@ impl Tlb {
     pub fn find(&self, mut address: u32) -> Result<&TlbCell, LookupError> {
         // XXX: Calculate the value through `UC_CAPS2 >> 16 & 0xF`.
         let vm_pages_log2 = 8;
-
-        // Addresses are supposed to be 24 bits in size.
-        address &= 0xFFFFFF;
 
         // Calculate the virtual page number to look up.
         let page_index = (address >> 8) as u16 & ((1 << vm_pages_log2) - 1);
@@ -125,9 +132,6 @@ impl TlbCell {
     pub fn map(&mut self, mut address: u32) {
         // XXX: Calculate the value through `UC_CAPS2 >> 16 & 0xF`.
         let vm_pages_log2 = 8;
-
-        // Addresses are supposed to be 24 bits in size.
-        address &= 0xFFFFFF;
 
         // Calculate and apply the new TLB settings.
         self.virtual_page_number = (address >> 8) as u16 & ((1 << vm_pages_log2) - 1);
