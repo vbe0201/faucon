@@ -43,9 +43,10 @@ impl IMem {
     /// Creates a new instance of the physical IMEM.
     ///
     /// The number of available memory pages is calculated through the
-    /// `UC_CAPS` MMIO value.
-    pub fn new(uc_caps: u32) -> Self {
-        // XXX: uc_caps = 128
+    /// value of the `UC_CAPS` register.
+    pub fn new() -> Self {
+        // XXX: Read the value from the I/O space instead of hardcoding it.
+        let uc_caps = 0x20408080;
 
         // Compute the number of physical pages in the code segment.
         let mut pages_amount = (uc_caps & 0x1FF) as usize;
