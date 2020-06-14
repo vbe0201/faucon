@@ -78,7 +78,7 @@ impl Tlb {
     ///
     /// [`TlbCell`]: struct.TlbCell.html
     /// [`LookupError`]: enum.LookupError.html
-    pub fn find(&self, mut address: u32) -> Result<&TlbCell, LookupError> {
+    pub fn find(&mut self, mut address: u32) -> Result<&mut TlbCell, LookupError> {
         // XXX: Calculate the value through `UC_CAPS2 >> 16 & 0xF`.
         let vm_pages_log2 = 8;
 
@@ -88,7 +88,7 @@ impl Tlb {
         // Find all the valid entries that match the virtual page number.
         let mut entries = self
             .entries
-            .iter()
+            .iter_mut()
             .filter(|e| e.is_valid() && e.virtual_page_number == page_index);
 
         // Count the hits and determine the appropriate result based on that.
