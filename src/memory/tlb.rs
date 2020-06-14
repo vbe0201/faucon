@@ -37,7 +37,7 @@ pub enum LookupError {
 ///
 /// [`TlbCell`]: struct.TlbCell.html
 /// [`Cpu::trap`]: ../../cpu/struct.Cpu.html#method.trap
-struct Tlb {
+pub struct Tlb {
     /// The entries of the TLB, each representing a physical page.
     entries: Vec<TlbCell>,
 }
@@ -51,7 +51,7 @@ impl Tlb {
         let uc_caps = 0x20408080;
 
         // Compute the number of physical pages in the code segment.
-        let mut pages_amount = (uc_caps & 0x1FF) as usize;
+        let pages_amount = (uc_caps & 0x1FF) as usize;
 
         // Initialize the TLB entries to empty.
         let mut entries = Vec::with_capacity(pages_amount);
@@ -68,7 +68,7 @@ impl Tlb {
     /// page index is actually valid, otherwise bad things will happen.
     ///
     /// [`TlbCell`]: struct.TlbCell.html
-    pub fn get(&mut self, mut page: u32) -> &mut TlbCell {
+    pub fn get(&mut self, page: u32) -> &mut TlbCell {
         &mut self.entries[page as usize]
     }
 
@@ -78,7 +78,7 @@ impl Tlb {
     ///
     /// [`TlbCell`]: struct.TlbCell.html
     /// [`LookupError`]: enum.LookupError.html
-    pub fn find(&mut self, mut address: u32) -> Result<&mut TlbCell, LookupError> {
+    pub fn find(&mut self, address: u32) -> Result<&mut TlbCell, LookupError> {
         // XXX: Calculate the value through `UC_CAPS2 >> 16 & 0xF`.
         let vm_pages_log2 = 8;
 
@@ -92,7 +92,7 @@ impl Tlb {
             .filter(|e| e.is_valid() && e.virtual_page_number == page_index);
 
         // Count the hits and determine the appropriate result based on that.
-        let hits = entries.count();
+        let hits = entries.by_ref().count();
         if hits == 1 {
             Ok(entries.next().unwrap())
         } else if hits == 0 {
@@ -129,7 +129,7 @@ impl TlbCell {
     /// responsibility to upload code and change the flag status before using the page.
     ///
     /// [`PageFlag::Busy`]: enum.PageFlag.html#variant.Busy
-    pub fn map(&mut self, mut address: u32) {
+    pub fn map(&mut self, address: u32) {
         // XXX: Calculate the value through `UC_CAPS2 >> 16 & 0xF`.
         let vm_pages_log2 = 8;
 

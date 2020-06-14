@@ -49,7 +49,7 @@ impl IMem {
         let uc_caps = 0x20408080;
 
         // Compute the number of physical pages in the code segment.
-        let mut pages_amount = (uc_caps & 0x1FF) as usize;
+        let pages_amount = (uc_caps & 0x1FF) as usize;
 
         // Prepare and initialize the memory pages.
         let mut pages = Vec::with_capacity(pages_amount);
