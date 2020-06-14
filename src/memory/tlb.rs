@@ -12,6 +12,19 @@ pub enum PageFlag {
     Secret = 1 << 2,
 }
 
+/// Potential TLB lookup errors.
+///
+/// These may occur when doing virtual <-> physical page translations.
+#[derive(Debug)]
+pub enum LookupError {
+    /// A page fault that occurs when multiple TLB entries could be matched
+    /// for a single physical page.
+    MultiplePageHits,
+    /// A page fault that occurs when no TLB entries could be matched for a
+    /// physical page.
+    NoPageHits,
+}
+
 /// The Falcon Translation Lookaside Buffer for mapping code pages in memory.
 ///
 /// It consists of multiple [`TlbCell`]s, each entry representing one physical
@@ -47,6 +60,39 @@ impl Tlb {
         }
 
         Tlb { entries }
+    }
+
+    /// Finds a [`TlbCell`] that corresponds to the given virtual address.
+    ///
+    /// If a page fault occurs, a [`LookupError`] is returned.
+    ///
+    /// [`TlbCell`]: struct.TlbCell.html
+    /// [`LookupError`]: enum.LookupError.html
+    pub fn find(&self, mut address: u32) -> Result<&TlbCell, LookupError> {
+        // XXX: Calculate the value through `UC_CAPS2 >> 16 & 0xF`.
+        let vm_pages_log2 = 8;
+
+        // Addresses are supposed to be 24 bits in size.
+        address &= 0xFFFFFF;
+
+        // Calculate the virtual page number to look up.
+        let page_index = (address >> 8) as u16 & ((1 << vm_pages_log2) - 1);
+
+        // Find all the valid entries that match the virtual page number.
+        let mut entries = self
+            .entries
+            .iter()
+            .filter(|e| e.is_valid() && e.virtual_page_number == page_index);
+
+        // Count the hits and determine the appropriate result based on that.
+        let hits = entries.count();
+        if hits == 1 {
+            Ok(entries.next().unwrap())
+        } else if hits == 0 {
+            Err(LookupError::NoPageHits)
+        } else {
+            Err(LookupError::MultiplePageHits)
+        }
     }
 }
 
