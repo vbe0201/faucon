@@ -38,3 +38,34 @@ pub struct IMem {
     /// The physical memory pages, used to internally store code.
     pages: Vec<Page>,
 }
+
+impl IMem {
+    /// Creates a new instance of the physical IMEM.
+    ///
+    /// The number of available memory pages is calculated through the
+    /// `UC_CAPS` MMIO value.
+    pub fn new(uc_caps: u32) -> Self {
+        // XXX: uc_caps = 128
+
+        // Compute the number of physical pages in the code segment.
+        let mut pages_amount = (uc_caps & 0x1FF) as usize;
+
+        // Prepare and initialize the memory pages.
+        let mut pages = Vec::with_capacity(pages_amount);
+        for _ in 0..pages_amount {
+            pages.push(Page::new());
+        }
+
+        IMem { pages }
+    }
+
+    /// Reads a word from a given page in memory.
+    pub fn read(&self, page: usize, offset: u8) -> u32 {
+        self.pages[page].read(offset)
+    }
+
+    /// Writes a word to a given page in memory.
+    pub fn write(&mut self, page: usize, offset: u8, value: u32) {
+        self.pages[page].write(offset, value);
+    }
+}
