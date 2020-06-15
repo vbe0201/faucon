@@ -36,7 +36,7 @@ impl Page {
 /// The number of physical pages can be determined through `UC_CAPS & 0x1FF`.
 pub struct IMem {
     /// The physical memory pages, used to internally store code.
-    pages: Vec<Page>,
+    pages: Vec<[u8; PAGE_SIZE]>,
 }
 
 impl IMem {
@@ -54,7 +54,7 @@ impl IMem {
         // Prepare and initialize the memory pages.
         let mut pages = Vec::with_capacity(pages_amount);
         for _ in 0..pages_amount {
-            pages.push(Page::new());
+            pages.push([0; PAGE_SIZE]);
         }
 
         IMem { pages }
@@ -62,11 +62,11 @@ impl IMem {
 
     /// Reads a word from a given page in memory.
     pub fn read(&self, page: u8, offset: u8) -> u32 {
-        self.pages[page as usize].read(offset)
+        LittleEndian::read_u32(&self.pages[page as usize][offset as usize..])
     }
 
     /// Writes a word to a given page in memory.
     pub fn write(&mut self, page: u8, offset: u8, value: u32) {
-        self.pages[page as usize].write(offset, value);
+        LittleEndian::write_u32(&mut self.pages[page as usize][offset as usize..], value);
     }
 }
