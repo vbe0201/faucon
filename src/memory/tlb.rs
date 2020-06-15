@@ -76,9 +76,13 @@ impl Tlb {
     ///
     /// If a page fault occurs, a [`LookupError`] is returned.
     ///
+    /// In case the page is found, a `(index, entry)` is returned, where
+    /// `index` is the physical page index corresponding to the [`TlbCell`]
+    /// denoted by `entry`.
+    ///
     /// [`TlbCell`]: struct.TlbCell.html
     /// [`LookupError`]: enum.LookupError.html
-    pub fn find(&mut self, address: u32) -> Result<&mut TlbCell, LookupError> {
+    pub fn find(&mut self, address: u32) -> Result<(usize, &mut TlbCell), LookupError> {
         // XXX: Calculate the value through `UC_CAPS2 >> 16 & 0xF`.
         let vm_pages_log2 = 8;
 
@@ -89,7 +93,8 @@ impl Tlb {
         let mut entries = self
             .entries
             .iter_mut()
-            .filter(|e| e.is_valid() && e.virtual_page_number == page_index);
+            .enumerate()
+            .filter(|(_, e)| e.is_valid() && e.virtual_page_number == page_index);
 
         // Count the hits and determine the appropriate result based on that.
         let hits = entries.by_ref().count();
