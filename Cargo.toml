@@ -14,3 +14,4 @@ members = ["faucon-asm", "faucon-asm-derive"]
 [dependencies]
 byteorder = "1.3"
 faucon-asm = { path = "faucon-asm" }
+paste = "0.1"
