@@ -68,7 +68,7 @@ impl Tlb {
     /// page index is actually valid, otherwise bad things will happen.
     ///
     /// [`TlbCell`]: struct.TlbCell.html
-    pub fn get(&mut self, page: u32) -> &mut TlbCell {
+    pub fn get(&mut self, page: u8) -> &mut TlbCell {
         &mut self.entries[page as usize]
     }
 

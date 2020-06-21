@@ -1,5 +1,7 @@
 //! Implementation of the Falcon memory space.
 
+pub use tlb::*;
+
 mod dmem;
 mod imem;
 mod tlb;
@@ -16,5 +18,5 @@ pub struct Memory {
     pub data: dmem::DMem,
     /// The hidden TLB, responsible for virtual <-> physical address
     /// translation.
-    tlb: tlb::Tlb,
+    pub tlb: tlb::Tlb,
 }

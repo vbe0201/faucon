@@ -7,7 +7,7 @@ use std::thread;
 
 use crate::cpu::Cpu;
 use crate::dma::RequestMode::CodeLoad;
-use crate::memory::Memory;
+use crate::memory::{Memory, PageFlag};
 
 /// Supported modes of DMA requests that can be executed.
 #[derive(Debug, PartialEq)]
@@ -39,14 +39,24 @@ struct Request {
 impl Request {
     /// Gets the port and the start address of the external party for the xfer
     /// operation.
-    pub fn external_party(&self) -> (u8, u64) {
+    pub fn external_party(&self) -> (u8, usize) {
         // The external offset always has to be aligned to the xfer size.
         assert_eq!(self.external_offset % self.xfer_size() as u32, 0);
 
         (
             self.external_port,
-            ((self.external_base << 8) + self.external_offset) as u64,
+            ((self.external_base << 8) + self.external_offset) as usize,
         )
+    }
+
+    /// Gets the virtual destination address for code xfers.
+    pub fn virtual_address(&self) -> u32 {
+        // The external offset always has to be aligned to the xfer size.
+        assert_eq!(self.external_offset % self.xfer_size() as u32, 0);
+
+        // Since the external offset also represents the virtual address
+        // in Falcon IMEM, return it as such.
+        self.external_offset
     }
 
     /// The physical start address of the local party for the xfer operation.
@@ -137,7 +147,7 @@ impl Engine {
     }
 }
 
-pub fn execute(dma: Arc<Engine>, cpu: Arc<Cpu>) -> thread::JoinHandle<()> {
+pub unsafe fn execute(dma: Arc<Engine>, cpu: Arc<Cpu>) -> thread::JoinHandle<()> {
     thread::spawn(move || loop {
         // When the DMA engine is shutting down, opt out of the loop.
         if !dma.run.load(Ordering::Relaxed) {
@@ -146,9 +156,39 @@ pub fn execute(dma: Arc<Engine>, cpu: Arc<Cpu>) -> thread::JoinHandle<()> {
 
         let mut queue = dma.queue.lock().unwrap();
         if let Some(request) = queue.pop() {
+            let mut memory = cpu.memory.lock().unwrap();
+
             // TODO: Process the DMA request.
             match request.mode {
-                RequestMode::CodeLoad => {}
+                RequestMode::CodeLoad => {
+                    let (_, source) = request.external_party();
+                    let destination = request.local_party();
+                    let size = request.xfer_data_size() as usize;
+
+                    // TODO: Add support for secret xfers.
+
+                    // Get the corresponding TLB entry to the given virtual address.
+                    let mut tlb = memory.tlb.get((destination >> 8) as u8);
+
+                    // Copy the code to the `data` vector for more idiomatic
+                    // completion of the operation with emulated memory.
+                    let mut data = Vec::with_capacity(size);
+                    ptr::copy_nonoverlapping(source as *const u8, data.as_mut_ptr(), size);
+
+                    // Map a new page for the given virtual address.
+                    tlb.map(request.virtual_address());
+
+                    // Upload the code.
+                    for (index, chunk) in data.chunks(4).enumerate() {
+                        memory.code.write_addr(
+                            destination + (index << 2) as u16,
+                            u32::from_le_bytes(chunk),
+                        );
+                    }
+
+                    // Mark the page usable, now that the code transfer is complete.
+                    tlb.set_flag(PageFlag::Usable, true);
+                }
                 RequestMode::DataLoad => {}
                 RequestMode::DataStore => {}
             }
