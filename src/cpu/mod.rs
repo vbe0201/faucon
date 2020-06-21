@@ -1,5 +1,7 @@
 //! Falcon CPU abstractions.
 
+use std::sync::Mutex;
+
 pub use self::registers::*;
 use crate::memory::Memory;
 
@@ -17,15 +19,15 @@ pub enum ExecutionState {
 }
 
 /// Representation of the Falcon processor.
-pub struct Cpu<'a> {
-    registers: &'a mut CpuRegisters,
+pub struct Cpu {
+    registers: CpuRegisters,
     /// The processor memory.
-    pub memory: &'a mut Memory,
+    pub memory: Mutex<Memory>,
     /// The current execution state.
     pub state: ExecutionState,
 }
 
-impl Cpu<'_> {
+impl Cpu {
     /// The trap reason for software trap 0.
     pub const TRAP_SOFTWARE_0: u32 = 0x0;
     /// The trap reason for software trap 1.
@@ -44,15 +46,16 @@ impl Cpu<'_> {
     pub const TRAP_BREAKPOINT: u32 = 0xF;
 }
 
-impl<'a> Cpu<'a> {
+impl Cpu {
     /// Pushes a value onto the execution stack and decrements `sp` by 4.
     ///
     /// NOTE: The execution stack is part of the [`DataSpace`] memory.
     ///
     /// [`DataSpace`]: ../memory/struct.DataSpace.html
     pub fn push(&mut self, value: u32) {
+        let mut memory = self.memory.lock().unwrap();
         self.registers.set_sp(self.registers.get_sp() - 4);
-        self.memory.data.write_word(self.registers.get_sp(), value);
+        memory.data.write_word(self.registers.get_sp(), value);
     }
 
     /// Pops a value off the execution stack, increments `sp` by 4, and returns it.
@@ -61,7 +64,8 @@ impl<'a> Cpu<'a> {
     ///
     /// [`DataSpace`]: ../memory/struct.DataSpace.html
     pub fn pop(&mut self) -> u32 {
-        let value = self.memory.data.read_word(self.registers.get_sp());
+        let mut memory = self.memory.lock().unwrap();
+        let value = memory.data.read_word(self.registers.get_sp());
         self.registers.set_sp(self.registers.get_sp() + 4);
 
         value
