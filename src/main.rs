@@ -1,3 +1,4 @@
+mod dma;
 mod memory;
 
 fn main() {
