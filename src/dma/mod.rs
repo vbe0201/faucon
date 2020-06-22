@@ -1,6 +1,5 @@
 //! Implementation of the Falcon DMA engine.
 
-use crate::dma::RequestMode::CodeLoad;
 use crate::memory::*;
 
 /// Supported request modes that the DMA engine can process.
@@ -85,7 +84,7 @@ impl Request {
 
     /// Checks whether the xfer is enhanced by cryptographic functionality.
     pub fn secret(&self) -> bool {
-        if self.mode == CodeLoad {
+        if self.mode == RequestMode::CodeLoad {
             // In case of a code load, the secret flag may or may not be set.
             self.secret.unwrap()
         } else {
