@@ -1,3 +1,5 @@
+//! Implementation of Falcon code and data memory in SRAM.
+
 use byteorder::{ByteOrder, LittleEndian};
 
 pub use tlb::*;

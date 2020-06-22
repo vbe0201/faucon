@@ -15,12 +15,12 @@ pub enum PageFlag {
 /// These may occur when doing virtual <-> physical page translations.
 #[derive(Debug)]
 pub enum LookupError {
-    /// A page fault that occurs when multiple TLB entries could be matched
-    /// for a single physical page.
-    MultiplePageHits,
     /// A page fault that occurs when no TLB entries could be matched for a
     /// physical page.
     NoPageHits,
+    /// A page fault that occurs when multiple TLB entries could be matched
+    /// for a single physical page.
+    MultiplePageHits,
 }
 
 /// The Falcon Translation Lookaside Buffer for mapping code pages in memory.
