@@ -1,5 +1,9 @@
 //! Implementation of the Falcon DMA engine.
 
+use std::convert::TryInto;
+use std::ptr;
+
+use crate::cpu::Cpu;
 use crate::memory::*;
 
 /// Supported request modes that the DMA engine can process.
@@ -27,6 +31,26 @@ pub struct Request {
 }
 
 impl Request {
+    /// Constructs a new DMA request.
+    pub fn new(
+        mode: RequestMode,
+        external_port: u8,
+        external_base: u32,
+        external_offset: u32,
+        local_address: u16,
+        size: Option<u8>,
+        secret: Option<bool>,
+    ) -> Self {
+        Request {
+            mode,
+            external_port,
+            external_base,
+            external_offset,
+            local_address,
+            size,
+            secret,
+        }
+    }
     /// Gets the port and the start address of the external party for the xfer
     /// operation.
     pub fn external_party(&self) -> (u8, usize) {
@@ -95,4 +119,76 @@ impl Request {
     }
 }
 
-// TODO: Implement DMA engine functionality.
+/// Representation of the Falcon DMA engine.
+///
+/// The internal controller allows for asynchronous copies between Falcon DMEM/IMEM
+/// and external memory, issued through DMA [`Request`]s.
+///
+/// [`Request`]: struct.Request.html
+// TODO: Make DMA engine capable of processing request asynchronously in separate threads.
+#[derive(Debug)]
+pub struct Engine {
+    /// A queue of DMA [`Request`]s to be processed by the engine.
+    ///
+    /// [`Request`]: struct.Request.html
+    queue: Vec<Request>,
+}
+
+impl Engine {
+    /// Creates a new instance of the DMA engine.
+    pub fn new() -> Self {
+        Engine { queue: Vec::new() }
+    }
+
+    /// Checks whether the DMA engine is currently busy processing
+    /// requests.
+    pub fn is_busy(&self) -> bool {
+        // TODO
+        false
+    }
+
+    /// Enqueues a new [`Request`] in the DMA queue.
+    ///
+    /// # Safety
+    ///
+    /// Due to raw pointer arithmetic used when processing a request,
+    /// the user must ensure that all the memory addresses and offsets
+    /// denoted in a request are valid and aligned, otherwise undefined
+    /// behavior will be triggered.
+    ///
+    /// [`Request`]: struct.Request.html
+    pub unsafe fn enqueue(&mut self, request: Request, cpu: &mut Cpu) {
+        self.queue.push(request);
+
+        // TODO
+        self.process_request(cpu);
+    }
+
+    unsafe fn process_request(&mut self, cpu: &mut Cpu) {
+        if let Some(request) = self.queue.pop() {
+            match request.mode {
+                RequestMode::CodeLoad => {
+                    let destination = request.local_party();
+                    let (_, source) = request.external_party();
+                    let size = request.xfer_data_size();
+
+                    // TODO: Add support for secret xfers.
+
+                    // Copy the code to a vector for more idiomatic interaction with it.
+                    let mut data = Vec::with_capacity(size);
+                    ptr::copy_nonoverlapping(source as *const u8, data.as_mut_ptr(), size);
+
+                    for (index, chunk) in data.chunks(4).enumerate() {
+                        cpu.upload_code(
+                            destination + (index << 2) as u16,
+                            request.vaddr(),
+                            u32::from_le_bytes(chunk.try_into().unwrap()),
+                        )
+                    }
+                }
+                RequestMode::DataLoad => todo!("Implement this"),
+                RequestMode::DataStore => todo!("Implement this"),
+            }
+        }
+    }
+}

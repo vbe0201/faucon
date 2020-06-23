@@ -2,6 +2,7 @@
 
 use faucon_asm::{disassembler, Instruction};
 
+use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
 use instructions::process_instruction;
 pub use registers::*;
@@ -15,9 +16,49 @@ pub struct Cpu {
     registers: CpuRegisters,
     /// The Falcon SRAM for code and data.
     memory: Memory,
+    /// The Falcon DMA engine.
+    dma_engine: dma::Engine,
 }
 
 impl Cpu {
+    /// Creates a new instance of the CPU.
+    pub fn new() -> Self {
+        Cpu {
+            registers: CpuRegisters::new(),
+            memory: Memory::new(),
+            dma_engine: dma::Engine::new(),
+        }
+    }
+
+    /// Uploads a code word to IMEM at a given physical and virtual address.
+    pub fn upload_code(&mut self, address: u16, vaddress: u32, value: u32) {
+        // TODO: Add support for all the secret stuff.
+        // TODO: Nicer way to access TLB without making the borrow checker scream?
+
+        // If the first word is being uploaded, map the page.
+        if (address & 0xFC) == 0 {
+            self.memory
+                .tlb
+                .get_physical_entry(address)
+                .map(vaddress, false);
+        }
+
+        // Write word to the code segment.
+        self.memory.write_code_addr(address, value);
+
+        // If the last word was uploaded, set the Usable flag.
+        if (address & 0xFC) == 0xFC {
+            self.memory
+                .tlb
+                .get_physical_entry(address)
+                .set_flag(PageFlag::Busy, false);
+            self.memory
+                .tlb
+                .get_physical_entry(address)
+                .set_flag(PageFlag::Usable, true);
+        }
+    }
+
     /// Retrieves the next instruction by looking up the TLB corresponding to the given
     /// virtual address.
     fn fetch_insn(&self, address: u32) -> faucon_asm::Result<Instruction> {
