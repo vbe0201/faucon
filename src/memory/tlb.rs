@@ -75,13 +75,13 @@ impl Tlb {
             .iter()
             .enumerate()
             .filter(|(_, e)| e.is_valid() && e.virtual_page_number == page_index)
-            .map(|(i, e)| (i as u8, e));
+            .map(|(i, e)| (i as u8, e))
+            .collect::<Vec<_>>();
 
         // Count the hits and derive the appropriate result.
-        let hits = entries.by_ref().count();
-        if hits == 1 {
-            Ok(entries.next().unwrap())
-        } else if hits == 0 {
+        if entries.len() == 1 {
+            Ok(entries.pop().unwrap())
+        } else if entries.len() == 0 {
             Err(LookupError::NoPageHits)
         } else {
             Err(LookupError::MultiplePageHits)

@@ -33,23 +33,25 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
             .collect::<Vec<&syn::Variant>>()
         {
             let vname = &variant.ident;
-            let (opcode, subopcode, operands) = extract_insn_attributes(variant)?;
+            for result in extract_insn_attributes(variant)? {
+                let (opcode, subopcode, operands) = result;
 
-            match_cases.push(quote! {
-                (#opcode, #subopcode) => #name::#vname(#opcode, #subopcode, #operands.to_string())
-            });
+                match_cases.push(quote! {
+                    (#opcode, #subopcode) => #name::#vname(#opcode, #subopcode, #operands.to_string())
+                });
 
-            opcode_variants.push(quote! {
-                #name::#vname(opcode, _, _) => Some(*opcode)
-            });
+                opcode_variants.push(quote! {
+                    #name::#vname(opcode, _, _) => Some(*opcode)
+                });
 
-            subopcode_variants.push(quote! {
-                #name::#vname(_, subopcode, _) => Some(*subopcode)
-            });
+                subopcode_variants.push(quote! {
+                    #name::#vname(_, subopcode, _) => Some(*subopcode)
+                });
 
-            operand_variants.push(quote! {
-                #name::#vname(_, _, operands) => Some(operands.as_str())
-            });
+                operand_variants.push(quote! {
+                    #name::#vname(_, _, operands) => Some(operands.as_str())
+                });
+            }
         }
 
         Ok(quote! {
@@ -113,11 +115,13 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
     }
 }
 
-fn extract_insn_attributes(variant: &syn::Variant) -> Result<(u8, u8, String)> {
-    if let Some(attr) = variant
+fn extract_insn_attributes(variant: &syn::Variant) -> Result<Vec<(u8, u8, String)>> {
+    let mut results = Vec::new();
+
+    for attr in variant
         .attrs
         .iter()
-        .find(|a| a.path.segments.len() == 1 && a.path.segments[0].ident == "insn")
+        .filter(|a| a.path.segments.len() == 1 && a.path.segments[0].ident == "insn")
     {
         if let syn::Meta::List(ref nested_list) = attr.parse_meta()? {
             if nested_list.nested.len() == 3 {
@@ -137,24 +141,28 @@ fn extract_insn_attributes(variant: &syn::Variant) -> Result<(u8, u8, String)> {
                 let opcode = parse_int_arg(arguments[0], "opcode")?;
                 let subopcode = parse_int_arg(arguments[1], "subopcode")?;
                 let operands = parse_str_arg(&arguments[2], "operands")?;
-                Ok((opcode, subopcode, operands))
+                results.push((opcode, subopcode, operands));
             } else {
-                Err(Error::new(
+                return Err(Error::new(
                     attr.path.segments[0].ident.span(),
                     "#[insn] is expecting 3 arguments",
-                ))
+                ));
             }
         } else {
-            Err(Error::new(
+            return Err(Error::new(
                 attr.path.segments[0].ident.span(),
                 "#[insn] is expecting arguments in list-style",
-            ))
+            ));
         }
-    } else {
+    }
+
+    if results.len() == 0 {
         Err(Error::new(
             Span::call_site(),
             "#[insn] attribute is missing",
         ))
+    } else {
+        Ok(results)
     }
 }
 

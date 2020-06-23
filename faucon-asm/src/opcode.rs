@@ -5,6 +5,7 @@
 /// In Falcon Assembly, opcodes generally span a variety of instructions,
 /// which is why the subopcode is important for uniquely identifying the
 /// nature of an instruction.
+#[derive(Debug)]
 pub enum SubopcodeLocation {
     /// The subopcode is encoded in the low 4 bits of byte 0.
     O1,

@@ -187,6 +187,12 @@ impl Instruction {
         })
     }
 
+    /// Gets the length of an instruction by counting the amount of bytes that
+    /// define it.
+    pub fn len(&self) -> usize {
+        self.bytes.len()
+    }
+
     fn parse_operand(&self, operand: &OperandMeta) -> Operand {
         match operand {
             OperandMeta::R(meta) => Operand::Register(Register::new(meta, &self.bytes)),

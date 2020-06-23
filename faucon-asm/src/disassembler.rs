@@ -57,7 +57,7 @@ fn read_operands<R: Read>(insn: &mut Instruction, reader: &mut R) -> Result<()> 
         // In such a case, we can opt out immediately.
         let operand_bytes = insn.bytes[operand_start as usize..].len() as u64;
         if operand_bytes >= operand_length {
-            return Ok(());
+            continue;
         }
 
         // If that's not the case, continue reading the missing chunk.
@@ -67,7 +67,7 @@ fn read_operands<R: Read>(insn: &mut Instruction, reader: &mut R) -> Result<()> 
         // Under certain circumstances, the buffer may have not been filled to the
         // actual start of the operand, so this needs to be taken care of as well.
         let actual_length = insn.bytes.len() as u64;
-        let required_length = operand_start + operand_length;
+        let required_length = operand_start + operand_length - 1;
         if actual_length < required_length {
             read_bytes(&mut remainder, reader, required_length - actual_length)?;
         }
@@ -81,7 +81,7 @@ fn read_operands<R: Read>(insn: &mut Instruction, reader: &mut R) -> Result<()> 
 
 fn read_bytes<R: Read>(buffer: &mut Vec<u8>, reader: &mut R, amount: u64) -> Result<usize> {
     if let Ok(amount_read) = reader.take(amount).read_to_end(buffer) {
-        if amount_read == 0 {
+        if amount != 0 && amount_read == 0 {
             Err(Error::Eof)
         } else {
             Ok(amount_read)

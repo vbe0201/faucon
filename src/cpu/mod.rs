@@ -89,9 +89,14 @@ impl Cpu {
     }
 
     /// Executes the next instruction at the address held by the PC register.
-    pub fn step(&self) {
+    pub fn step(&mut self) {
         match self.fetch_insn(self.registers.get_pc()) {
-            Ok(insn) => process_instruction(insn),
+            Ok(insn) => {
+                process_instruction(&insn);
+
+                self.registers
+                    .set_pc(self.registers.get_pc() + insn.len() as u32);
+            }
             Err(faucon_asm::Error::InvalidInstruction(_)) => todo!("Generate trap"),
             _ => todo!("Handle these errors in a sane way"),
         }
