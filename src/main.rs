@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate nom;
+
 use std::convert::TryInto;
 use std::env;
 use std::fs::File;
@@ -7,6 +10,7 @@ use std::path::Path;
 use cpu::Cpu;
 
 mod cpu;
+mod debugger;
 mod dma;
 mod memory;
 
@@ -15,7 +19,7 @@ fn read_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
     let mut buffer = Vec::new();
 
     file.read_to_end(&mut buffer).unwrap();
-    while buffer.len() != 0x100 {
+    while buffer.len() % 4 != 0 {
         buffer.push(0);
     }
 
