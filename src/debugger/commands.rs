@@ -10,6 +10,8 @@ pub enum Command {
     Help,
     /// Exits the debugger and terminates the application.
     Exit,
+    /// Repeats the previously used command.
+    Repeat,
     /// Steps through a given amount of CPU instructions.
     Step(u32),
 }
@@ -27,7 +29,12 @@ impl FromStr for Command {
 
 named!(
     command<&str, Command>,
-    alt!(complete!(command_help) | complete!(command_exit) | complete!(command_step))
+    alt!(
+        complete!(command_help)
+            | complete!(command_exit)
+            | complete!(command_repeat)
+            | complete!(command_step)
+    )
 );
 
 named!(
@@ -41,6 +48,13 @@ named!(
         alt!(tag_no_case!("exit") | tag_no_case!("quit") | tag_no_case!("e") | tag_no_case!("q"))
             >> eof!()
             >> (Command::Exit)
+    )
+);
+
+named!(
+    command_repeat<&str, Command>,
+    do_parse!(
+        alt!(tag_no_case!("repeat") | tag_no_case!("r")) >> eof!() >> (Command::Repeat)
     )
 );
 

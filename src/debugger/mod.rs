@@ -19,6 +19,8 @@ mod macros;
 pub struct Debugger {
     /// The underlying Falcon processor.
     falcon: Cpu,
+    /// The last command that was processed.
+    last_command: Option<Command>,
 }
 
 impl Debugger {
@@ -27,7 +29,10 @@ impl Debugger {
     ///
     /// [`Cpu`]: ../cpu/struct.Cpu.html
     pub fn new(falcon: Cpu) -> Self {
-        Debugger { falcon }
+        Debugger {
+            falcon,
+            last_command: None,
+        }
     }
 
     /// Runs the debugger.
@@ -48,12 +53,23 @@ impl Debugger {
             }
 
             // Parse and execute the command.
-            match input.parse() {
+            let command = match (input.parse(), self.last_command) {
+                (Ok(Command::Repeat), Some(command)) => Ok(command),
+                (Ok(Command::Repeat), None) => Err("No last command available".into()),
+                (Ok(command), _) => Ok(command),
+                (Err(e), _) => Err(e),
+            };
+
+            match command {
                 Ok(Command::Help) => self.show_help(),
                 Ok(Command::Exit) => break,
+                Ok(Command::Repeat) => unreachable!(),
                 Ok(Command::Step(count)) => self.step(count),
                 Err(ref e) => error!("Failed to parse command:", "{:?}", e),
             }
+
+            // Store the command so the repeat command can find it.
+            self.last_command = command.ok();
         }
     }
 
@@ -62,6 +78,7 @@ impl Debugger {
         info!("faucon debugger", "\n---------------");
         info!("(h)elp", "- Shows this message");
         info!("(e)xit/(q)uit", "- Exits the debugger");
+        info!("(r)epeat", "- Repeats the last command");
         info!(
             "(s)tep [count]?",
             "- Steps through [count] instructions. [count] defaults to 1"
