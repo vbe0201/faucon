@@ -92,7 +92,7 @@ impl Cpu {
     pub fn step(&mut self) {
         match self.fetch_insn(self.registers.get_pc()) {
             Ok(insn) => {
-                process_instruction(&insn);
+                process_instruction(self, &insn);
 
                 self.registers
                     .set_pc(self.registers.get_pc() + insn.len() as u32);

@@ -164,6 +164,7 @@ impl Engine {
         self.process_request(cpu);
     }
 
+    /// Executes a DMA request.
     unsafe fn process_request(&mut self, cpu: &mut Cpu) {
         if let Some(request) = self.queue.pop() {
             match request.mode {

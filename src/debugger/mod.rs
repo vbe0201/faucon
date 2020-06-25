@@ -24,6 +24,8 @@ pub struct Debugger {
 impl Debugger {
     /// Constructs a new debugger that takes ownership of the [`Cpu`] used for
     /// emulation.
+    ///
+    /// [`Cpu`]: ../cpu/struct.Cpu.html
     pub fn new(falcon: Cpu) -> Self {
         Debugger { falcon }
     }
@@ -55,6 +57,7 @@ impl Debugger {
         }
     }
 
+    /// Shows help details for the debugger.
     fn show_help(&self) {
         info!("faucon debugger", "\n---------------");
         info!("(h)elp", "- Shows this message");
@@ -65,6 +68,7 @@ impl Debugger {
         );
     }
 
+    /// Executes the step command.
     fn step(&mut self, count: u32) {
         for _ in 0..count {
             // TODO: Print stepped instruction?
@@ -73,6 +77,7 @@ impl Debugger {
     }
 }
 
+/// Reads user input for parsing debugger commands.
 fn read_input() -> String {
     let mut input = String::new();
     stdin().read_line(&mut input).unwrap();

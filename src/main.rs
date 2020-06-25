@@ -15,6 +15,7 @@ mod debugger;
 mod dma;
 mod memory;
 
+/// Reads out the contents of a given binary file.
 fn read_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
     let mut file = File::open(path).expect("Failed to open the binary");
     let mut buffer = Vec::new();
@@ -27,6 +28,7 @@ fn read_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
     buffer.into_boxed_slice()
 }
 
+/// Uploads the contents of a binary to the Falcon IMEM.
 fn upload_code(cpu: &mut Cpu, address: u16, vaddress: u32, binary: &[u8]) {
     for (index, mut chunk) in binary.chunks(4).enumerate() {
         cpu.upload_code(
