@@ -18,7 +18,7 @@ impl FromStr for Command {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match command(s) {
             Ok((_, c)) => Ok(c),
-            e => Err(format!("Failed to parse command: {:?}", e).into()),
+            e => Err(format!("{:?}", e).into()),
         }
     }
 }

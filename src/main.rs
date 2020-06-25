@@ -8,6 +8,7 @@ use std::io::Read;
 use std::path::Path;
 
 use cpu::Cpu;
+use debugger::Debugger;
 
 mod cpu;
 mod debugger;
@@ -43,5 +44,6 @@ fn main() {
     let mut cpu = Cpu::new();
     upload_code(&mut cpu, 0, 0, &binary);
 
-    cpu.step();
+    let mut debugger = Debugger::new(cpu);
+    debugger.run();
 }
