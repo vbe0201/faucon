@@ -8,6 +8,8 @@ use nom::character::complete::{digit1, space1};
 pub enum Command {
     /// Prints usage details for the disassembler.
     Help,
+    /// Exits the debugger and terminates the application.
+    Exit,
     /// Steps through a given amount of CPU instructions.
     Step(u32),
 }
@@ -25,12 +27,21 @@ impl FromStr for Command {
 
 named!(
     command<&str, Command>,
-    alt!(complete!(command_help) | complete!(command_step))
+    alt!(complete!(command_help) | complete!(command_exit) | complete!(command_step))
 );
 
 named!(
     command_help<&str, Command>,
     do_parse!(alt!(tag_no_case!("help") | tag_no_case!("h")) >> eof!() >> (Command::Help))
+);
+
+named!(
+    command_exit<&str, Command>,
+    do_parse!(
+        alt!(tag_no_case!("exit") | tag_no_case!("quit") | tag_no_case!("e") | tag_no_case!("q"))
+            >> eof!()
+            >> (Command::Exit)
+    )
 );
 
 named!(

@@ -48,6 +48,7 @@ impl Debugger {
             // Parse and execute the command.
             match input.parse() {
                 Ok(Command::Help) => self.show_help(),
+                Ok(Command::Exit) => break,
                 Ok(Command::Step(count)) => self.step(count),
                 Err(ref e) => error!("Failed to parse command:", "{:?}", e),
             }
@@ -57,6 +58,7 @@ impl Debugger {
     fn show_help(&self) {
         info!("faucon debugger", "\n---------------");
         info!("(h)elp", "- Shows this message");
+        info!("(e)xit/(q)uit", "- Exits the debugger");
         info!(
             "(s)tep [count]?",
             "- Steps through [count] instructions. [count] defaults to 1"
