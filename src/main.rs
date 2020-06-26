@@ -21,7 +21,7 @@ fn read_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
     let mut buffer = Vec::new();
 
     file.read_to_end(&mut buffer).unwrap();
-    while buffer.len() % 4 != 0 {
+    while buffer.len() < 0x100 && buffer.len() % 4 != 0 {
         buffer.push(0);
     }
 

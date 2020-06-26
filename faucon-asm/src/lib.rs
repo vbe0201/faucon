@@ -93,7 +93,7 @@ pub struct Register {
     /// The value of the wrapped register.
     ///
     /// This is a number ranging from 0-15, denoting the index of the register.
-    pub value: u8,
+    pub value: usize,
 }
 
 impl Register {
@@ -105,7 +105,7 @@ impl Register {
     /// [`Operand`]: enum.Operand.html
     /// [`Instruction`]: struct.Instruction.html
     pub fn new(register_meta: &RegisterMeta, insn: &[u8]) -> Self {
-        let value = parse_register(insn, register_meta);
+        let value = parse_register(insn, register_meta) as usize;
         Register {
             meta: *register_meta,
             value,
