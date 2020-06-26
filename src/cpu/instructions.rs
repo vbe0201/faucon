@@ -60,9 +60,9 @@ fn xor(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let result = cpu.registers.get_gpr(source1.value) ^ source2;
     cpu.registers.set_gpr(destination.value, result);
 
-    // Set the CPU flags accordingly.
     let destination_value = cpu.registers.get_gpr(destination.value);
 
+    // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers
