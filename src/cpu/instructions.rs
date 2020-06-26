@@ -39,6 +39,7 @@ pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
         InstructionKind::BSET(_, _, _) => bset(cpu, insn),
         InstructionKind::BCLR(_, _, _) => bclr(cpu, insn),
         InstructionKind::BTGL(_, _, _) => btgl(cpu, insn),
+        InstructionKind::SETP(_, _, _) => setp(cpu, insn),
         _ => todo!("Emulate remaining instructions"),
     }
 }
@@ -269,6 +270,28 @@ fn btgl(cpu: &mut Cpu, insn: &Instruction) -> usize {
         let result = cpu.registers.get_flags() ^ bit;
         cpu.registers.set_flags(result);
     }
+
+    1
+}
+
+/// Executes the SETP instruction.
+fn setp(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let source1 =
+        operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg.value)).unwrap();
+    let source2 = match insn.opcode() {
+        0xF2 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
+        0xFA => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let bit = source2 & 0x1F;
+    let result = (cpu.registers.get_flags() & !(1 << bit)) | (source1 & 1) << bit;
+    cpu.registers.set_flags(result);
 
     1
 }

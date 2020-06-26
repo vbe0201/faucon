@@ -84,6 +84,14 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF9, subopcode = 0x0B, operands = "R2S")]
     BTGL(u8, u8, String),
 
+    /// The SETP instruction.
+    ///
+    /// Sets a specific bit in the flags register to the highest
+    /// bit of the first operand.
+    #[insn(opcode = 0xF2, subopcode = 0x8, operands = "R2S, I8")]
+    #[insn(opcode = 0xFA, subopcode = 0x8, operands = "R2S, R1S")]
+    SETP(u8, u8, String),
+
     /// The IOWR instruction.
     ///
     /// Writes a word to the I/O space of the processor.
