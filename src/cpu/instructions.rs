@@ -20,11 +20,38 @@ macro_rules! operand {
 /// Checks if the sign bit of an instruction result is set.
 ///
 /// This is necessary to determine whether the sign flag
-/// should be set.
-fn is_signed(x: u32, insn: &Instruction) -> bool {
+/// should be set for ALU instructions.
+fn is_sign(x: u32, insn: &Instruction) -> bool {
     let sz: u32 = insn.operand_size().into();
 
     (x >> (sz - 1) & 1) != 0
+}
+
+/// Checks the high bits of 2 operands and their result to determine
+/// whether there is a carry out.
+///
+/// This is necessary to determine whether the carry flag
+/// should be set for ALU instructions.
+fn is_carry(a: bool, b: bool, c: bool) -> bool {
+    if a && b {
+        // If a and b are both set, there is always a carry out.
+        return true;
+    } else if (a || b) && !c {
+        // If either a or b are set and result is not, there is a carry.
+        return true;
+    } else {
+        // Otherwise, there is no possibility of a carry.
+        false
+    }
+}
+
+/// Checks the high bits of 2 operands and their result to determine
+/// whether there is a signed overflow.
+///
+/// This is necessary to determine whether the overflow flag
+/// should be set for ALU instructions.
+fn is_overflow(a: bool, b: bool, c: bool) -> bool {
+    a == b && a != c
 }
 
 /// Emulates a given CPU instruction.
@@ -32,6 +59,10 @@ fn is_signed(x: u32, insn: &Instruction) -> bool {
 /// Returns the amount of CPU cycles that the instruction took.
 pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
     match insn.kind {
+        InstructionKind::ADD(_, _, _) => add(cpu, insn),
+        InstructionKind::ADC(_, _, _) => adc(cpu, insn),
+        InstructionKind::SUB(_, _, _) => sub(cpu, insn),
+        InstructionKind::SBB(_, _, _) => sbb(cpu, insn),
         InstructionKind::AND(_, _, _) => and(cpu, insn),
         InstructionKind::OR(_, _, _) => or(cpu, insn),
         InstructionKind::XOR(_, _, _) => xor(cpu, insn),
@@ -42,6 +73,230 @@ pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
         InstructionKind::SETP(_, _, _) => setp(cpu, insn),
         _ => todo!("Emulate remaining instructions"),
     }
+}
+
+/// Executes an ADD instruction.
+fn add(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
+    let source1 = match insn.opcode() {
+        0x10 | 0x20 | 0x3C => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+                .unwrap()
+        }
+        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination.value),
+        _ => unreachable!(),
+    };
+    let source2 = match insn.opcode() {
+        0x10 | 0x20 => {
+            operand!(operands[2], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
+        }
+        0x36 | 0x37 => {
+            operand!(operands[1], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
+        }
+        0x3B => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        0x3C => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let result = source1 + source2;
+    cpu.registers.set_gpr(destination.value, result);
+
+    // Set the CPU flags accordingly.
+    cpu.registers.set_flag(
+        CpuFlag::CARRY,
+        is_carry(
+            is_sign(source1, insn),
+            is_sign(source2, insn),
+            is_sign(result, insn),
+        ),
+    );
+    cpu.registers.set_flag(
+        CpuFlag::OVERFLOW,
+        is_overflow(
+            is_sign(source1, insn),
+            is_sign(source2, insn),
+            is_sign(result, insn),
+        ),
+    );
+    cpu.registers
+        .set_flag(CpuFlag::NEGATIVE, is_sign(result, insn));
+    cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
+
+    1
+}
+
+/// Executes an ADC instruction.
+fn adc(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
+    let source1 = match insn.opcode() {
+        0x10 | 0x20 | 0x3C => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+                .unwrap()
+        }
+        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination.value),
+        _ => unreachable!(),
+    };
+    let source2 = match insn.opcode() {
+        0x10 | 0x20 => {
+            operand!(operands[2], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
+        }
+        0x36 | 0x37 => {
+            operand!(operands[1], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
+        }
+        0x3B => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        0x3C => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let result = source1 + source2 + cpu.registers.get_flag(CpuFlag::CARRY) as u32;
+    cpu.registers.set_gpr(destination.value, result);
+
+    // Set the CPU flags accordingly.
+    cpu.registers.set_flag(
+        CpuFlag::CARRY,
+        is_carry(
+            is_sign(source1, insn),
+            is_sign(source2, insn),
+            is_sign(result, insn),
+        ),
+    );
+    cpu.registers.set_flag(
+        CpuFlag::OVERFLOW,
+        is_overflow(
+            is_sign(source1, insn),
+            is_sign(source2, insn),
+            is_sign(result, insn),
+        ),
+    );
+    cpu.registers
+        .set_flag(CpuFlag::NEGATIVE, is_sign(result, insn));
+    cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
+
+    1
+}
+
+/// Executes a SUB instruction.
+fn sub(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
+    let source1 = match insn.opcode() {
+        0x10 | 0x20 | 0x3C => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+                .unwrap()
+        }
+        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination.value),
+        _ => unreachable!(),
+    };
+    let source2 = match insn.opcode() {
+        0x10 | 0x20 => {
+            operand!(operands[2], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
+        }
+        0x36 | 0x37 => {
+            operand!(operands[1], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
+        }
+        0x3B => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        0x3C => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let result = source1 - source2;
+    cpu.registers.set_gpr(destination.value, result);
+
+    // Set the CPU flags accordingly.
+    cpu.registers.set_flag(
+        CpuFlag::CARRY,
+        !is_carry(
+            is_sign(source1, insn),
+            !is_sign(source2, insn),
+            is_sign(result, insn),
+        ),
+    );
+    cpu.registers.set_flag(
+        CpuFlag::OVERFLOW,
+        is_overflow(
+            is_sign(source1, insn),
+            !is_sign(source2, insn),
+            is_sign(result, insn),
+        ),
+    );
+    cpu.registers
+        .set_flag(CpuFlag::NEGATIVE, is_sign(result, insn));
+    cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
+
+    1
+}
+
+/// Executes an SBB instruction.
+fn sbb(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
+    let source1 = match insn.opcode() {
+        0x10 | 0x20 | 0x3C => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+                .unwrap()
+        }
+        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination.value),
+        _ => unreachable!(),
+    };
+    let source2 = match insn.opcode() {
+        0x10 | 0x20 => {
+            operand!(operands[2], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
+        }
+        0x36 | 0x37 => {
+            operand!(operands[1], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
+        }
+        0x3B => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        0x3C => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let result = source1 - source2 - cpu.registers.get_flag(CpuFlag::CARRY) as u32;
+    cpu.registers.set_gpr(destination.value, result);
+
+    // Set the CPU flags accordingly.
+    cpu.registers.set_flag(
+        CpuFlag::CARRY,
+        !is_carry(
+            is_sign(source1, insn),
+            !is_sign(source2, insn),
+            is_sign(result, insn),
+        ),
+    );
+    cpu.registers.set_flag(
+        CpuFlag::OVERFLOW,
+        is_overflow(
+            is_sign(source1, insn),
+            !is_sign(source2, insn),
+            is_sign(result, insn),
+        ),
+    );
+    cpu.registers
+        .set_flag(CpuFlag::NEGATIVE, is_sign(result, insn));
+    cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
+
+    1
 }
 
 /// Executes an AND instruction.
@@ -70,7 +325,7 @@ fn and(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.registers.set_flag(CpuFlag::CARRY, false);
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers
-        .set_flag(CpuFlag::NEGATIVE, is_signed(result, insn));
+        .set_flag(CpuFlag::NEGATIVE, is_sign(result, insn));
     cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
 
     1
@@ -102,7 +357,7 @@ fn or(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.registers.set_flag(CpuFlag::CARRY, false);
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers
-        .set_flag(CpuFlag::NEGATIVE, is_signed(result, insn));
+        .set_flag(CpuFlag::NEGATIVE, is_sign(result, insn));
     cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
 
     1
@@ -134,13 +389,13 @@ fn xor(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.registers.set_flag(CpuFlag::CARRY, false);
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers
-        .set_flag(CpuFlag::NEGATIVE, is_signed(result, insn));
+        .set_flag(CpuFlag::NEGATIVE, is_sign(result, insn));
     cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
 
     1
 }
 
-/// Executes the XBIT instruction.
+/// Executes an XBIT instruction.
 fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands().unwrap();
 
@@ -175,7 +430,7 @@ fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
-/// Executes the BSET instruction.
+/// Executes a BSET instruction.
 fn bset(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands().unwrap();
 
@@ -208,7 +463,7 @@ fn bset(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
-/// Executes the BCLR instruction.
+/// Executes a BCLR instruction.
 fn bclr(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands().unwrap();
 
@@ -241,7 +496,7 @@ fn bclr(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
-/// Executes the BTGL instruction.
+/// Executes a BTGL instruction.
 fn btgl(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands().unwrap();
 
@@ -274,7 +529,7 @@ fn btgl(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
-/// Executes the SETP instruction.
+/// Executes a SETP instruction.
 fn setp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands().unwrap();
 

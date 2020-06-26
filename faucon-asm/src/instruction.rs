@@ -11,6 +11,54 @@ use crate::operand::OperandMeta;
 /// pair. See the respective methods which ease up parsing work.
 #[derive(Clone, Debug, PartialEq, Eq, Instruction)]
 pub enum InstructionKind {
+    /// The ADD instruction.
+    ///
+    /// Computes the sum of two operands and stores the
+    /// result.
+    #[insn(opcode = 0x10, subopcode = 0x00, operands = "R1D, R2S, I8")]
+    #[insn(opcode = 0x20, subopcode = 0x00, operands = "R1D, R2S, I16")]
+    #[insn(opcode = 0x36, subopcode = 0x00, operands = "R2SD, I8")]
+    #[insn(opcode = 0x37, subopcode = 0x00, operands = "R2SD, I16")]
+    #[insn(opcode = 0x3B, subopcode = 0x00, operands = "R2SD, R1S")]
+    #[insn(opcode = 0x3C, subopcode = 0x00, operands = "R3D, R2S, R1S")]
+    ADD(u8, u8, String),
+
+    /// The ADC instruction.
+    ///
+    /// Computes the sum of two operands with a carry and
+    /// stores the result.
+    #[insn(opcode = 0x10, subopcode = 0x01, operands = "R1D, R2S, I8")]
+    #[insn(opcode = 0x20, subopcode = 0x01, operands = "R1D, R2S, I16")]
+    #[insn(opcode = 0x36, subopcode = 0x01, operands = "R2SD, I8")]
+    #[insn(opcode = 0x37, subopcode = 0x01, operands = "R2SD, I16")]
+    #[insn(opcode = 0x3B, subopcode = 0x01, operands = "R2SD, R1S")]
+    #[insn(opcode = 0x3C, subopcode = 0x01, operands = "R3D, R2S, R1S")]
+    ADC(u8, u8, String),
+
+    /// The SUB instruction.
+    ///
+    /// Computes the difference of two operands and stores the
+    /// result.
+    #[insn(opcode = 0x10, subopcode = 0x02, operands = "R1D, R2S, I8")]
+    #[insn(opcode = 0x20, subopcode = 0x02, operands = "R1D, R2S, I16")]
+    #[insn(opcode = 0x36, subopcode = 0x02, operands = "R2SD, I8")]
+    #[insn(opcode = 0x37, subopcode = 0x02, operands = "R2SD, I16")]
+    #[insn(opcode = 0x3B, subopcode = 0x02, operands = "R2SD, R1S")]
+    #[insn(opcode = 0x3C, subopcode = 0x02, operands = "R3D, R2S, R1S")]
+    SUB(u8, u8, String),
+
+    /// The SBB instruction.
+    ///
+    /// Computes the difference of two operands with a borrow and
+    /// stores the result.
+    #[insn(opcode = 0x10, subopcode = 0x03, operands = "R1D, R2S, I8")]
+    #[insn(opcode = 0x20, subopcode = 0x03, operands = "R1D, R2S, I16")]
+    #[insn(opcode = 0x36, subopcode = 0x03, operands = "R2SD, I8")]
+    #[insn(opcode = 0x37, subopcode = 0x03, operands = "R2SD, I16")]
+    #[insn(opcode = 0x3B, subopcode = 0x03, operands = "R2SD, R1S")]
+    #[insn(opcode = 0x3C, subopcode = 0x03, operands = "R3D, R2S, R1S")]
+    SBB(u8, u8, String),
+
     /// The AND instruction.
     ///
     /// Applies a bitwise and operation on two operands and stores
