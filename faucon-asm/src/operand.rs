@@ -28,6 +28,16 @@ impl From<u8> for OperandSize {
     }
 }
 
+impl Into<u32> for OperandSize {
+    fn into(self) -> u32 {
+        match self {
+            OperandSize::EightBit => 8,
+            OperandSize::SixteenBit => 16,
+            OperandSize::ThirtyTwoBit | OperandSize::Unsized => 32,
+        }
+    }
+}
+
 /// Denotes the location of a register operand in an instruction.
 ///
 /// In Falcon Assembly, register operands individually have information
