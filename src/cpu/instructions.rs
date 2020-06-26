@@ -33,9 +33,45 @@ fn set_negative(x: u32, insn: &Instruction) -> bool {
 /// Returns the amount of CPU cycles that the instruction took.
 pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
     match insn.kind {
+        InstructionKind::OR(_, _, _) => or(cpu, insn),
         InstructionKind::XOR(_, _, _) => xor(cpu, insn),
         _ => todo!("Emulate remaining instructions"),
     }
+}
+
+/// Executes an OR instruction.
+fn or(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
+    let source1 = match insn.opcode() {
+        0xC0 | 0xE0 | 0xFF => operand!(operands[1], Operand::Register(reg) => reg).unwrap(),
+        0xF0 | 0xF1 | 0xFD => destination,
+        _ => unreachable!(),
+    };
+    let source2 = operand!(match insn.opcode() {
+        0xC0 | 0xE0 | 0xFF => operands[2],
+        0xF0 | 0xF1 | 0xFD => operands[1],
+        _ => unreachable!(),
+    }, Operand::I8(int) | Operand::I16(int) => int as u32)
+    .unwrap();
+
+    // Compute the result of the operation and store it.
+    let result = cpu.registers.get_gpr(source1.value) | source2;
+    cpu.registers.set_gpr(destination.value, result);
+
+    let destination_value = cpu.registers.get_gpr(destination.value);
+
+    // Set the CPU flags accordingly.
+    cpu.registers.set_flag(CpuFlag::CARRY, false);
+    cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
+    cpu.registers
+        .set_flag(CpuFlag::NEGATIVE, set_negative(destination_value, insn));
+    cpu.registers
+        .set_flag(CpuFlag::ZERO, destination_value == 0);
+
+    1
 }
 
 /// Executes an XOR instruction.

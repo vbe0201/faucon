@@ -11,6 +11,18 @@ use crate::operand::OperandMeta;
 /// pair. See the respective methods which ease up parsing work.
 #[derive(Clone, Debug, PartialEq, Eq, Instruction)]
 pub enum InstructionKind {
+    /// The OR instruction.
+    ///
+    /// Applies a bitwise or operation on two operands and stores
+    /// the result.
+    #[insn(opcode = 0xC0, subopcode = 0x5, operands = "R1D, R2S, I8")]
+    #[insn(opcode = 0xE0, subopcode = 0x5, operands = "R1D, R2S, I16")]
+    #[insn(opcode = 0xF0, subopcode = 0x5, operands = "R2SD, I8")]
+    #[insn(opcode = 0xF1, subopcode = 0x5, operands = "R2SD, I16")]
+    #[insn(opcode = 0xFD, subopcode = 0x5, operands = "R2SD, R1S")]
+    #[insn(opcode = 0xFF, subopcode = 0x5, operands = "R3D, R2S, R1S")]
+    OR(u8, u8, String),
+
     /// The XOR instruction.
     ///
     /// Applies a bitwise xor operation on two operands and stores
