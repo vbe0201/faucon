@@ -47,6 +47,16 @@ pub enum InstructionKind {
     #[insn(opcode = 0xFF, subopcode = 0x6, operands = "R3D, R2S, R1S")]
     XOR(u8, u8, String),
 
+    /// The XBIT instruction.
+    ///
+    /// Extracts a single bit of a specified register and stores it in the
+    /// highest bit of the destination register, setting all other bits to 0.
+    #[insn(opcode = 0xC0, subopcode = 0x8, operands = "R1D, R2S, I8")]
+    #[insn(opcode = 0xFF, subopcode = 0x8, operands = "R3D, R2S, R1S")]
+    #[insn(opcode = 0xF0, subopcode = 0xC, operands = "R2D, I8")]
+    #[insn(opcode = 0xFE, subopcode = 0xC, operands = "R1D, R2S")]
+    XBIT(u8, u8, String),
+
     /// The IOWR instruction.
     ///
     /// Writes a word to the I/O space of the processor.

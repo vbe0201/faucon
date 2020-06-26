@@ -1,5 +1,4 @@
 use faucon_asm::instruction::InstructionKind;
-use faucon_asm::operand::OperandSize;
 use faucon_asm::{Instruction, Operand};
 
 use crate::cpu::{Cpu, CpuFlag};
@@ -22,7 +21,7 @@ macro_rules! operand {
 ///
 /// This is necessary to determine whether the sign flag
 /// should be set.
-fn set_negative(x: u32, insn: &Instruction) -> bool {
+fn is_signed(x: u32, insn: &Instruction) -> bool {
     let sz: u32 = insn.operand_size().into();
 
     (x >> (sz - 1) & 1) != 0
@@ -36,6 +35,7 @@ pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
         InstructionKind::AND(_, _, _) => and(cpu, insn),
         InstructionKind::OR(_, _, _) => or(cpu, insn),
         InstructionKind::XOR(_, _, _) => xor(cpu, insn),
+        InstructionKind::XBIT(_, _, _) => xbit(cpu, insn),
         _ => todo!("Emulate remaining instructions"),
     }
 }
@@ -62,15 +62,12 @@ fn and(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let result = cpu.registers.get_gpr(source1.value) & source2;
     cpu.registers.set_gpr(destination.value, result);
 
-    let destination_value = cpu.registers.get_gpr(destination.value);
-
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers
-        .set_flag(CpuFlag::NEGATIVE, set_negative(destination_value, insn));
-    cpu.registers
-        .set_flag(CpuFlag::ZERO, destination_value == 0);
+        .set_flag(CpuFlag::NEGATIVE, is_signed(result, insn));
+    cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
 
     1
 }
@@ -97,15 +94,12 @@ fn or(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let result = cpu.registers.get_gpr(source1.value) | source2;
     cpu.registers.set_gpr(destination.value, result);
 
-    let destination_value = cpu.registers.get_gpr(destination.value);
-
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers
-        .set_flag(CpuFlag::NEGATIVE, set_negative(destination_value, insn));
-    cpu.registers
-        .set_flag(CpuFlag::ZERO, destination_value == 0);
+        .set_flag(CpuFlag::NEGATIVE, is_signed(result, insn));
+    cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
 
     1
 }
@@ -132,15 +126,47 @@ fn xor(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let result = cpu.registers.get_gpr(source1.value) ^ source2;
     cpu.registers.set_gpr(destination.value, result);
 
-    let destination_value = cpu.registers.get_gpr(destination.value);
-
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers
-        .set_flag(CpuFlag::NEGATIVE, set_negative(destination_value, insn));
-    cpu.registers
-        .set_flag(CpuFlag::ZERO, destination_value == 0);
+        .set_flag(CpuFlag::NEGATIVE, is_signed(result, insn));
+    cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
+
+    1
+}
+
+/// Executes the XBIT instruction.
+fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
+    let source1 = match insn.opcode() {
+        0xC0 | 0xFF => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+                .unwrap()
+        }
+        0xF0 | 0xFE => cpu.registers.get_flags(),
+        _ => unreachable!(),
+    };
+    let source2 = match insn.opcode() {
+        0xC0 => operand!(operands[2], Operand::I8(int) => int as u32).unwrap(),
+        0xF0 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
+        0xFF => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        0xFE => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let result = source1 >> source2 & 1;
+    cpu.registers.set_gpr(destination.value, result);
+
+    // Set the CPU flags accordingly.
+    cpu.registers.set_flag(CpuFlag::NEGATIVE, false);
+    cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
 
     1
 }
