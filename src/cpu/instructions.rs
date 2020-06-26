@@ -35,10 +35,10 @@ fn is_sign(x: u32, insn: &Instruction) -> bool {
 fn is_carry(a: bool, b: bool, c: bool) -> bool {
     if a && b {
         // If a and b are both set, there is always a carry out.
-        return true;
+        true
     } else if (a || b) && !c {
         // If either a or b are set and result is not, there is a carry.
-        return true;
+        true
     } else {
         // Otherwise, there is no possibility of a carry.
         false
@@ -83,10 +83,9 @@ fn add(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
     let source1 = match insn.opcode() {
         0x10 | 0x20 | 0x3C => {
-            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-                .unwrap()
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
         }
-        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination.value),
+        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination),
         _ => unreachable!(),
     };
     let source2 = match insn.opcode() {
@@ -96,16 +95,18 @@ fn add(cpu: &mut Cpu, insn: &Instruction) -> usize {
         0x36 | 0x37 => {
             operand!(operands[1], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
         }
-        0x3B => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
-        0x3C => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0x3B => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
+        0x3C => {
+            operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
     // Compute the result of the operation and store it.
     let result = source1 + source2;
-    cpu.registers.set_gpr(destination.value, result);
+    cpu.registers.set_gpr(destination, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(
@@ -139,10 +140,9 @@ fn adc(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
     let source1 = match insn.opcode() {
         0x10 | 0x20 | 0x3C => {
-            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-                .unwrap()
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
         }
-        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination.value),
+        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination),
         _ => unreachable!(),
     };
     let source2 = match insn.opcode() {
@@ -152,16 +152,18 @@ fn adc(cpu: &mut Cpu, insn: &Instruction) -> usize {
         0x36 | 0x37 => {
             operand!(operands[1], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
         }
-        0x3B => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
-        0x3C => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0x3B => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
+        0x3C => {
+            operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
     // Compute the result of the operation and store it.
     let result = source1 + source2 + cpu.registers.get_flag(CpuFlag::CARRY) as u32;
-    cpu.registers.set_gpr(destination.value, result);
+    cpu.registers.set_gpr(destination, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(
@@ -195,10 +197,9 @@ fn sub(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
     let source1 = match insn.opcode() {
         0x10 | 0x20 | 0x3C => {
-            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-                .unwrap()
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
         }
-        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination.value),
+        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination),
         _ => unreachable!(),
     };
     let source2 = match insn.opcode() {
@@ -208,16 +209,18 @@ fn sub(cpu: &mut Cpu, insn: &Instruction) -> usize {
         0x36 | 0x37 => {
             operand!(operands[1], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
         }
-        0x3B => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
-        0x3C => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0x3B => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
+        0x3C => {
+            operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
     // Compute the result of the operation and store it.
     let result = source1 - source2;
-    cpu.registers.set_gpr(destination.value, result);
+    cpu.registers.set_gpr(destination, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(
@@ -251,10 +254,9 @@ fn sbb(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
     let source1 = match insn.opcode() {
         0x10 | 0x20 | 0x3C => {
-            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-                .unwrap()
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
         }
-        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination.value),
+        0x36 | 0x37 | 0x3B => cpu.registers.get_gpr(destination),
         _ => unreachable!(),
     };
     let source2 = match insn.opcode() {
@@ -264,16 +266,18 @@ fn sbb(cpu: &mut Cpu, insn: &Instruction) -> usize {
         0x36 | 0x37 => {
             operand!(operands[1], Operand::I8(int) | Operand::I16(int) => int as u32).unwrap()
         }
-        0x3B => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
-        0x3C => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0x3B => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
+        0x3C => {
+            operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
     // Compute the result of the operation and store it.
     let result = source1 - source2 - cpu.registers.get_flag(CpuFlag::CARRY) as u32;
-    cpu.registers.set_gpr(destination.value, result);
+    cpu.registers.set_gpr(destination, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(
@@ -318,8 +322,8 @@ fn and(cpu: &mut Cpu, insn: &Instruction) -> usize {
     .unwrap();
 
     // Compute the result of the operation and store it.
-    let result = cpu.registers.get_gpr(source1.value) & source2;
-    cpu.registers.set_gpr(destination.value, result);
+    let result = cpu.registers.get_gpr(source1) & source2;
+    cpu.registers.set_gpr(destination, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
@@ -350,8 +354,8 @@ fn or(cpu: &mut Cpu, insn: &Instruction) -> usize {
     .unwrap();
 
     // Compute the result of the operation and store it.
-    let result = cpu.registers.get_gpr(source1.value) | source2;
-    cpu.registers.set_gpr(destination.value, result);
+    let result = cpu.registers.get_gpr(source1) | source2;
+    cpu.registers.set_gpr(destination, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
@@ -382,8 +386,8 @@ fn xor(cpu: &mut Cpu, insn: &Instruction) -> usize {
     .unwrap();
 
     // Compute the result of the operation and store it.
-    let result = cpu.registers.get_gpr(source1.value) ^ source2;
-    cpu.registers.set_gpr(destination.value, result);
+    let result = cpu.registers.get_gpr(source1) ^ source2;
+    cpu.registers.set_gpr(destination, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
@@ -403,8 +407,7 @@ fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let destination = operand!(operands[0], Operand::Register(reg) => reg).unwrap();
     let source1 = match insn.opcode() {
         0xC0 | 0xFF => {
-            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-                .unwrap()
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
         }
         0xF0 | 0xFE => cpu.registers.get_flags(),
         _ => unreachable!(),
@@ -412,16 +415,18 @@ fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let source2 = match insn.opcode() {
         0xC0 => operand!(operands[2], Operand::I8(int) => int as u32).unwrap(),
         0xF0 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
-        0xFF => operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
-        0xFE => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0xFF => {
+            operand!(operands[2], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
+        0xFE => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
     // Compute the result of the operation and store it.
     let result = source1 >> source2 & 1;
-    cpu.registers.set_gpr(destination.value, result);
+    cpu.registers.set_gpr(destination, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::NEGATIVE, false);
@@ -442,19 +447,21 @@ fn bset(cpu: &mut Cpu, insn: &Instruction) -> usize {
     };
     let source = match insn.opcode() {
         0xF0 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
-        0xFD => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0xFD => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         0xF4 => operand!(operands[0], Operand::I8(int) => int as u32).unwrap(),
-        0xF9 => operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0xF9 => {
+            operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
     // Compute the result of the operation and store it.
     let bit = 1 << (source & 0x1F);
     if let Some(reg) = destination {
-        let result = cpu.registers.get_gpr(reg.value) | bit;
-        cpu.registers.set_gpr(reg.value, result);
+        let result = cpu.registers.get_gpr(reg) | bit;
+        cpu.registers.set_gpr(reg, result);
     } else {
         let result = cpu.registers.get_flags() | bit;
         cpu.registers.set_flags(result);
@@ -475,19 +482,21 @@ fn bclr(cpu: &mut Cpu, insn: &Instruction) -> usize {
     };
     let source = match insn.opcode() {
         0xF0 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
-        0xFD => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0xFD => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         0xF4 => operand!(operands[0], Operand::I8(int) => int as u32).unwrap(),
-        0xF9 => operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0xF9 => {
+            operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
     // Compute the result of the operation and store it.
     let bit = 1 << (source & 0x1F);
     if let Some(reg) = destination {
-        let result = cpu.registers.get_gpr(reg.value) & !bit;
-        cpu.registers.set_gpr(reg.value, result);
+        let result = cpu.registers.get_gpr(reg) & !bit;
+        cpu.registers.set_gpr(reg, result);
     } else {
         let result = cpu.registers.get_flags() & !bit;
         cpu.registers.set_flags(result);
@@ -508,19 +517,21 @@ fn btgl(cpu: &mut Cpu, insn: &Instruction) -> usize {
     };
     let source = match insn.opcode() {
         0xF0 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
-        0xFD => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0xFD => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         0xF4 => operand!(operands[0], Operand::I8(int) => int as u32).unwrap(),
-        0xF9 => operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0xF9 => {
+            operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
     // Compute the result of the operation and store it.
     let bit = 1 << (source & 0x1F);
     if let Some(reg) = destination {
-        let result = cpu.registers.get_gpr(reg.value) ^ bit;
-        cpu.registers.set_gpr(reg.value, result);
+        let result = cpu.registers.get_gpr(reg) ^ bit;
+        cpu.registers.set_gpr(reg, result);
     } else {
         let result = cpu.registers.get_flags() ^ bit;
         cpu.registers.set_flags(result);
@@ -535,11 +546,12 @@ fn setp(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Extract the operands required to perform the operation.
     let source1 =
-        operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg.value)).unwrap();
+        operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap();
     let source2 = match insn.opcode() {
         0xF2 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
-        0xFA => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
-            .unwrap(),
+        0xFA => {
+            operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg)).unwrap()
+        }
         _ => unreachable!(),
     };
 
