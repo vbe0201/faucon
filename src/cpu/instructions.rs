@@ -36,6 +36,9 @@ pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
         InstructionKind::OR(_, _, _) => or(cpu, insn),
         InstructionKind::XOR(_, _, _) => xor(cpu, insn),
         InstructionKind::XBIT(_, _, _) => xbit(cpu, insn),
+        InstructionKind::BSET(_, _, _) => bset(cpu, insn),
+        InstructionKind::BCLR(_, _, _) => bclr(cpu, insn),
+        InstructionKind::BTGL(_, _, _) => btgl(cpu, insn),
         _ => todo!("Emulate remaining instructions"),
     }
 }
@@ -167,6 +170,105 @@ fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::NEGATIVE, false);
     cpu.registers.set_flag(CpuFlag::ZERO, result == 0);
+
+    1
+}
+
+/// Executes the BSET instruction.
+fn bset(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = match insn.opcode() {
+        0xF0 | 0xFD => operand!(operands[0], Operand::Register(reg) => reg),
+        0xF4 | 0xF9 => None,
+        _ => unreachable!(),
+    };
+    let source = match insn.opcode() {
+        0xF0 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
+        0xFD => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        0xF4 => operand!(operands[0], Operand::I8(int) => int as u32).unwrap(),
+        0xF9 => operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let bit = 1 << (source & 0x1F);
+    if let Some(reg) = destination {
+        let result = cpu.registers.get_gpr(reg.value) | bit;
+        cpu.registers.set_gpr(reg.value, result);
+    } else {
+        let result = cpu.registers.get_flags() | bit;
+        cpu.registers.set_flags(result);
+    }
+
+    1
+}
+
+/// Executes the BCLR instruction.
+fn bclr(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = match insn.opcode() {
+        0xF0 | 0xFD => operand!(operands[0], Operand::Register(reg) => reg),
+        0xF4 | 0xF9 => None,
+        _ => unreachable!(),
+    };
+    let source = match insn.opcode() {
+        0xF0 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
+        0xFD => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        0xF4 => operand!(operands[0], Operand::I8(int) => int as u32).unwrap(),
+        0xF9 => operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let bit = 1 << (source & 0x1F);
+    if let Some(reg) = destination {
+        let result = cpu.registers.get_gpr(reg.value) & !bit;
+        cpu.registers.set_gpr(reg.value, result);
+    } else {
+        let result = cpu.registers.get_flags() & !bit;
+        cpu.registers.set_flags(result);
+    }
+
+    1
+}
+
+/// Executes the BTGL instruction.
+fn btgl(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands().unwrap();
+
+    // Extract the operands required to perform the operation.
+    let destination = match insn.opcode() {
+        0xF0 | 0xFD => operand!(operands[0], Operand::Register(reg) => reg),
+        0xF4 | 0xF9 => None,
+        _ => unreachable!(),
+    };
+    let source = match insn.opcode() {
+        0xF0 => operand!(operands[1], Operand::I8(int) => int as u32).unwrap(),
+        0xFD => operand!(operands[1], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        0xF4 => operand!(operands[0], Operand::I8(int) => int as u32).unwrap(),
+        0xF9 => operand!(operands[0], Operand::Register(reg) => cpu.registers.get_gpr(reg.value))
+            .unwrap(),
+        _ => unreachable!(),
+    };
+
+    // Compute the result of the operation and store it.
+    let bit = 1 << (source & 0x1F);
+    if let Some(reg) = destination {
+        let result = cpu.registers.get_gpr(reg.value) ^ bit;
+        cpu.registers.set_gpr(reg.value, result);
+    } else {
+        let result = cpu.registers.get_flags() ^ bit;
+        cpu.registers.set_flags(result);
+    }
 
     1
 }
