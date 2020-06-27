@@ -1,5 +1,14 @@
 //! Helpers for parsing Falcon Assembly opcodes.
 
+/// The mask that is used to encode a specific size mode in the opcodes
+/// of sized instructions.
+///
+/// A bit check returns:
+/// - `0x00` for 8-bit mode (`b8`)
+/// - `0x40` for 16-bit mode (`b16`)
+/// - `0x80` for 32-bit mode (`b32`)
+pub const SIZE_MASK: usize = 0xC0;
+
 /// The location within an instruction where the subopcode is stored.
 ///
 /// In Falcon Assembly, opcodes generally span a variety of instructions,

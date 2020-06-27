@@ -22,15 +22,17 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
 
     // First, read the opcode of an instruction and get the corresponding subopcode.
     read_bytes(&mut insn, reader, 1)?;
+    let opcode = insn[0] & !SIZE_MASK as u8;
+
     let subopcode_location =
-        get_subopcode_location(insn[0]).ok_or(Error::InvalidInstruction(insn[0]))?;
+        get_subopcode_location(opcode).ok_or(Error::InvalidInstruction(insn[0]))?;
 
     // Read and extract the subopcode.
     read_bytes(&mut insn, reader, subopcode_location.value() as u64)?;
     let subopcode = parse_subopcode(&insn, subopcode_location);
 
     // Given the extracted information, construct the instruction in question.
-    let insn_kind = InstructionKind::from((insn[0], subopcode));
+    let insn_kind = InstructionKind::from((opcode, subopcode));
     let mut instruction = Instruction::new(insn_kind).ok_or(Error::InvalidInstruction(insn[0]))?;
     instruction.feed(&insn);
 
