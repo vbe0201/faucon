@@ -9,6 +9,7 @@ use std::path::Path;
 
 use cpu::Cpu;
 use debugger::Debugger;
+use faucon_asm::disassemble;
 
 mod cpu;
 mod debugger;
@@ -43,16 +44,9 @@ fn main() {
     let arguments = env::args().collect::<Vec<String>>();
     let binary = read_binary(&arguments[1]);
 
-    println!(
-        "{}",
-        faucon_asm::disassembler::read_instruction(&mut Cursor::new(&[
-            0x77, 0x50, 0xad, 0xde, 0x00
-        ]))
-        .unwrap()
-    );
-    //let mut cpu = Cpu::new();
-    //upload_code(&mut cpu, 0, 0, &binary);
+    let mut cpu = Cpu::new();
+    upload_code(&mut cpu, 0, 0, &binary);
 
-    //let mut debugger = Debugger::new(cpu);
-    //debugger.run();
+    let mut debugger = Debugger::new(cpu);
+    debugger.run();
 }

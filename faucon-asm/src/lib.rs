@@ -116,7 +116,7 @@ impl Register {
 
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, " $r{:02}", self.value)
+        write!(f, "$r{}", self.value)
     }
 }
 
@@ -162,10 +162,10 @@ impl fmt::Display for Operand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Operand::Register(reg) => write!(f, "{}", reg),
-            Operand::I8(int) => write!(f, " {:#02x}", int),
-            Operand::I16(int) => write!(f, " {:#04x}", int),
-            Operand::I24(int) => write!(f, " {:#06x}", int),
-            Operand::I32(int) => write!(f, " {:#08x}", int),
+            Operand::I8(int) => write!(f, "{:#02x}", int),
+            Operand::I16(int) => write!(f, "{:#04x}", int),
+            Operand::I24(int) => write!(f, "{:#06x}", int),
+            Operand::I32(int) => write!(f, "{:#08x}", int),
         }
     }
 }
@@ -288,26 +288,73 @@ impl fmt::Display for Instruction {
         // Then, check if the instruction has a specific
         // size mode notation. If so, print it as well.
         if self.operand_size() != OperandSize::Unsized {
-            let size_mode = match self.bytes[0] & opcode::SIZE_MASK {
-                0x00 => "b8",
-                0x40 => "b16",
-                0x80 => "b32",
-                _ => unreachable!(),
-            };
-
-            write!(f, " {}", size_mode)?;
+            let sz: u32 = self.operand_size().into();
+            write!(f, " b{}", sz)?;
         }
 
         // Write the operands of the instruction, if any.
         if let Some(operands) = self.operands() {
-            // TODO: Print "special" operands that are not encoded in the instruction.
-            for operand in operands.iter() {
-                write!(f, "{}", operand)?;
+            match self.kind {
+                InstructionKind::IORD(_, _) => {
+                    write!(
+                        f,
+                        " {} I[{} + {} * 4]",
+                        operands[0], operands[1], operands[2]
+                    )?;
+                }
+                InstructionKind::IOWR(0xD0, _) | InstructionKind::IOWRS(0xD0, _) => {
+                    write!(
+                        f,
+                        " I[{} + {} * 4] {}",
+                        operands[0], operands[1], operands[2]
+                    )?;
+                }
+                InstructionKind::IOWR(0xFA, _) | InstructionKind::IOWRS(0xFA, _) => {
+                    write!(f, " I[{} + {} * 4] {}", operands[0], 0, operands[1])?;
+                }
+                InstructionKind::LD(0x10, _) | InstructionKind::LD(0x3C, _) => {
+                    let sz: u32 = self.operand_size().into();
+
+                    write!(
+                        f,
+                        " {} D[{} + {} * {}]",
+                        operands[0],
+                        operands[1],
+                        operands[2],
+                        sz / 8
+                    )?;
+                }
+                InstructionKind::LD(0x34, _) | InstructionKind::LD(0x3A, _) => {
+                    let sz: u32 = self.operand_size().into();
+
+                    write!(f, " {} D[$sp + {} * {}]", operands[0], operands[1], sz / 8)?;
+                }
+                InstructionKind::ST(0x00, _) | InstructionKind::ST(0x38, 0) => {
+                    let sz: u32 = self.operand_size().into();
+
+                    write!(
+                        f,
+                        " D[{} + {} * {}] {}",
+                        operands[0],
+                        operands[1],
+                        sz / 8,
+                        operands[2]
+                    )?;
+                }
+                InstructionKind::ST(0x30, _) | InstructionKind::ST(0x38, 1) => {
+                    let sz: u32 = self.operand_size().into();
+
+                    write!(f, " D[$sp + {} * {}] {}", operands[0], sz / 8, operands[1])?;
+                }
+                _ => {
+                    for operand in operands.iter() {
+                        write!(f, " {}", operand)?;
+                    }
+                }
             }
         }
 
-        // Lastly, terminate the line.
-        writeln!(f, "")
+        Ok(())
     }
 }
 
