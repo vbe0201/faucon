@@ -2,7 +2,7 @@
 
 use faucon_asm_derive::Instruction;
 
-use crate::operand::OperandMeta;
+use crate::operand::{get_opcode_meta, OperandMeta};
 
 /// Assembly instructions that are supported by the Falcon ISA.
 ///
@@ -15,136 +15,136 @@ pub enum InstructionKind {
     ///
     /// Computes the sum of two operands and stores the
     /// result.
-    #[insn(opcode = 0x10, subopcode = 0x00, operands = "R1D, R2S, I8")]
-    #[insn(opcode = 0x20, subopcode = 0x00, operands = "R1D, R2S, I16")]
-    #[insn(opcode = 0x36, subopcode = 0x00, operands = "R2SD, I8")]
-    #[insn(opcode = 0x37, subopcode = 0x00, operands = "R2SD, I16")]
-    #[insn(opcode = 0x3B, subopcode = 0x00, operands = "R2SD, R1S")]
-    #[insn(opcode = 0x3C, subopcode = 0x00, operands = "R3D, R2S, R1S")]
-    ADD(u8, u8, String),
+    #[insn(opcode = 0x10, subopcode = 0x00)]
+    #[insn(opcode = 0x20, subopcode = 0x00)]
+    #[insn(opcode = 0x36, subopcode = 0x00)]
+    #[insn(opcode = 0x37, subopcode = 0x00)]
+    #[insn(opcode = 0x3B, subopcode = 0x00)]
+    #[insn(opcode = 0x3C, subopcode = 0x00)]
+    ADD(u8, u8),
 
     /// The ADC instruction.
     ///
     /// Computes the sum of two operands with a carry and
     /// stores the result.
-    #[insn(opcode = 0x10, subopcode = 0x01, operands = "R1D, R2S, I8")]
-    #[insn(opcode = 0x20, subopcode = 0x01, operands = "R1D, R2S, I16")]
-    #[insn(opcode = 0x36, subopcode = 0x01, operands = "R2SD, I8")]
-    #[insn(opcode = 0x37, subopcode = 0x01, operands = "R2SD, I16")]
-    #[insn(opcode = 0x3B, subopcode = 0x01, operands = "R2SD, R1S")]
-    #[insn(opcode = 0x3C, subopcode = 0x01, operands = "R3D, R2S, R1S")]
-    ADC(u8, u8, String),
+    #[insn(opcode = 0x10, subopcode = 0x01)]
+    #[insn(opcode = 0x20, subopcode = 0x01)]
+    #[insn(opcode = 0x36, subopcode = 0x01)]
+    #[insn(opcode = 0x37, subopcode = 0x01)]
+    #[insn(opcode = 0x3B, subopcode = 0x01)]
+    #[insn(opcode = 0x3C, subopcode = 0x01)]
+    ADC(u8, u8),
 
     /// The SUB instruction.
     ///
     /// Computes the difference of two operands and stores the
     /// result.
-    #[insn(opcode = 0x10, subopcode = 0x02, operands = "R1D, R2S, I8")]
-    #[insn(opcode = 0x20, subopcode = 0x02, operands = "R1D, R2S, I16")]
-    #[insn(opcode = 0x36, subopcode = 0x02, operands = "R2SD, I8")]
-    #[insn(opcode = 0x37, subopcode = 0x02, operands = "R2SD, I16")]
-    #[insn(opcode = 0x3B, subopcode = 0x02, operands = "R2SD, R1S")]
-    #[insn(opcode = 0x3C, subopcode = 0x02, operands = "R3D, R2S, R1S")]
-    SUB(u8, u8, String),
+    #[insn(opcode = 0x10, subopcode = 0x02)]
+    #[insn(opcode = 0x20, subopcode = 0x02)]
+    #[insn(opcode = 0x36, subopcode = 0x02)]
+    #[insn(opcode = 0x37, subopcode = 0x02)]
+    #[insn(opcode = 0x3B, subopcode = 0x02)]
+    #[insn(opcode = 0x3C, subopcode = 0x02)]
+    SUB(u8, u8),
 
     /// The SBB instruction.
     ///
     /// Computes the difference of two operands with a borrow and
     /// stores the result.
-    #[insn(opcode = 0x10, subopcode = 0x03, operands = "R1D, R2S, I8")]
-    #[insn(opcode = 0x20, subopcode = 0x03, operands = "R1D, R2S, I16")]
-    #[insn(opcode = 0x36, subopcode = 0x03, operands = "R2SD, I8")]
-    #[insn(opcode = 0x37, subopcode = 0x03, operands = "R2SD, I16")]
-    #[insn(opcode = 0x3B, subopcode = 0x03, operands = "R2SD, R1S")]
-    #[insn(opcode = 0x3C, subopcode = 0x03, operands = "R3D, R2S, R1S")]
-    SBB(u8, u8, String),
+    #[insn(opcode = 0x10, subopcode = 0x03)]
+    #[insn(opcode = 0x20, subopcode = 0x03)]
+    #[insn(opcode = 0x36, subopcode = 0x03)]
+    #[insn(opcode = 0x37, subopcode = 0x03)]
+    #[insn(opcode = 0x3B, subopcode = 0x03)]
+    #[insn(opcode = 0x3C, subopcode = 0x03)]
+    SBB(u8, u8),
 
     /// The AND instruction.
     ///
     /// Applies a bitwise and operation on two operands and stores
     /// the result.
-    #[insn(opcode = 0xC0, subopcode = 0x04, operands = "R1D, R2S, I8")]
-    #[insn(opcode = 0xE0, subopcode = 0x04, operands = "R1D, R2S, I16")]
-    #[insn(opcode = 0xF0, subopcode = 0x04, operands = "R2SD, I8")]
-    #[insn(opcode = 0xF1, subopcode = 0x04, operands = "R2SD, I16")]
-    #[insn(opcode = 0xFD, subopcode = 0x04, operands = "R2SD, R1S")]
-    #[insn(opcode = 0xFF, subopcode = 0x04, operands = "R3D, R2S, R1S")]
-    AND(u8, u8, String),
+    #[insn(opcode = 0xC0, subopcode = 0x04)]
+    #[insn(opcode = 0xE0, subopcode = 0x04)]
+    #[insn(opcode = 0xF0, subopcode = 0x04)]
+    #[insn(opcode = 0xF1, subopcode = 0x04)]
+    #[insn(opcode = 0xFD, subopcode = 0x04)]
+    #[insn(opcode = 0xFF, subopcode = 0x04)]
+    AND(u8, u8),
 
     /// The OR instruction.
     ///
     /// Applies a bitwise or operation on two operands and stores
     /// the result.
-    #[insn(opcode = 0xC0, subopcode = 0x05, operands = "R1D, R2S, I8")]
-    #[insn(opcode = 0xE0, subopcode = 0x05, operands = "R1D, R2S, I16")]
-    #[insn(opcode = 0xF0, subopcode = 0x05, operands = "R2SD, I8")]
-    #[insn(opcode = 0xF1, subopcode = 0x05, operands = "R2SD, I16")]
-    #[insn(opcode = 0xFD, subopcode = 0x05, operands = "R2SD, R1S")]
-    #[insn(opcode = 0xFF, subopcode = 0x05, operands = "R3D, R2S, R1S")]
-    OR(u8, u8, String),
+    #[insn(opcode = 0xC0, subopcode = 0x05)]
+    #[insn(opcode = 0xE0, subopcode = 0x05)]
+    #[insn(opcode = 0xF0, subopcode = 0x05)]
+    #[insn(opcode = 0xF1, subopcode = 0x05)]
+    #[insn(opcode = 0xFD, subopcode = 0x05)]
+    #[insn(opcode = 0xFF, subopcode = 0x05)]
+    OR(u8, u8),
 
     /// The XOR instruction.
     ///
     /// Applies a bitwise xor operation on two operands and stores
     /// the result.
-    #[insn(opcode = 0xC0, subopcode = 0x06, operands = "R1D, R2S, I8")]
-    #[insn(opcode = 0xE0, subopcode = 0x06, operands = "R1D, R2S, I16")]
-    #[insn(opcode = 0xF0, subopcode = 0x06, operands = "R2SD, I8")]
-    #[insn(opcode = 0xF1, subopcode = 0x06, operands = "R2SD, I16")]
-    #[insn(opcode = 0xFD, subopcode = 0x06, operands = "R2SD, R1S")]
-    #[insn(opcode = 0xFF, subopcode = 0x06, operands = "R3D, R2S, R1S")]
-    XOR(u8, u8, String),
+    #[insn(opcode = 0xC0, subopcode = 0x06)]
+    #[insn(opcode = 0xE0, subopcode = 0x06)]
+    #[insn(opcode = 0xF0, subopcode = 0x06)]
+    #[insn(opcode = 0xF1, subopcode = 0x06)]
+    #[insn(opcode = 0xFD, subopcode = 0x06)]
+    #[insn(opcode = 0xFF, subopcode = 0x06)]
+    XOR(u8, u8),
 
     /// The XBIT instruction.
     ///
     /// Extracts a single bit of a specified register and stores it in the
     /// highest bit of the destination register, setting all other bits to 0.
-    #[insn(opcode = 0xC0, subopcode = 0x08, operands = "R1D, R2S, I8")]
-    #[insn(opcode = 0xFF, subopcode = 0x08, operands = "R3D, R2S, R1S")]
-    #[insn(opcode = 0xF0, subopcode = 0x0C, operands = "R2D, I8")]
-    #[insn(opcode = 0xFE, subopcode = 0x0C, operands = "R1D, R2S")]
-    XBIT(u8, u8, String),
+    #[insn(opcode = 0xC0, subopcode = 0x08)]
+    #[insn(opcode = 0xFF, subopcode = 0x08)]
+    #[insn(opcode = 0xF0, subopcode = 0x0C)]
+    #[insn(opcode = 0xFE, subopcode = 0x0C)]
+    XBIT(u8, u8),
 
     /// The BSET instruction.
     ///
     /// Sets a specific bit in a given register.
-    #[insn(opcode = 0xF0, subopcode = 0x09, operands = "R2D, I8")]
-    #[insn(opcode = 0xFD, subopcode = 0x09, operands = "R2D, R1S")]
-    #[insn(opcode = 0xF4, subopcode = 0x31, operands = "I8")]
-    #[insn(opcode = 0xF9, subopcode = 0x09, operands = "R2S")]
-    BSET(u8, u8, String),
+    #[insn(opcode = 0xF0, subopcode = 0x09)]
+    #[insn(opcode = 0xFD, subopcode = 0x09)]
+    #[insn(opcode = 0xF4, subopcode = 0x31)]
+    #[insn(opcode = 0xF9, subopcode = 0x09)]
+    BSET(u8, u8),
 
     /// The BCLR instruction.
     ///
     /// Clears a specific bit in a given register.
-    #[insn(opcode = 0xF0, subopcode = 0x0A, operands = "R2D, I8")]
-    #[insn(opcode = 0xFD, subopcode = 0x0A, operands = "R2D, R1S")]
-    #[insn(opcode = 0xF4, subopcode = 0x32, operands = "I8")]
-    #[insn(opcode = 0xF9, subopcode = 0x0A, operands = "R2S")]
-    BCLR(u8, u8, String),
+    #[insn(opcode = 0xF0, subopcode = 0x0A)]
+    #[insn(opcode = 0xFD, subopcode = 0x0A)]
+    #[insn(opcode = 0xF4, subopcode = 0x32)]
+    #[insn(opcode = 0xF9, subopcode = 0x0A)]
+    BCLR(u8, u8),
 
     /// The BTGL instruction.
     ///
     /// Toggles (flips) a specific bit in a given register.
-    #[insn(opcode = 0xF0, subopcode = 0x0B, operands = "R2D, I8")]
-    #[insn(opcode = 0xFD, subopcode = 0x0B, operands = "R2D, R1S")]
-    #[insn(opcode = 0xF4, subopcode = 0x33, operands = "I8")]
-    #[insn(opcode = 0xF9, subopcode = 0x0B, operands = "R2S")]
-    BTGL(u8, u8, String),
+    #[insn(opcode = 0xF0, subopcode = 0x0B)]
+    #[insn(opcode = 0xFD, subopcode = 0x0B)]
+    #[insn(opcode = 0xF4, subopcode = 0x33)]
+    #[insn(opcode = 0xF9, subopcode = 0x0B)]
+    BTGL(u8, u8),
 
     /// The SETP instruction.
     ///
     /// Sets a specific bit in the flags register to the highest
     /// bit of the first operand.
-    #[insn(opcode = 0xF2, subopcode = 0x8, operands = "R2S, I8")]
-    #[insn(opcode = 0xFA, subopcode = 0x8, operands = "R2S, R1S")]
-    SETP(u8, u8, String),
+    #[insn(opcode = 0xF2, subopcode = 0x8)]
+    #[insn(opcode = 0xFA, subopcode = 0x8)]
+    SETP(u8, u8),
 
     /// The IOWR instruction.
     ///
     /// Writes a word to the I/O space of the processor.
-    #[insn(opcode = 0xFA, subopcode = 0x0, operands = "R2S, R1S")]
-    IOWR(u8, u8, String),
+    #[insn(opcode = 0xFA, subopcode = 0x0)]
+    IOWR(u8, u8),
 
     /// An invalid or unknown instruction.
     ///

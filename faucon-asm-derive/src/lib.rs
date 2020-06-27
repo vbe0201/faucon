@@ -23,7 +23,6 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
         let mut match_cases = Vec::new();
         let mut opcode_variants = Vec::new();
         let mut subopcode_variants = Vec::new();
-        let mut operand_variants = Vec::new();
 
         let name = &ast.ident;
         for variant in data
@@ -34,22 +33,18 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
         {
             let vname = &variant.ident;
             for result in extract_insn_attributes(variant)? {
-                let (opcode, subopcode, operands) = result;
+                let (opcode, subopcode) = result;
 
                 match_cases.push(quote! {
-                    (#opcode, #subopcode) => #name::#vname(#opcode, #subopcode, #operands.to_string())
+                    (#opcode, #subopcode) => #name::#vname(#opcode, #subopcode)
                 });
 
                 opcode_variants.push(quote! {
-                    #name::#vname(opcode, _, _) => Some(*opcode)
+                    #name::#vname(opcode, _) => Some(*opcode)
                 });
 
                 subopcode_variants.push(quote! {
-                    #name::#vname(_, subopcode, _) => Some(*subopcode)
-                });
-
-                operand_variants.push(quote! {
-                    #name::#vname(_, _, operands) => Some(operands.as_str())
+                    #name::#vname(_, subopcode) => Some(*subopcode)
                 });
             }
         }
@@ -88,12 +83,11 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 ///
                 /// Returns `None` if the instruction is invalid.
                 pub fn operands(&self) -> Option<Vec<OperandMeta>> {
-                    let operands = match self {
-                        #(#operand_variants),*,
-                        _ => None,
-                    }?;
-
-                    Some(operands.split(',').map(|fmt| OperandMeta::from(fmt)).collect())
+                    if let Some(opcode) = self.opcode() {
+                        get_opcode_meta(opcode)
+                    } else {
+                        None
+                    }
                 }
             }
 
@@ -115,7 +109,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
     }
 }
 
-fn extract_insn_attributes(variant: &syn::Variant) -> Result<Vec<(u8, u8, String)>> {
+fn extract_insn_attributes(variant: &syn::Variant) -> Result<Vec<(u8, u8)>> {
     let mut results = Vec::new();
 
     for attr in variant
@@ -124,7 +118,7 @@ fn extract_insn_attributes(variant: &syn::Variant) -> Result<Vec<(u8, u8, String
         .filter(|a| a.path.segments.len() == 1 && a.path.segments[0].ident == "insn")
     {
         if let syn::Meta::List(ref nested_list) = attr.parse_meta()? {
-            if nested_list.nested.len() == 3 {
+            if nested_list.nested.len() == 2 {
                 let mut arguments = Vec::new();
 
                 for nested_meta in nested_list.nested.iter() {
@@ -140,8 +134,7 @@ fn extract_insn_attributes(variant: &syn::Variant) -> Result<Vec<(u8, u8, String
 
                 let opcode = parse_int_arg(arguments[0], "opcode")?;
                 let subopcode = parse_int_arg(arguments[1], "subopcode")?;
-                let operands = parse_str_arg(&arguments[2], "operands")?;
-                results.push((opcode, subopcode, operands));
+                results.push((opcode, subopcode));
             } else {
                 return Err(Error::new(
                     attr.path.segments[0].ident.span(),
@@ -175,19 +168,6 @@ fn parse_int_arg(meta: &syn::MetaNameValue, name: &str) -> Result<u8> {
         Err(Error::new(
             Span::call_site(),
             format!("Failed to parse the \"{}\" integer literal", name),
-        ))
-    }
-}
-
-fn parse_str_arg(meta: &syn::MetaNameValue, name: &str) -> Result<String> {
-    verify_ident_name(&meta.path, name)?;
-
-    if let syn::Lit::Str(ref str) = meta.lit {
-        Ok(str.value())
-    } else {
-        Err(Error::new(
-            Span::call_site(),
-            format!("Failed to parse the \"{}\" string literal", name),
         ))
     }
 }

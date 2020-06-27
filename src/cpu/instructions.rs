@@ -59,18 +59,18 @@ fn is_overflow(a: bool, b: bool, c: bool) -> bool {
 /// Returns the amount of CPU cycles that the instruction took.
 pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
     match insn.kind {
-        InstructionKind::ADD(_, _, _) => add(cpu, insn),
-        InstructionKind::ADC(_, _, _) => adc(cpu, insn),
-        InstructionKind::SUB(_, _, _) => sub(cpu, insn),
-        InstructionKind::SBB(_, _, _) => sbb(cpu, insn),
-        InstructionKind::AND(_, _, _) => and(cpu, insn),
-        InstructionKind::OR(_, _, _) => or(cpu, insn),
-        InstructionKind::XOR(_, _, _) => xor(cpu, insn),
-        InstructionKind::XBIT(_, _, _) => xbit(cpu, insn),
-        InstructionKind::BSET(_, _, _) => bset(cpu, insn),
-        InstructionKind::BCLR(_, _, _) => bclr(cpu, insn),
-        InstructionKind::BTGL(_, _, _) => btgl(cpu, insn),
-        InstructionKind::SETP(_, _, _) => setp(cpu, insn),
+        InstructionKind::ADD(_, _) => add(cpu, insn),
+        InstructionKind::ADC(_, _) => adc(cpu, insn),
+        InstructionKind::SUB(_, _) => sub(cpu, insn),
+        InstructionKind::SBB(_, _) => sbb(cpu, insn),
+        InstructionKind::AND(_, _) => and(cpu, insn),
+        InstructionKind::OR(_, _) => or(cpu, insn),
+        InstructionKind::XOR(_, _) => xor(cpu, insn),
+        InstructionKind::XBIT(_, _) => xbit(cpu, insn),
+        InstructionKind::BSET(_, _) => bset(cpu, insn),
+        InstructionKind::BCLR(_, _) => bclr(cpu, insn),
+        InstructionKind::BTGL(_, _) => btgl(cpu, insn),
+        InstructionKind::SETP(_, _) => setp(cpu, insn),
         _ => todo!("Emulate remaining instructions"),
     }
 }

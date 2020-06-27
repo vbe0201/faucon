@@ -4,7 +4,7 @@ extern crate nom;
 use std::convert::TryInto;
 use std::env;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Cursor, Read};
 use std::path::Path;
 
 use cpu::Cpu;
@@ -43,9 +43,13 @@ fn main() {
     let arguments = env::args().collect::<Vec<String>>();
     let binary = read_binary(&arguments[1]);
 
-    let mut cpu = Cpu::new();
-    upload_code(&mut cpu, 0, 0, &binary);
+    println!(
+        "{:?}",
+        faucon_asm::disassembler::read_instruction(&mut Cursor::new(&[241, 86, 173, 222])).unwrap()
+    );
+    //let mut cpu = Cpu::new();
+    //upload_code(&mut cpu, 0, 0, &binary);
 
-    let mut debugger = Debugger::new(cpu);
-    debugger.run();
+    //let mut debugger = Debugger::new(cpu);
+    //debugger.run();
 }

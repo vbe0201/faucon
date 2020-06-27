@@ -1,5 +1,7 @@
 //! Abstractions over Falcon Assembly operands.
 
+use crate::Operand;
+
 /// Denotes the operand size of an instruction.
 ///
 /// The value is determined by the highest two
@@ -171,11 +173,66 @@ impl OperandMeta {
     }
 }
 
-// This is the counterpart to the operands notation
-// proposed by the faucon-asm-derive crate.
+/// Gets the [`OperandMeta`] that corresponds to a given opcode.
+///
+/// The Falcon architecture follows strict rules on how operand
+/// layout looks like corresponding to an opcode. Some opcodes
+/// might imply that instructions have no operands at all.
+///
+/// [`OperandMeta`]: enum.OperandMeta.html
+pub fn get_opcode_meta(opcode: u8) -> Option<Vec<OperandMeta>> {
+    let notation = match opcode {
+        // Sized opcodes
+        0x00..=0x0F => Some("R2S, R1S, I8"),
+        0x10..=0x1F => Some("R1D, R2S, I8"),
+        0x20..=0x2F => Some("R1D, R2S, I16"),
+        0x30 => Some("R2S, I8"),
+        0x31 => Some("R2S, I16"),
+        0x34 => Some("R2D, I8"),
+        0x36 => Some("R2SD, I8"),
+        0x37 => Some("R2SD, I16"),
+        0x38 => Some("R2S, R1S"),
+        0x39 => Some("R1D, R2S"),
+        0x3A => Some("R2D, R1S"),
+        0x3B => Some("R2SD, R1S"),
+        0x3C => Some("R3D, R2S, R1S"),
+        0x3D => Some("R2SD"),
 
-impl<'a> From<&'a str> for OperandMeta {
-    fn from(fmt: &'a str) -> Self {
+        // Unsized opcodes
+        0xC0..=0xCF => Some("R1D, R2S, I8"),
+        0xD0..=0xDF => Some("R2S, R1S, I8"),
+        0xE0..=0xEF => Some("R1D, R2S, I16"),
+        0xF0 => Some("R2SD, I8"),
+        0xF1 => Some("R2SD, I16"),
+        0xF2 => Some("R2S, I8"),
+        0xF4 => Some("I8"),
+        0xF5 => Some("I16"),
+        0xF8 => None,
+        0xF9 => Some("R2S"),
+        0xFA => Some("R2S, R1S"),
+        0xFC => Some("R2D"),
+        0xFD => Some("R2SD, R1S"),
+        0xFE => Some("R1D, R2S"),
+        0xFF => Some("R3D, R2S, R1S"),
+
+        // Unknown/Invalid
+        _ => None,
+    };
+
+    if let Some(operands) = notation {
+        Some(
+            operands
+                .split(',')
+                .map(|fmt| OperandMeta::from(fmt))
+                .collect(),
+        )
+    } else {
+        None
+    }
+}
+
+impl From<&str> for OperandMeta {
+    fn from(fmt: &str) -> Self {
         match fmt.trim() {
             "R1S" => OperandMeta::R(RegisterMeta(
                 RegisterLocation::Low1,
