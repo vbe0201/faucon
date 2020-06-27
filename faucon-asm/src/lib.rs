@@ -40,6 +40,7 @@
 
 #![warn(missing_docs)]
 
+use std::fmt;
 use std::io::Read;
 
 use byteorder::{ByteOrder, LittleEndian};
@@ -113,6 +114,12 @@ impl Register {
     }
 }
 
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, " $r{:02}", self.value)
+    }
+}
+
 /// A Falcon Assembly operand that belongs to an [`Instruction`].
 ///
 /// Operands can either be a CPU [`Register`], or an immediate of a
@@ -149,6 +156,18 @@ pub enum Operand {
     ///
     /// [`u32`]: https://doc.rust-lang.org/stable/std/primitive.u32.html
     I32(u32),
+}
+
+impl fmt::Display for Operand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Operand::Register(reg) => write!(f, "{}", reg),
+            Operand::I8(int) => write!(f, " {:#02x}", int),
+            Operand::I16(int) => write!(f, " {:#04x}", int),
+            Operand::I24(int) => write!(f, " {:#06x}", int),
+            Operand::I32(int) => write!(f, " {:#08x}", int),
+        }
+    }
 }
 
 /// A Falcon Assembly instruction.
@@ -258,6 +277,37 @@ impl Instruction {
     /// [`Instruction::new`]: struct.Instruction.html#method.new
     pub fn feed(&mut self, bytes: &[u8]) {
         self.bytes.extend(bytes);
+    }
+}
+
+impl fmt::Display for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // First, write the instruction mnemonic.
+        write!(f, "{}", self.kind)?;
+
+        // Then, check if the instruction has a specific
+        // size mode notation. If so, print it as well.
+        if self.operand_size() != OperandSize::Unsized {
+            let size_mode = match self.bytes[0] & opcode::SIZE_MASK {
+                0x00 => "b8",
+                0x40 => "b16",
+                0x80 => "b32",
+                _ => unreachable!(),
+            };
+
+            write!(f, " {}", size_mode)?;
+        }
+
+        // Write the operands of the instruction, if any.
+        if let Some(operands) = self.operands() {
+            // TODO: Print "special" operands that are not encoded in the instruction.
+            for operand in operands.iter() {
+                write!(f, "{}", operand)?;
+            }
+        }
+
+        // Lastly, terminate the line.
+        writeln!(f, "")
     }
 }
 

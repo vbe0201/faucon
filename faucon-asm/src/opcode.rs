@@ -7,7 +7,7 @@
 /// - `0x00` for 8-bit mode (`b8`)
 /// - `0x40` for 16-bit mode (`b16`)
 /// - `0x80` for 32-bit mode (`b32`)
-pub const SIZE_MASK: usize = 0xC0;
+pub const SIZE_MASK: u8 = 0xC0;
 
 /// The location within an instruction where the subopcode is stored.
 ///

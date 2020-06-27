@@ -44,8 +44,11 @@ fn main() {
     let binary = read_binary(&arguments[1]);
 
     println!(
-        "{:?}",
-        faucon_asm::disassembler::read_instruction(&mut Cursor::new(&[241, 86, 173, 222])).unwrap()
+        "{}",
+        faucon_asm::disassembler::read_instruction(&mut Cursor::new(&[
+            0x77, 0x50, 0xad, 0xde, 0x00
+        ]))
+        .unwrap()
     );
     //let mut cpu = Cpu::new();
     //upload_code(&mut cpu, 0, 0, &binary);

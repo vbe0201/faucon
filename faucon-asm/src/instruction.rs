@@ -1,5 +1,7 @@
 //! Falcon Assembly instruction listings.
 
+use std::fmt;
+
 use faucon_asm_derive::Instruction;
 
 use crate::operand::{get_opcode_meta, OperandMeta};
@@ -154,4 +156,27 @@ pub enum InstructionKind {
     ///
     /// [`InstructionKind::invalid`]: enum.InstructionKind.html#method.invalid
     XXX,
+}
+
+impl fmt::Display for InstructionKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mnemonic = match self {
+            InstructionKind::ADC(_, _) => "adc",
+            InstructionKind::ADD(_, _) => "add",
+            InstructionKind::AND(_, _) => "and",
+            InstructionKind::BCLR(_, _) => "bclr",
+            InstructionKind::BSET(_, _) => "bset",
+            InstructionKind::BTGL(_, _) => "btgl",
+            InstructionKind::IOWR(_, _) => "iowr",
+            InstructionKind::OR(_, _) => "or",
+            InstructionKind::SBB(_, _) => "sbb",
+            InstructionKind::SETP(_, _) => "setp",
+            InstructionKind::SUB(_, _) => "sub",
+            InstructionKind::XBIT(_, _) => "xbit",
+            InstructionKind::XOR(_, _) => "xor",
+            _ => "???",
+        };
+
+        write!(f, "{}", mnemonic)
+    }
 }
