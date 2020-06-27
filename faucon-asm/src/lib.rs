@@ -39,6 +39,7 @@
 //! **TODO:** Implement this.
 
 #![warn(missing_docs)]
+#![allow(clippy::len_without_is_empty)]
 
 use std::fmt;
 use std::io::Read;
@@ -256,7 +257,28 @@ impl Instruction {
         // operands at all, it is better to return the Option
         // instead of unwrapping.
         if let Some(operands) = self.kind.operands() {
-            Some(operands.iter().map(|o| self.parse_operand(o)).collect())
+            Some(
+                operands
+                    .iter()
+                    .map(|o| self.parse_operand(o))
+                    .flat_map(|op| {
+                        if let Operand::Register(Register {
+                            meta: RegisterMeta(loc, RegisterDirection::SourceDestination),
+                            value,
+                        }) = op
+                        {
+                            let map = |meta: RegisterMeta, value: usize| {
+                                Operand::Register(Register { meta, value })
+                            };
+                            let first = RegisterMeta(loc, RegisterDirection::Destination);
+                            let second = RegisterMeta(loc, RegisterDirection::Source);
+                            vec![map(first, value), map(second, value)].into_iter()
+                        } else {
+                            vec![op].into_iter()
+                        }
+                    })
+                    .collect(),
+            )
         } else {
             None
         }
