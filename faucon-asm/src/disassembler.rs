@@ -68,8 +68,8 @@ fn read_operands<R: Read>(insn: &mut Instruction, reader: &mut R) -> Result<()> 
 
         // Under certain circumstances, the buffer may have not been filled to the
         // actual start of the operand, so this needs to be taken care of as well.
-        let actual_length = insn.bytes.len() as u64;
-        let required_length = operand_start + operand_length - 1;
+        let actual_length = insn.bytes.len() as u64 + remainder.len() as u64;
+        let required_length = operand_start + operand_length;
         if actual_length < required_length {
             read_bytes(&mut remainder, reader, required_length - actual_length)?;
         }
