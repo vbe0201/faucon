@@ -329,7 +329,7 @@ impl fmt::Display for Instruction {
         }
 
         // Lastly, terminate the line.
-        writeln!(f, "")
+        writeln!(f)
     }
 }
 

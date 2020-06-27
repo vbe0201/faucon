@@ -14,7 +14,7 @@ macro_rules! operands {
     }};
 
     (@internal, $op:expr, $cpu:ident, val) => {
-        read_value(&$op, $cpu)
+        read_value($op, $cpu)
     };
 
     (@internal, $op:expr, $cpu:ident, op) => {
@@ -104,7 +104,7 @@ fn add(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Compute the result of the operation and store it.
     let result = source1 + source2;
-    write_value(&destination, cpu, result);
+    write_value(destination, cpu, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(
@@ -137,7 +137,7 @@ fn adc(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Compute the result of the operation and store it.
     let result = source1 + source2 + cpu.registers.get_flag(CpuFlag::CARRY) as u32;
-    write_value(&destination, cpu, result);
+    write_value(destination, cpu, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(
@@ -170,7 +170,7 @@ fn sub(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Compute the result of the operation and store it.
     let result = source1 - source2;
-    write_value(&destination, cpu, result);
+    write_value(destination, cpu, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(
@@ -203,7 +203,7 @@ fn sbb(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Compute the result of the operation and store it.
     let result = source1 - source2 - cpu.registers.get_flag(CpuFlag::CARRY) as u32;
-    write_value(&destination, cpu, result);
+    write_value(destination, cpu, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(
@@ -236,7 +236,7 @@ fn and(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Compute the result of the operation and store it.
     let result = source1 & source2;
-    write_value(&destination, cpu, result);
+    write_value(destination, cpu, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
@@ -255,7 +255,7 @@ fn or(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Compute the result of the operation and store it.
     let result = source1 | source2;
-    write_value(&destination, cpu, result);
+    write_value(destination, cpu, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
@@ -274,7 +274,7 @@ fn xor(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Compute the result of the operation and store it.
     let result = source1 ^ source2;
-    write_value(&destination, cpu, result);
+    write_value(destination, cpu, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::CARRY, false);
@@ -293,7 +293,7 @@ fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Compute the result of the operation and store it.
     let result = source1 >> source2 & 1;
-    write_value(&destination, cpu, result);
+    write_value(destination, cpu, result);
 
     // Set the CPU flags accordingly.
     cpu.registers.set_flag(CpuFlag::NEGATIVE, false);
@@ -420,18 +420,18 @@ fn setp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
-fn read_value(operand: &Operand, cpu: &Cpu) -> u32 {
+fn read_value(operand: Operand, cpu: &Cpu) -> u32 {
     match operand {
-        Operand::Register(reg) => cpu.registers.get_gpr(reg.value),
-        Operand::I8(x) => *x as u32,
-        Operand::I16(x) => *x as u32,
-        Operand::I24(x) => *x,
-        Operand::I32(x) => *x,
+        Operand::Register(reg) => cpu.registers.get_gpr(reg),
+        Operand::I8(x) => x as u32,
+        Operand::I16(x) => x as u32,
+        Operand::I24(x) => x,
+        Operand::I32(x) => x,
     }
 }
 
-fn write_value(operand: &Operand, cpu: &mut Cpu, val: u32) {
+fn write_value(operand: Operand, cpu: &mut Cpu, val: u32) {
     if let Operand::Register(reg) = operand {
-        cpu.registers.set_gpr(reg.value, val);
+        cpu.registers.set_gpr(reg, val);
     }
 }
