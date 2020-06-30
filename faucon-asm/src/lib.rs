@@ -314,6 +314,12 @@ impl fmt::Display for Instruction {
             write!(f, " b{}", sz)?;
         }
 
+        // In special cases, the subopcode denotes small instruction details
+        // that are relevant for the resulting disassembly output.
+        if let InstructionKind::TRAP(_, subopcode) = self.kind {
+            write!(f, " {}", subopcode - 0x8)?;
+        }
+
         // Write the operands of the instruction, if any.
         if let Some(operands) = self.operands() {
             match self.kind {
