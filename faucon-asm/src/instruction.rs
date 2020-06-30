@@ -566,13 +566,15 @@ pub enum InstructionKind {
     ///
     /// Writes a word to the I/O space of the processor asynchronously.
     #[insn(opcode = 0xD0, subopcode = 0x00)]
+    #[insn(opcode = 0xF6, subopcode = 0x06)]
     #[insn(opcode = 0xFA, subopcode = 0x00)]
     IOWR(u8, u8),
 
     /// The IOWRS instruction.
     ///
     /// Writes a word to the I/O space of the processor synchronously.
-    #[insn(opcode = 0xD0, subopcode = 0x01)]
+    #[insn(opcode = 0xD1, subopcode = 0x01)]
+    #[insn(opcode = 0xF7, subopcode = 0x07)]
     #[insn(opcode = 0xFA, subopcode = 0x01)]
     IOWRS(u8, u8),
 

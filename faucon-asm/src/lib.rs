@@ -331,8 +331,10 @@ impl fmt::Display for Instruction {
                         operands[0], operands[1], operands[2]
                     )?;
                 }
-                InstructionKind::IOWR(0xFA, _) | InstructionKind::IOWRS(0xFA, _) => {
-                    write!(f, " I[{} + {} * 4] {}", operands[0], 0, operands[1])?;
+                InstructionKind::IOWR(0xFA, _)
+                | InstructionKind::IOWR(0xF6, _)
+                | InstructionKind::IOWRS(0xFA, _) => {
+                    write!(f, " I[{}] {}", operands[0], operands[1])?;
                 }
                 InstructionKind::LD(0x10, _) | InstructionKind::LD(0x3C, _) => {
                     let sz: u32 = self.operand_size().into();

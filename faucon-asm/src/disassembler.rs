@@ -4,6 +4,7 @@ use std::io::Read;
 
 use crate::instruction::InstructionKind;
 use crate::opcode::*;
+use crate::operand::is_unsized;
 use crate::{Error, Instruction, Result};
 
 /// Reads an instruction from a given [`Read`]er and attempts to parse it into
@@ -20,14 +21,18 @@ use crate::{Error, Instruction, Result};
 pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     let mut insn = Vec::new();
 
-    // First, read the opcode of an instruction and get the corresponding subopcode.
+    // First, read the opcode of an instruction and mask it appropriately.
     read_bytes(&mut insn, reader, 1)?;
-    let opcode = insn[0] & !SIZE_MASK;
-
-    let subopcode_location =
-        get_subopcode_location(opcode).ok_or(Error::InvalidInstruction(insn[0]))?;
+    let mut opcode = insn[0];
+    if is_unsized(opcode) {
+        opcode &= 0xFF;
+    } else {
+        opcode &= !SIZE_MASK;
+    }
 
     // Read and extract the subopcode.
+    let subopcode_location =
+        get_subopcode_location(opcode).ok_or(Error::InvalidInstruction(opcode))?;
     read_bytes(&mut insn, reader, subopcode_location.value() as u64)?;
     let subopcode = parse_subopcode(&insn, subopcode_location);
 

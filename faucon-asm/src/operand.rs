@@ -1,7 +1,5 @@
 //! Abstractions over Falcon Assembly operands.
 
-use crate::Operand;
-
 /// Denotes the operand size of an instruction.
 ///
 /// The value is determined by the highest two
@@ -28,6 +26,10 @@ impl From<u8> for OperandSize {
             _ => unreachable!(),
         }
     }
+}
+
+pub(crate) fn is_unsized(opcode: u8) -> bool {
+    (opcode >> 6) == 0b11
 }
 
 impl Into<u32> for OperandSize {
@@ -207,6 +209,7 @@ pub fn get_opcode_meta(opcode: u8) -> Option<Vec<OperandMeta>> {
         0xF2 => Some("R2S, I8"),
         0xF4 => Some("I8"),
         0xF5 => Some("I16"),
+        0xF6..=0xF7 => Some("R2D, R1S, I8"),
         0xF8 => None,
         0xF9 => Some("R2S"),
         0xFA => Some("R2S, R1S"),
