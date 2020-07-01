@@ -302,6 +302,18 @@ impl Instruction {
     }
 }
 
+macro_rules! operand {
+    ($operand:expr, $($variant:pat)|* => $result:expr) => {
+        if false {
+            unreachable!()
+        } $(else if let $variant = $operand {
+            Some($result)
+        })* else {
+            None
+        }
+    };
+}
+
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // First, write the instruction mnemonic.
@@ -314,73 +326,156 @@ impl fmt::Display for Instruction {
             write!(f, " b{}", sz)?;
         }
 
-        // In special cases, the subopcode denotes small instruction details
-        // that are relevant for the resulting disassembly output.
-        if let InstructionKind::TRAP(_, subopcode) = self.kind {
+        // In special cases, the subopcode/operand(s) denote small instruction
+        // details that require special handling for the disassembly output.
+        if let InstructionKind::IORD(opcode, _) = self.kind {
+            // The IORD instruction encodes a destination register, a base register
+            // and an index that may either be a register or an immediate. This index
+            // must be multiplied by 4 to get its correct value (instruction encoding),
+            // so the operands need to be formatted and evaluated appropriately.
+
+            let operands = self.operands().unwrap();
+
+            write!(f, " {} I[{}", operands[0], operands[1])?;
+            if opcode == 0xCF {
+                let index = operand!(operands[2], Operand::I8(val) => val * 4).unwrap();
+                if index != 0 {
+                    write!(f, " + {:#02x}]", index)?;
+                } else {
+                    write!(f, "]")?;
+                }
+            } else {
+                write!(f, " {} * 0x4]", operands[2])?;
+            }
+        } else if let InstructionKind::IOWR(opcode, _) = self.kind {
+            // See IORD explanation for details.
+
+            let operands = self.operands().unwrap();
+
+            write!(f, " I[{}", operands[0])?;
+            if opcode == 0xD0 {
+                let index = operand!(operands[1], Operand::I8(val) => val * 4).unwrap();
+                if index != 0 {
+                    write!(f, " + {:#02x}] {}", index, operands[2])?;
+                } else {
+                    write!(f, "] {}", operands[2])?;
+                }
+            } else {
+                write!(f, "] {}", operands[1])?;
+            }
+        } else if let InstructionKind::IOWRS(opcode, _) = self.kind {
+            // See IORD explanation for details.
+
+            let operands = self.operands().unwrap();
+
+            write!(f, " I[{}", operands[0])?;
+            if opcode == 0xD0 {
+                let index = operand!(operands[1], Operand::I8(val) => val * 4).unwrap();
+                if index != 0 {
+                    write!(f, " + {:#02x}] {}", index, operands[2])?;
+                } else {
+                    write!(f, "] {}", operands[2])?;
+                }
+            } else {
+                write!(f, "] {}", operands[1])?;
+            }
+        } else if let InstructionKind::LD(opcode, _) = self.kind {
+            // Under certain circumstances, the LD operates on the $sp register
+            // which is denoted through the opcode rather than encoded as an operand.
+            // Thus, $sp printing and overall formatting needs special handling.
+
+            let operands = self.operands().unwrap();
+            let size: u32 = self.operand_size().into();
+
+            write!(f, " {} D[", operands[0])?;
+            if opcode == 0x34 || opcode == 0x3A {
+                write!(f, "$sp")?;
+            } else {
+                write!(f, "{}", operands[1])?;
+            }
+            if opcode == 0x10 || opcode == 0x34 {
+                let index =
+                    operand!(operands.last().unwrap(), Operand::I8(val) => val * (size / 8) as u8)
+                        .unwrap();
+                if index != 0 {
+                    write!(f, " + {}]", index)?;
+                } else {
+                    write!(f, "]")?;
+                }
+            } else {
+                write!(f, " + {} * {:#02x}]", operands.last().unwrap(), size / 8)?;
+            }
+        } else if let InstructionKind::SLEEP(_, _) = self.kind {
+            // The SLEEP instruction encodes the bits of the $flags register as an I8
+            // operand and thus the name of the flag in question should be printed.
+
+            let flag = match operand!(self.operands().unwrap()[0], Operand::I8(val) => val).unwrap()
+            {
+                0 => "p0",
+                1 => "p1",
+                2 => "p2",
+                3 => "p3",
+                4 => "p4",
+                5 => "p5",
+                6 => "p6",
+                7 => "p7",
+                8 => "c",
+                9 => "o",
+                10 => "s",
+                11 => "z",
+                16 => "ie0",
+                17 => "ie1",
+                18 => "ie2",
+                20 => "is0",
+                21 => "is1",
+                22 => "is2",
+                24 => "ta",
+                _ => todo!("Figure these out"),
+            };
+
+            write!(f, " {}", flag)?;
+        } else if let InstructionKind::ST(opcode, subopcode) = self.kind {
+            // See LD explanation for details.
+
+            let operands = self.operands().unwrap();
+            let size: u32 = self.operand_size().into();
+
+            if opcode == 0x00 {
+                let index =
+                    operand!(operands[1], Operand::I8(val) => val * (size / 8) as u8).unwrap();
+                if index != 0 {
+                    write!(f, " D[{} + {:#02x}] {}", operands[0], index, operands[2])?;
+                } else {
+                    write!(f, " D[{}] {}", operands[0], operands[2])?;
+                }
+            } else if opcode == 0x30 {
+                let index =
+                    operand!(operands[0], Operand::I8(val) => val * (size / 8) as u8).unwrap();
+                if index != 0 {
+                    write!(f, " D[$sp + {:#02x}] {}", index, operands[1])?;
+                } else {
+                    write!(f, " D[$sp] {}", operands[1])?;
+                }
+            } else if opcode == 0x38 && subopcode == 0x00 {
+                write!(f, " D[{}] {}", operands[0], operands[1])?;
+            } else if opcode == 0x38 && subopcode == 0x01 {
+                write!(
+                    f,
+                    " D[$sp + {} * {:#02x}] {}",
+                    operands[0],
+                    size / 8,
+                    operands[1]
+                )?;
+            }
+        } else if let InstructionKind::TRAP(_, subopcode) = self.kind {
+            // The TRAP instruction has variable subopcodes for the kind
+            // of software trap that should be triggered by the instruction.
+            // Print said trap kind as it is not encoded in the operands.
+
             write!(f, " {}", subopcode - 0x8)?;
-        }
-
-        // Write the operands of the instruction, if any.
-        if let Some(operands) = self.operands() {
-            match self.kind {
-                InstructionKind::IORD(_, _) => {
-                    write!(
-                        f,
-                        " {} I[{} + {} * 4]",
-                        operands[0], operands[1], operands[2]
-                    )?;
-                }
-                InstructionKind::IOWR(0xD0, _) | InstructionKind::IOWRS(0xD0, _) => {
-                    write!(
-                        f,
-                        " I[{} + {} * 4] {}",
-                        operands[0], operands[1], operands[2]
-                    )?;
-                }
-                InstructionKind::IOWR(0xFA, _)
-                | InstructionKind::IOWR(0xF6, _)
-                | InstructionKind::IOWRS(0xFA, _) => {
-                    write!(f, " I[{}] {}", operands[0], operands[1])?;
-                }
-                InstructionKind::LD(0x10, _) | InstructionKind::LD(0x3C, _) => {
-                    let sz: u32 = self.operand_size().into();
-
-                    write!(
-                        f,
-                        " {} D[{} + {} * {}]",
-                        operands[0],
-                        operands[1],
-                        operands[2],
-                        sz / 8
-                    )?;
-                }
-                InstructionKind::LD(0x34, _) | InstructionKind::LD(0x3A, _) => {
-                    let sz: u32 = self.operand_size().into();
-
-                    write!(f, " {} D[$sp + {} * {}]", operands[0], operands[1], sz / 8)?;
-                }
-                InstructionKind::ST(0x00, _) | InstructionKind::ST(0x38, 0) => {
-                    let sz: u32 = self.operand_size().into();
-
-                    write!(
-                        f,
-                        " D[{} + {} * {}] {}",
-                        operands[0],
-                        operands[1],
-                        sz / 8,
-                        operands[2]
-                    )?;
-                }
-                InstructionKind::ST(0x30, _) | InstructionKind::ST(0x38, 1) => {
-                    let sz: u32 = self.operand_size().into();
-
-                    write!(f, " D[$sp + {} * {}] {}", operands[0], sz / 8, operands[1])?;
-                }
-                _ => {
-                    for operand in operands.iter() {
-                        write!(f, " {}", operand)?;
-                    }
-                }
+        } else {
+            for operand in self.operands().unwrap_or(Vec::new()).iter() {
+                write!(f, " {}", operand)?;
             }
         }
 
