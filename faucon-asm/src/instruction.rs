@@ -676,6 +676,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::SHRC(_, _) => "shrc",
             InstructionKind::SUB(_, _) => "sub",
             InstructionKind::TRAP(_, _) => "trap",
+            InstructionKind::VTLB(_, _) => "vtlb",
             InstructionKind::XBIT(_, _) => "xbit",
             InstructionKind::XCLD(_, _) => "xcld",
             InstructionKind::XCWAIT(_, _) => "xcwait",
