@@ -468,6 +468,7 @@ pub enum InstructionKind {
     ///
     /// Performs an unconditional branch to an absolute address,
     /// pushing the return address onto the stack.
+    #[insn(opcode = 0xF3, subopcode = 0x03)]
     #[insn(opcode = 0xF4, subopcode = 0x21)]
     #[insn(opcode = 0xF5, subopcode = 0x21)]
     #[insn(opcode = 0xF9, subopcode = 0x05)]

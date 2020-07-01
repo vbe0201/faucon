@@ -58,6 +58,7 @@ pub fn get_subopcode_location(opcode: u8) -> Option<SubopcodeLocation> {
         // Unsized opcodes
         0xC0..=0xEF => Some(SubopcodeLocation::O1),
         0xF0..=0xF2 => Some(SubopcodeLocation::O2),
+        0xF3 => Some(SubopcodeLocation::O1),
         0xF4..=0xF5 => Some(SubopcodeLocation::OL),
         0xF6..=0xF7 => Some(SubopcodeLocation::O1),
         0xF8..=0xF9 => Some(SubopcodeLocation::O2),

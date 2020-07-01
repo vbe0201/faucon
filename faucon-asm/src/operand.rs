@@ -207,6 +207,7 @@ pub fn get_opcode_meta(opcode: u8) -> Option<Vec<OperandMeta>> {
         0xF0 => Some("R2SD, I8"),
         0xF1 => Some("R2SD, I16"),
         0xF2 => Some("R2S, I8"),
+        0xF3 => Some("I16"),
         0xF4 => Some("I8"),
         0xF5 => Some("I16"),
         0xF6..=0xF7 => Some("R2D, R1S, I8"),
