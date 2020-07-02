@@ -6,12 +6,11 @@ extern crate nom;
 use std::convert::TryInto;
 use std::env;
 use std::fs::File;
-use std::io::{Cursor, Read};
+use std::io::Read;
 use std::path::Path;
 
 use cpu::Cpu;
 use debugger::Debugger;
-use faucon_asm::disassemble;
 
 mod cpu;
 mod debugger;
