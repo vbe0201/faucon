@@ -5,6 +5,13 @@ use std::io::{Read, Write};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use num_traits::{PrimInt, Signed, Unsigned};
 
+/// An unsigned 8-bit immediate that presents a `0` literal.
+///
+/// This is a special drop-in replacement for [`I8`] immediates
+/// that default to a literal `0` value for certain instruction
+/// variants and thus are not encoded in the instruction bytes.
+pub const NULL: Literal<u8> = Literal(0);
+
 /// An unsigned 8-bit immediate.
 ///
 /// These are used for bit positions, shifts and 8-bit instructions.
@@ -79,7 +86,7 @@ pub const I24: Immediate<u32> = Immediate(2, 3, None, None);
 /// adapt to every special circumstance in instruction encoding
 /// so that dirty hacks and alike can be avoided for ISA
 /// inconsistencies across Falcon revisions.
-pub trait Argument<T: PrimInt> {
+pub trait Argument<T> {
     /// Reads the argument from the bytes echoed by the given
     /// [`Read`]er.
     ///
@@ -119,13 +126,55 @@ pub trait Argument<T: PrimInt> {
     fn write<W: Write>(&self, value: T, writer: &mut W);
 }
 
+/// An immediate operand that is represented by a literal number.
+///
+/// There are a few instructions that have certain variants that
+/// default to literal values for certain operands. As a result of
+/// that, these values are not encoded in the instruction but should
+/// still be obtainable by the disassembler for consistency reasons.
+///
+/// The tuple arguments it carries are `(value)`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Literal<T: PrimInt>(T);
+
+impl<T: PrimInt> Argument<T> for Literal<T> {
+    fn read<R: Read>(&self, _reader: &mut R) -> T {
+        // Return the stored value without touching the reader as
+        // it is not encoded in the instruction but still relevant.
+        self.0
+    }
+
+    fn start(&self) -> usize {
+        // Literals don't have a real start because they're not encoded
+        // in an instruction.
+        unimplemented!()
+    }
+
+    fn size(&self) -> usize {
+        // Literals are not restricted in size because they're not
+        // encoded as actual instruction bytes.
+        unimplemented!()
+    }
+
+    fn mask(&self) -> usize {
+        // Masking is not necessary for Literals because it is assumed
+        // that the wrapped value is already correctly masked.
+        unimplemented!()
+    }
+
+    fn write<W: Write>(&self, _value: T, _writer: &mut W) {
+        // Purposefully do nothing as Literals are not
+        // part of the actual instruction bytes.
+    }
+}
+
 /// An immediate instruction operand, given as an unsized integer
 /// value.
 ///
 /// In cases where it is necessary, immediates will be zero-extended
 /// to the necessary size.
 ///
-/// The tuple arguments it carries are `(position, width, shift)`.
+/// The tuple arguments it carries are `(position, width, shift, mask)`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Immediate<T: PrimInt + Unsigned>(usize, usize, Option<T>, Option<usize>);
 
@@ -245,7 +294,7 @@ impl Argument<u32> for Immediate<u32> {
 /// In cases where it is necessary, immediates will be sign-extended
 /// to the necessary size.
 ///
-/// The tuple arguments it carries are `(position, width, shift)`.
+/// The tuple arguments it carries are `(position, width, shift, mask)`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SignedImmediate<T: PrimInt + Signed>(usize, usize, Option<T>, Option<usize>);
 
