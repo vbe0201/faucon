@@ -1,409 +1,218 @@
-//! Arguments that are encoded in Falcon Assembly instructions.
+//! A parser layer around actual Falcon operands, describing their position, size
+//! and representation.
 
-use std::io::{Read, Write};
+use byteorder::{ByteOrder, LittleEndian};
+use num_traits::{cast, NumCast, PrimInt};
 
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use num_traits::{PrimInt, Signed, Unsigned};
+macro_rules! immediate {
+    ($v:ident, $value:tt) => {
+        Argument::$v(Immediate {
+            position: 0,
+            width: 0,
+            sign: false,
+            shift: None,
+            mask: None,
+            raw_value: Some($value),
+        })
+    };
+    ($v:ident, $pos:tt, $width:tt, $sign:tt, $shift:expr, $mask:expr) => {
+        Argument::$v(Immediate {
+            position: $pos,
+            width: $width,
+            sign: $sign,
+            shift: $shift,
+            mask: $mask,
+            raw_value: None,
+        })
+    };
+}
 
-/// An unsigned 8-bit immediate that presents a `0` literal.
+/// An unsigned 8-bit immediate that represents a `0` literally.
 ///
-/// This is a special drop-in replacement for [`I8`] immediates
-/// that default to a literal `0` value for certain instruction
-/// variants and thus are not encoded in the instruction bytes.
-pub const NULL: Literal<u8> = Literal(0);
+/// This is needed for trap instructions where the software trap value
+/// is not encoded in the instruction bytes.
+pub const NULL: Argument = immediate!(U8, 0);
+
+/// An unsigned 8-bit immediate that represents a `1` literally.
+///
+/// This is needed for trap instructions where the software trap value
+/// is not encoded in the instruction bytes.
+pub const ONE: Argument = immediate!(U8, 1);
+
+/// An unsigned 8-bit immediate that represents a `2` literally.
+///
+/// This is needed for trap instructions where the software trap value
+/// is not encoded in the instruction bytes.
+pub const TWO: Argument = immediate!(U8, 2);
+
+/// An unsigned 8-bit immediate that represents a `3` literally.
+///
+/// This is needed for trap instructions where the software trap value
+/// is not encoded in the instruction bytes.
+pub const THREE: Argument = immediate!(U8, 3);
 
 /// An unsigned 8-bit immediate.
 ///
 /// These are used for bit positions, shifts and 8-bit instructions.
-pub const I8: Immediate<u8> = Immediate(2, 1, None, None);
+pub const I8: Argument = immediate!(U8, 2, 1, false, None, None);
 
 /// An unsigned 8-bit immediate zero-extended to 16 bits.
 ///
-/// These are used for SETHI and 16-bit instructions.
-pub const I8ZX16: Immediate<u16> = Immediate(2, 1, None, None);
+/// These are used for sethi and 16-bit instructions.
+pub const I8ZX16: Argument = immediate!(U16, 2, 1, false, None, None);
 
 /// A signed 8-bit immediate sign-extended to 16 bits.
 ///
-/// These are used for SETHI and 16-bit instructions.
-pub const I8SX16: SignedImmediate<i16> = SignedImmediate(2, 1, None, None);
+/// These are used for sethi and 16-bit instructions.
+pub const I8SX16: Argument = immediate!(I16, 2, 1, true, None, None);
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for memory addressing and most 32-bit instructions.
-pub const I8ZX32: Immediate<u32> = Immediate(2, 1, None, None);
+pub const I8ZX32: Argument = immediate!(U32, 2, 1, false, None, None);
 
-/// A signed 8-bit immediate sign-extended to 32 bits.
+/// A signed 32-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for memory addressing and most 32-bit instructions.
-pub const I8SX32: SignedImmediate<i32> = SignedImmediate(2, 1, None, None);
+pub const I8SX32: Argument = immediate!(I32, 2, 1, true, None, None);
 
-/// An unsigned 8-bit immediate zero-extended to 32 bits and shifted
-/// to left by one.
+/// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
+/// by one.
 ///
 /// These are mainly used for memory addressing.
-pub const I8ZX32S1: Immediate<u32> = Immediate(2, 1, Some(1), None);
+pub const I8ZX32S1: Argument = immediate!(U32, 2, 1, false, Some(1), None);
 
-/// An unsigned 8-bit immediate zero-extended to 32 bits and shifted
-/// to left by two.
+/// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
+/// by two.
 ///
 /// These are mainly used for memory addressing.
-pub const I8ZX32S2: Immediate<u32> = Immediate(2, 1, Some(2), None);
+pub const I8ZX32S2: Argument = immediate!(U32, 2, 1, false, Some(2), None);
 
 /// An unsigned 16-bit immediate truncated to the low 8 bits.
 ///
-/// Used by 8-bit instructions which have a 16-bit immediate form
-/// for whatever reason.
-pub const I16T8: Immediate<u16> = Immediate(2, 2, None, Some(0xFF));
+/// Used by 8-bit instructions which have a 16-bit immediate form for
+/// whatever reason.
+pub const I16T8: Argument = immediate!(U8, 2, 2, false, None, Some(0xFF));
 
 /// An unsigned 16-bit immediate.
 ///
-/// These are used by SETHI and 16-bit instructions.
-pub const I16: Immediate<u16> = Immediate(2, 2, None, None);
+/// These are used by sethi and 16-bit instructions.
+pub const I16: Argument = immediate!(U16, 2, 2, false, None, None);
 
 /// An unsigned 16-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for most 32-bit instructions.
-pub const I16ZX32: Immediate<u32> = Immediate(2, 2, None, None);
+pub const I16ZX32: Argument = immediate!(U16, 2, 2, false, None, None);
 
-/// A signed 16-bit immediate sign-extended to 32 bits.
+/// A signed 16-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for most 32-bit instructions.
-pub const I16SX32: SignedImmediate<i32> = SignedImmediate(2, 2, None, None);
+pub const I16SX32: Argument = immediate!(I16, 2, 2, true, None, None);
 
 /// An unsigned 24-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for absolute call/jump addresses.
-pub const I24: Immediate<u32> = Immediate(2, 3, None, None);
+pub const I24: Argument = immediate!(U24, 2, 3, false, None, None);
 
-/// An argument that represents an instruction operand.
+/// An unsigned 32-bit immediate.
 ///
-/// Arguments are a layer of abstraction between the nature
-/// of an instruction and the actual data to extract or pack.
-///
-/// In practice, implementors of this trait act as parsing
-/// interfaces for the underlying data structures and their
-/// representation. They're intended to be flexible enough to
-/// adapt to every special circumstance in instruction encoding
-/// so that dirty hacks and alike can be avoided for ISA
-/// inconsistencies across Falcon revisions.
-pub trait Argument<T> {
-    /// Reads the argument from the bytes echoed by the given
-    /// [`Read`]er.
-    ///
-    /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
-    fn read<R: Read>(&self, reader: &mut R) -> T;
+/// These are used for mov instructions.
+pub const I32: Argument = immediate!(U32, 1, 4, false, None, None);
 
-    /// The start of the operand in the instruction bytes.
-    ///
-    /// This method must be implemented for [`Argument::read`] to
-    /// correctly determine where to start extracting the operand.
-    ///
-    /// [`Argument::read`]: trait.Argument.html#method.read
-    fn start(&self) -> usize;
-
-    /// The size of the operand in bytes.
-    ///
-    /// This method must be implemented for [`Argument::read`] to
-    /// correctly determine in how many bytes the operand encoding
-    /// takes.
-    ///
-    /// [`Argument::read`]: trait.Argument.html#method.read
-    fn size(&self) -> usize;
-
-    /// Returns a bitmask that needs to be applied to the operand
-    /// to get its correct form.
-    ///
-    /// This method must be implemented for [`Argument::read`] to
-    /// correctly unmask extracted operands.
-    ///
-    /// [`Argument::read`]: trait.Argument.html#method.read
-    fn mask(&self) -> usize;
-
-    /// Serializes the given value into its binary representation and
-    /// writes it to the [`Write`]r.
-    ///
-    /// [`Write`]: https://doc.rust-lang.org/std/io/trait.Write.html
-    fn write<W: Write>(&self, value: T, writer: &mut W);
+/// Wrapper around Falcon instruction operands.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Argument {
+    /// An unsigned 8-bit immediate.
+    U8(Immediate<u8>),
+    /// A signed 8-bit immediate.
+    I8(Immediate<i8>),
+    /// An unsigned 16-bit immediate.
+    U16(Immediate<u16>),
+    /// A signed 16-bit immediate.
+    I16(Immediate<i16>),
+    /// An unsigned 24-bit immediate.
+    U24(Immediate<u32>),
+    /// A signed 24-bit immediate.
+    I24(Immediate<i32>),
+    /// An unsigned 32-bit immediate.
+    U32(Immediate<u32>),
+    /// A signed 32-bit immediate.
+    I32(Immediate<i32>),
 }
 
-/// An immediate operand that is represented by a literal number.
+/// An immediate number in Falcon assembly.
 ///
-/// There are a few instructions that have certain variants that
-/// default to literal values for certain operands. As a result of
-/// that, these values are not encoded in the instruction but should
-/// still be obtainable by the disassembler for consistency reasons.
-///
-/// The tuple arguments it carries are `(value)`.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Literal<T: PrimInt>(T);
+/// Immediates can either carry metadata to parse them from instruction bytes, or
+/// a value for immediates that aren't actually encoded in instruction bytes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Immediate<T> {
+    position: usize,
+    width: usize,
+    sign: bool,
+    shift: Option<usize>,
+    mask: Option<usize>,
 
-impl<T: PrimInt> Argument<T> for Literal<T> {
-    fn read<R: Read>(&self, _reader: &mut R) -> T {
-        // Return the stored value without touching the reader as
-        // it is not encoded in the instruction but still relevant.
-        self.0
-    }
+    raw_value: Option<T>,
+}
 
-    fn start(&self) -> usize {
-        // Literals don't have a real start because they're not encoded
-        // in an instruction.
-        unimplemented!()
-    }
-
-    fn size(&self) -> usize {
-        // Literals are not restricted in size because they're not
-        // encoded as actual instruction bytes.
-        unimplemented!()
+impl<T: PrimInt + NumCast> Immediate<T> {
+    fn shift(&self) -> usize {
+        self.shift.unwrap_or(0)
     }
 
     fn mask(&self) -> usize {
-        // Masking is not necessary for Literals because it is assumed
-        // that the wrapped value is already correctly masked.
-        unimplemented!()
-    }
-
-    fn write<W: Write>(&self, _value: T, _writer: &mut W) {
-        // Purposefully do nothing as Literals are not
-        // part of the actual instruction bytes.
-    }
-}
-
-/// An immediate instruction operand, given as an unsized integer
-/// value.
-///
-/// In cases where it is necessary, immediates will be zero-extended
-/// to the necessary size.
-///
-/// The tuple arguments it carries are `(position, width, shift, mask)`.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Immediate<T: PrimInt + Unsigned>(usize, usize, Option<T>, Option<usize>);
-
-impl Argument<u8> for Immediate<u8> {
-    fn read<R: Read>(&self, reader: &mut R) -> u8 {
-        let value = reader.read_u8().unwrap() & self.mask() as u8;
-
-        value << self.2.unwrap_or(0)
-    }
-
-    fn start(&self) -> usize {
-        self.0
-    }
-
-    fn size(&self) -> usize {
-        self.1
-    }
-
-    fn mask(&self) -> usize {
-        self.3.unwrap_or(0xFF)
-    }
-
-    fn write<W: Write>(&self, value: u8, writer: &mut W) {
-        writer.write_u8(value >> self.2.unwrap_or(0)).unwrap();
-    }
-}
-
-impl Argument<u16> for Immediate<u16> {
-    fn read<R: Read>(&self, reader: &mut R) -> u16 {
-        let mut value = match self.size() {
-            1 => reader.read_u8().unwrap() as u16,
-            2 => reader.read_u16::<LittleEndian>().unwrap(),
-            _ => panic!("Unsupported size argument supplied"),
-        };
-        value &= self.mask() as u16;
-
-        value << self.2.unwrap_or(0)
-    }
-
-    fn start(&self) -> usize {
-        self.0
-    }
-
-    fn size(&self) -> usize {
-        self.1
-    }
-
-    fn mask(&self) -> usize {
-        let value = match self.size() {
-            1 => 0xFF,
-            2 => 0xFFFF,
-            _ => panic!("Unsupported size argument supplied"),
-        };
-
-        self.3.unwrap_or(value)
-    }
-
-    fn write<W: Write>(&self, value: u16, writer: &mut W) {
-        let value = value >> self.2.unwrap_or(0);
-        match self.size() {
-            1 => writer.write_u8(value as u8).unwrap(),
-            2 => writer.write_u16::<LittleEndian>(value).unwrap(),
-            _ => panic!("Unsupported size argument supplied"),
-        };
-    }
-}
-
-impl Argument<u32> for Immediate<u32> {
-    fn read<R: Read>(&self, reader: &mut R) -> u32 {
-        let mut value = match self.size() {
-            1 => reader.read_u8().unwrap() as u32,
-            2 => reader.read_u16::<LittleEndian>().unwrap() as u32,
-            3 => reader.read_u24::<LittleEndian>().unwrap(),
-            4 => reader.read_u32::<LittleEndian>().unwrap(),
-            _ => panic!("Unsupported size argument supplied"),
-        };
-        value &= self.mask() as u32;
-
-        value << self.2.unwrap_or(0)
-    }
-
-    fn start(&self) -> usize {
-        self.0
-    }
-
-    fn size(&self) -> usize {
-        self.1
-    }
-
-    fn mask(&self) -> usize {
-        let value = match self.size() {
+        let value = match self.width {
             1 => 0xFF,
             2 => 0xFFFF,
             3 => 0xFFFFFF,
             4 => 0xFFFFFFFF,
-            _ => panic!("Unsupported size argument supplied"),
+            _ => panic!("Unsupported width argument supplied"),
         };
 
-        self.3.unwrap_or(value)
+        self.mask.unwrap_or(value)
     }
 
-    fn write<W: Write>(&self, value: u32, writer: &mut W) {
-        let value = value >> self.2.unwrap_or(0);
-        match self.size() {
-            1 => writer.write_u8(value as u8).unwrap(),
-            2 => writer.write_u16::<LittleEndian>(value as u16).unwrap(),
-            3 => writer.write_u24::<LittleEndian>(value).unwrap(),
-            4 => writer.write_u32::<LittleEndian>(value).unwrap(),
-            _ => panic!("Unsupported size argument supplied"),
-        };
-    }
-}
+    /// Reads the value that is represented by this [`Immediate`] from the
+    /// given instruction bytes.
+    ///
+    /// [`Immediate`]: struct.Immediate.html
+    pub fn read(&self, insn: &[u8]) -> T {
+        if let Some(value) = self.raw_value {
+            return value;
+        }
 
-/// An immediate instruction operand, given as a signed integer
-/// value.
-///
-/// In cases where it is necessary, immediates will be sign-extended
-/// to the necessary size.
-///
-/// The tuple arguments it carries are `(position, width, shift, mask)`.
-#[derive(Clone, Debug, PartialEq)]
-pub struct SignedImmediate<T: PrimInt + Signed>(usize, usize, Option<T>, Option<usize>);
-
-impl Argument<i8> for SignedImmediate<i8> {
-    fn read<R: Read>(&self, reader: &mut R) -> i8 {
-        let value = reader.read_i8().unwrap() & self.mask() as i8;
-
-        value << self.2.unwrap_or(0)
-    }
-
-    fn start(&self) -> usize {
-        self.0
-    }
-
-    fn size(&self) -> usize {
-        self.1
-    }
-
-    fn mask(&self) -> usize {
-        self.3.unwrap_or(0xFF)
-    }
-
-    fn write<W: Write>(&self, value: i8, writer: &mut W) {
-        writer.write_i8(value >> self.2.unwrap_or(0)).unwrap();
-    }
-}
-
-impl Argument<i16> for SignedImmediate<i16> {
-    fn read<R: Read>(&self, reader: &mut R) -> i16 {
-        let mut value = match self.size() {
-            1 => reader.read_i8().unwrap() as i16,
-            2 => reader.read_i16::<LittleEndian>().unwrap(),
-            _ => panic!("Unsupported size argument supplied"),
-        };
-        value &= self.mask() as i16;
-
-        value << self.2.unwrap_or(0)
-    }
-
-    fn start(&self) -> usize {
-        self.0
-    }
-
-    fn size(&self) -> usize {
-        self.1
-    }
-
-    fn mask(&self) -> usize {
-        let value = match self.size() {
-            1 => 0xFF,
-            2 => 0xFFFF,
-            _ => panic!("Unsupported size argument supplied"),
+        let value: T = match self.width {
+            1 => {
+                if self.sign {
+                    cast(insn[self.position] as i8).unwrap()
+                } else {
+                    cast(insn[self.position]).unwrap()
+                }
+            }
+            2 => {
+                if self.sign {
+                    cast(LittleEndian::read_i16(&insn[self.position..])).unwrap()
+                } else {
+                    cast(LittleEndian::read_u16(&insn[self.position..])).unwrap()
+                }
+            }
+            3 => {
+                if self.sign {
+                    cast(LittleEndian::read_i24(&insn[self.position..])).unwrap()
+                } else {
+                    cast(LittleEndian::read_u24(&insn[self.position..])).unwrap()
+                }
+            }
+            4 => {
+                if self.sign {
+                    cast(LittleEndian::read_i32(&insn[self.position..])).unwrap()
+                } else {
+                    cast(LittleEndian::read_u32(&insn[self.position..])).unwrap()
+                }
+            }
+            _ => unreachable!(),
         };
 
-        self.3.unwrap_or(value)
-    }
-
-    fn write<W: Write>(&self, value: i16, writer: &mut W) {
-        let value = value >> self.2.unwrap_or(0);
-        match self.size() {
-            1 => writer.write_i8(value as i8).unwrap(),
-            2 => writer.write_i16::<LittleEndian>(value).unwrap(),
-            _ => panic!("Unsupported size argument supplied"),
-        };
-    }
-}
-
-impl Argument<i32> for SignedImmediate<i32> {
-    fn read<R: Read>(&self, reader: &mut R) -> i32 {
-        let mut value = match self.size() {
-            1 => reader.read_i8().unwrap() as i32,
-            2 => reader.read_i16::<LittleEndian>().unwrap() as i32,
-            3 => reader.read_i24::<LittleEndian>().unwrap(),
-            4 => reader.read_i32::<LittleEndian>().unwrap(),
-            _ => panic!("Unsupported size argument supplied"),
-        };
-        value &= self.mask() as i32;
-
-        value << self.2.unwrap_or(0)
-    }
-
-    fn start(&self) -> usize {
-        self.0
-    }
-
-    fn size(&self) -> usize {
-        self.1
-    }
-
-    fn mask(&self) -> usize {
-        let value = match self.size() {
-            1 => 0xFF,
-            2 => 0xFFFF,
-            3 => 0xFFFFFF,
-            4 => 0xFFFFFFFF,
-            _ => panic!("Unsupported size argument supplied"),
-        };
-
-        self.3.unwrap_or(value)
-    }
-
-    fn write<W: Write>(&self, value: i32, writer: &mut W) {
-        let value = value >> self.2.unwrap_or(0);
-        match self.size() {
-            1 => writer.write_i8(value as i8).unwrap(),
-            2 => writer.write_i16::<LittleEndian>(value as i16).unwrap(),
-            3 => writer.write_i24::<LittleEndian>(value).unwrap(),
-            4 => writer.write_i32::<LittleEndian>(value).unwrap(),
-            _ => panic!("Unsupported size argument supplied"),
-        };
+        (value & cast(self.mask()).unwrap()) << self.shift()
     }
 }
