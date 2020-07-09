@@ -15,8 +15,6 @@ pub fn instruction(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 
     // Build the impl.
-    //let x = ;
-    //panic!("{}", x);
     impl_instruction(&ast).unwrap().into()
 }
 
@@ -62,8 +60,14 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 let b = b as usize;
                 let subopcode = subopcode as usize;
 
+                let mut real_operands = Vec::new();
+                real_operands.extend(operands.iter().map(|o| quote! { #o }));
+                while real_operands.len() < 3 {
+                    real_operands.push(quote! { NOP })
+                }
+
                 let value = quote! {
-                    Some(instruction_meta!(#vname, #opcode, #subopcode, vec![#(#operands),*]))
+                    Some(instruction_meta!(#vname, #opcode, #subopcode, [#(#real_operands),*]))
                 };
 
                 match size {
@@ -326,9 +330,9 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     let b = b as usize;
 
                     match a {
-                        0x0 => FORM_SRRI8[b],
-                        0x1 => FORM_SRWI8[b],
-                        0x2 => FORM_SRWI16[b],
+                        0x0 => FORM_SRRI8[b].clone(),
+                        0x1 => FORM_SRWI8[b].clone(),
+                        0x2 => FORM_SRWI16[b].clone(),
                         _ => None,
                     }
                 }
@@ -341,18 +345,18 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     let subopcode = subopcode as usize;
 
                     match b {
-                        0x0 => FORM_SRI8[subopcode],
-                        0x1 => FORM_SRI16[subopcode],
-                        0x4 => FORM_SWI8[subopcode],
-                        0x6 => FORM_SMI8[subopcode],
-                        0x7 => FORM_SMI16[subopcode],
-                        0x8 => FORM_SRR[subopcode],
-                        0x9 => FORM_SRW[subopcode],
-                        0xA => FORM_SWR[subopcode],
-                        0xB => FORM_SMR[subopcode],
-                        0xC => FORM_SRRW[subopcode],
-                        0xD => FORM_SM[subopcode],
-                        0xE => FORM_I24[subopcode],
+                        0x0 => FORM_SRI8[subopcode].clone(),
+                        0x1 => FORM_SRI16[subopcode].clone(),
+                        0x4 => FORM_SWI8[subopcode].clone(),
+                        0x6 => FORM_SMI8[subopcode].clone(),
+                        0x7 => FORM_SMI16[subopcode].clone(),
+                        0x8 => FORM_SRR[subopcode].clone(),
+                        0x9 => FORM_SRW[subopcode].clone(),
+                        0xA => FORM_SWR[subopcode].clone(),
+                        0xB => FORM_SMR[subopcode].clone(),
+                        0xC => FORM_SRRW[subopcode].clone(),
+                        0xD => FORM_SM[subopcode].clone(),
+                        0xE => FORM_I24[subopcode].clone(),
                         _ => None,
                     }
                 }
@@ -365,9 +369,9 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     let b = b as usize;
 
                     match a {
-                        0x0 => FORM_RWI8[b],
-                        0x1 => FORM_RI32[0],
-                        0x2 => FORM_RWI16[b],
+                        0x0 => FORM_RWI8[b].clone(),
+                        0x1 => FORM_RI32[0].clone(),
+                        0x2 => FORM_RWI16[b].clone(),
                         _ => None,
                     }
                 }
@@ -380,18 +384,18 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     let subopcode = subopcode as usize;
 
                     match b {
-                        0x0 => FORM_MI8[subopcode],
-                        0x1 => FORM_MI16[subopcode],
-                        0x2 => FORM_RI8[subopcode],
-                        0x4 => FORM_I8[subopcode],
-                        0x5 => FORM_I16[subopcode],
-                        0x8 => FORM_N[subopcode],
-                        0x9 => FORM_R[subopcode],
-                        0xA => FORM_RR[subopcode],
-                        0xC => FORM_W[subopcode],
-                        0xD => FORM_MR[subopcode],
-                        0xE => FORM_RW[subopcode],
-                        0xF => FORM_RRW[subopcode],
+                        0x0 => FORM_MI8[subopcode].clone(),
+                        0x1 => FORM_MI16[subopcode].clone(),
+                        0x2 => FORM_RI8[subopcode].clone(),
+                        0x4 => FORM_I8[subopcode].clone(),
+                        0x5 => FORM_I16[subopcode].clone(),
+                        0x8 => FORM_N[subopcode].clone(),
+                        0x9 => FORM_R[subopcode].clone(),
+                        0xA => FORM_RR[subopcode].clone(),
+                        0xC => FORM_W[subopcode].clone(),
+                        0xD => FORM_MR[subopcode].clone(),
+                        0xE => FORM_RW[subopcode].clone(),
+                        0xF => FORM_RRW[subopcode].clone(),
                         _ => None,
                     }
                 }

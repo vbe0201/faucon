@@ -27,6 +27,13 @@ macro_rules! immediate {
     };
 }
 
+/// A dummy placeholder for the statically allocated buffer of three operand
+/// arguments, in case an instruction does not have three operands.
+///
+/// This should never be interpreted into a concrete value and shall be
+/// ignored.
+pub const NOP: Argument = Argument::Nop;
+
 /// An unsigned 8-bit immediate that represents a `0` literally.
 ///
 /// This is needed for trap instructions where the software trap value
@@ -138,6 +145,11 @@ pub enum Argument {
     U32(Immediate<u32>),
     /// A signed 32-bit immediate.
     I32(Immediate<i32>),
+
+    /// A dummy value that is used as a hack to fulfill static allocation
+    /// requirements in `faucon-asm-derive` codegen. This variant shall
+    /// never be interpreted as a real value and can be safely skipped.
+    Nop,
 }
 
 /// An immediate number in Falcon assembly.

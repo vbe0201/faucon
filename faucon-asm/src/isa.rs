@@ -44,7 +44,7 @@ pub struct InstructionMeta {
     pub subopcode: u8,
     /// A vector of Arguments which work as a parser layer of packing or unpacking
     /// several instruction operands in the underlying raw bytes.
-    pub operands: Vec<Argument>,
+    pub operands: [Argument; 3],
 }
 
 impl InstructionMeta {
@@ -56,7 +56,7 @@ impl InstructionMeta {
         kind: InstructionKind,
         opcode: u8,
         subopcode: u8,
-        operands: Vec<Argument>,
+        operands: [Argument; 3],
     ) -> Self {
         let (a, b) = get_opcode_form(opcode);
         let size = get_operand_size(opcode);
