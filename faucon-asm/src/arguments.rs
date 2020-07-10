@@ -27,6 +27,23 @@ macro_rules! immediate {
     };
 }
 
+macro_rules! register {
+    ($v:ident, $value:tt) => {
+        Argument::$v(Register {
+            position: 0,
+            high: false,
+            raw_value: Some($value),
+        })
+    };
+    ($v:ident, $pos:tt, $high:tt) => {
+        Argument::$v(Register {
+            position: $pos,
+            high: $high,
+            raw_value: None,
+        })
+    };
+}
+
 /// A dummy placeholder for the statically allocated buffer of three operand
 /// arguments, in case an instruction does not have three operands.
 ///
@@ -126,6 +143,38 @@ pub const I24: Argument = immediate!(U24, 2, 3, false, None, None);
 /// These are used for mov instructions.
 pub const I32: Argument = immediate!(U32, 1, 4, false, None, None);
 
+/// A Falcon general-purpose register, encoded in the low 4 bits of the second
+/// instruction byte.
+pub const R1: Argument = register!(Gpr, 1, false);
+
+/// A Falcon general-purpose register, encoded in the high 4 bits of the second
+/// instruction byte.
+pub const R2: Argument = register!(Gpr, 1, true);
+
+/// A Falcon general-purpose register, encoded in the high 4 bits of the third
+/// instruction byte.
+pub const R3: Argument = register!(Gpr, 2, true);
+
+/// The stack pointer register.
+///
+/// It is used for instructions that operate on $sp by default, without
+/// encoding its value in the instruction bytes.
+pub const SP: Argument = register!(Spr, 4);
+
+/// The CPU flags register.
+///
+/// It is used for instructions that operate on $flags by default, without
+/// encoding its value in the instruction bytes.
+pub const FLAGS: Argument = register!(Spr, 8);
+
+/// A Falcon special-purpose register, encoded in the high 4 bits of the second
+/// instruction byte.
+pub const SR1: Argument = register!(Spr, 1, true);
+
+/// A Falcon special-purpose register, encoded in the low 4 bits of the second
+/// instruction byte.
+pub const SR2: Argument = register!(Spr, 1, false);
+
 /// Wrapper around Falcon instruction operands.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Argument {
@@ -145,6 +194,10 @@ pub enum Argument {
     U32(Immediate<u32>),
     /// A signed 32-bit immediate.
     I32(Immediate<i32>),
+    /// A general-purpose CPU register.
+    Gpr(Register),
+    /// A special-purpose CPU register.
+    Spr(Register),
 
     /// A dummy value that is used as a hack to fulfill static allocation
     /// requirements in `faucon-asm-derive` codegen. This variant shall
@@ -226,5 +279,40 @@ impl<T: PrimInt + NumCast> Immediate<T> {
         };
 
         (value & cast(self.mask()).unwrap()) << self.shift()
+    }
+}
+
+/// A CPU register in Falcon assembly.
+///
+/// There are 16 general-purpose register and roughly around a dozen special-purpose
+/// registers. This structure holds the data necessary to parse them form instruction
+/// bytes and to determine how they are used by an instruction.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Register {
+    position: usize,
+    high: bool,
+
+    raw_value: Option<u8>,
+}
+
+impl Register {
+    fn get_value(&self, byte: u8) -> u8 {
+        if self.high {
+            byte >> 4
+        } else {
+            byte & 0xF
+        }
+    }
+
+    /// Reads the value that is represented by this [`Register`] from the
+    /// given instruction bytes.
+    ///
+    /// [`Register`]: struct.Register.html
+    pub fn read(&self, insn: &[u8]) -> u8 {
+        if let Some(reg) = self.raw_value {
+            return reg;
+        }
+
+        self.get_value(insn[self.position])
     }
 }
