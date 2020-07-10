@@ -24,7 +24,7 @@ pub enum OperandSize {
 /// Extracts the operand size from a given opcode.
 ///
 /// It denotes on what size an instruction operates.
-pub const fn get_operand_size(opcode: u8) -> OperandSize {
+pub(crate) const fn get_operand_size(opcode: u8) -> OperandSize {
     match opcode >> 6 {
         0b00 => OperandSize::EightBit,
         0b01 => OperandSize::SixteenBit,
@@ -60,4 +60,76 @@ impl fmt::Display for OperandSize {
 /// on the form.
 pub const fn get_opcode_form(opcode: u8) -> (u8, u8) {
     (opcode >> 4 & 0x3, opcode & 0xF)
+}
+
+/// The location where the subopcode is stored within the instruction bytes.
+///
+/// In Falcon assembly, opcodes generally span a variety of instructions, many
+/// cases require an additional subopcode to identify instructions uniquely.
+#[derive(Debug, PartialEq)]
+pub enum SubopcodeLocation {
+    /// The subopcode is encoded in the high 2 bits of byte 0.
+    OH,
+    /// The subopcode is encoded in the low 4 bits of byte 0.
+    O1,
+    /// The subopcode is encoded in the low 4 bits of byte 1.
+    O2,
+    /// The subopcode is encoded in the low 6 bits of byte 1.
+    OL,
+    /// The subopcode is encoded in the low 4 bits of byte 2.
+    O3,
+}
+
+impl SubopcodeLocation {
+    /// Gets the subopcode location as a numeric value.
+    ///
+    /// It denotes the byte within an instruction where the value is encoded so
+    /// that the disassembler can decide on how many bytes it needs to read to
+    /// obtain the value.
+    pub fn get(&self) -> usize {
+        match self {
+            SubopcodeLocation::OH => 0,
+            SubopcodeLocation::O1 => 0,
+            SubopcodeLocation::O2 => 1,
+            SubopcodeLocation::OL => 1,
+            SubopcodeLocation::O3 => 2,
+        }
+    }
+
+    /// Extracts the subopcode value from the instruction bytes.
+    pub fn parse(&self, insn: &[u8]) -> u8 {
+        match self {
+            SubopcodeLocation::OH => insn[0] >> 6,
+            SubopcodeLocation::O1 => insn[0] & 0xF,
+            SubopcodeLocation::O2 => insn[1] & 0xF,
+            SubopcodeLocation::OL => insn[1] & 0x3F,
+            SubopcodeLocation::O3 => insn[2] & 0xF,
+        }
+    }
+}
+
+/// Parses the [`SubopcodeLocation`] for the given opcode chunks.
+///
+/// [`SubopcodeLocation`]: enum.SubopcodeLocation.html
+pub fn get_subopcode_location(size: u8, a: u8, b: u8) -> Option<SubopcodeLocation> {
+    match (size, a, b) {
+        // Sized opcodes (0x00 - 0xBF)
+        (0x0..=0x2, 0x0..=0x2, _) => Some(SubopcodeLocation::O1),
+        (0x0..=0x2, 0x3, 0x0..=0x7) => Some(SubopcodeLocation::O2),
+        (0x0..=0x2, 0x3, 0x8..=0xC) => Some(SubopcodeLocation::O3),
+        (0x0..=0x2, 0x3, 0xD) => Some(SubopcodeLocation::O2),
+        (0x0..=0x2, 0x3, 0xE) => Some(SubopcodeLocation::OH),
+
+        // Unsized opcodes (0xC0 - 0xFF)
+        (0x3, 0x0..=0x2, _) => Some(SubopcodeLocation::O1),
+        (0x3, 0x3, 0x0..=0x2) => Some(SubopcodeLocation::O2),
+        (0x3, 0x3, 0x4..=0x5) => Some(SubopcodeLocation::OL),
+        (0x3, 0x3, 0x8..=0x9) => Some(SubopcodeLocation::O2),
+        (0x3, 0x3, 0xA) => Some(SubopcodeLocation::O3),
+        (0x3, 0x3, 0xC) => Some(SubopcodeLocation::O2),
+        (0x3, 0x3, 0xD..=0xF) => Some(SubopcodeLocation::O3),
+
+        // Unknown/Invalid
+        _ => None,
+    }
 }
