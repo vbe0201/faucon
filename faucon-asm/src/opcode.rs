@@ -21,6 +21,27 @@ pub enum OperandSize {
     Unsized,
 }
 
+impl OperandSize {
+    /// Checks whether the operands are sized or not.
+    pub fn sized(&self) -> bool {
+        match self {
+            OperandSize::Unsized => false,
+            _ => true,
+        }
+    }
+
+    /// Gets the value of the bits that represents the operand size in in the
+    /// instruction opcode.
+    pub fn value(&self) -> u8 {
+        match self {
+            OperandSize::EightBit => 0b00,
+            OperandSize::SixteenBit => 0b01,
+            OperandSize::ThirtyTwoBit => 0b10,
+            OperandSize::Unsized => 0b11,
+        }
+    }
+}
+
 /// Extracts the operand size from a given opcode.
 ///
 /// It denotes on what size an instruction operates.
@@ -86,7 +107,7 @@ impl SubopcodeLocation {
     /// It denotes the byte within an instruction where the value is encoded so
     /// that the disassembler can decide on how many bytes it needs to read to
     /// obtain the value.
-    pub fn get(&self) -> usize {
+    pub fn get(&self) -> u64 {
         match self {
             SubopcodeLocation::OH => 0,
             SubopcodeLocation::O1 => 0,
