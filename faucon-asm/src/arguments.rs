@@ -53,27 +53,9 @@ pub const NOP: Argument = Argument::Nop;
 
 /// An unsigned 8-bit immediate that represents a `0` literally.
 ///
-/// This is needed for trap instructions where the software trap value
-/// is not encoded in the instruction bytes.
+/// This is needed for ALU instructions where certain variants default to
+/// forms with 0 instead of an actual encoded operand.
 pub const NULL: Argument = immediate!(U8, 0);
-
-/// An unsigned 8-bit immediate that represents a `1` literally.
-///
-/// This is needed for trap instructions where the software trap value
-/// is not encoded in the instruction bytes.
-pub const ONE: Argument = immediate!(U8, 1);
-
-/// An unsigned 8-bit immediate that represents a `2` literally.
-///
-/// This is needed for trap instructions where the software trap value
-/// is not encoded in the instruction bytes.
-pub const TWO: Argument = immediate!(U8, 2);
-
-/// An unsigned 8-bit immediate that represents a `3` literally.
-///
-/// This is needed for trap instructions where the software trap value
-/// is not encoded in the instruction bytes.
-pub const THREE: Argument = immediate!(U8, 3);
 
 /// An unsigned 8-bit immediate.
 ///
@@ -172,6 +154,12 @@ pub const FLAGS: Argument = register!(Spr, 8);
 /// Treated as an 8-bit immediate by the hardware, used for miscellaneous
 /// instructions that operate on the flag bits.
 pub const FLAG: Argument = immediate!(U8, 2, 1, false, None, Some(0x1F));
+
+/// A software trap value.
+///
+/// It is used by the TRAP instruction and is encoded in the low two bits of
+/// instruction byte 1, the subopcode in this case.
+pub const TRAP: Argument = immediate!(U8, 1, 1, false, None, Some(0x3));
 
 /// A Falcon special-purpose register, encoded in the high 4 bits of the second
 /// instruction byte.

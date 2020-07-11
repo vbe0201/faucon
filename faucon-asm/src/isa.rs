@@ -93,6 +93,21 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF4, subopcode = 0x28, operands(FLAG))]
     SLEEP,
 
+    /// The IRET instruction.
+    ///
+    /// Returns from an interrupt handler.
+    #[insn(opcode = 0xF8, subopcode = 0x01, operands())]
+    IRET,
+
+    /// The TRAP instruction.
+    ///
+    /// Triggers a software trap.
+    #[insn(opcode = 0xF8, subopcode = 0x08, operands(TRAP))]
+    #[insn(opcode = 0xF8, subopcode = 0x09, operands(TRAP))]
+    #[insn(opcode = 0xF8, subopcode = 0x0A, operands(TRAP))]
+    #[insn(opcode = 0xF8, subopcode = 0x0B, operands(TRAP))]
+    TRAP,
+
     /// An invalid or unknown instruction.
     XXX,
 }
