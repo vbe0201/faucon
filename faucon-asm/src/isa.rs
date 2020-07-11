@@ -93,6 +93,27 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF4, subopcode = 0x28, operands(FLAG))]
     SLEEP,
 
+    /// The PTLB instruction.
+    ///
+    /// Loads the TLB that covers a given physical page into a destination
+    /// register.
+    #[insn(opcode = 0xFE, subopcode = 0x02, operands(R1, R2))]
+    PTLB,
+
+    /// The VTLB instruction.
+    ///
+    /// Loads the TLB that covers a given virtual address into a destination
+    /// register.
+    #[insn(opcode = 0xFE, subopcode = 0x03, operands(R1, R2))]
+    VTLB,
+
+    /// The ITLB instruction.
+    ///
+    /// Clears a non-secret TLB entry corresponding to a specified physical
+    /// page.
+    #[insn(opcode = 0xF9, subopcode = 0x08, operands(R2))]
+    ITLB,
+
     /// The IRET instruction.
     ///
     /// Returns from an interrupt handler.
