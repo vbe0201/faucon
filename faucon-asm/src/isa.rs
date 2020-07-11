@@ -129,6 +129,37 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF8, subopcode = 0x0B, operands(TRAP))]
     TRAP,
 
+    /// The XCLD instruction.
+    ///
+    /// Submits a DMA transfer request to load code from external memory.
+    #[insn(opcode = 0xFA, subopcode = 0x04, operands(R2, R1))]
+    XCLD,
+
+    /// The XDLD instruction.
+    ///
+    /// Submits a DMA transfer request to load data from external memory.
+    #[insn(opcode = 0xFA, subopcode = 0x05, operands(R2, R1))]
+    XDLD,
+
+    /// The XDST instruction.
+    ///
+    /// Submits a DMA transfer request to store local Falcon data in external
+    /// memory.
+    #[insn(opcode = 0xFA, subopcode = 0x06, operands(R2, R1))]
+    XDST,
+
+    /// The XCWAIT instruction.
+    ///
+    /// Waits for all DMA code load transfers to complete.
+    #[insn(opcode = 0xF8, subopcode = 0x07, operands())]
+    XCWAIT,
+
+    /// The XDWAIT instruction.
+    ///
+    /// Waits for all DMA data load/store transfers to complete.
+    #[insn(opcode = 0xF8, subopcode = 0x03, operands())]
+    XDWAIT,
+
     /// An invalid or unknown instruction.
     XXX,
 }
