@@ -27,6 +27,7 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<()> {
     read_operands(&mut insn, reader, &instruction_meta.operands)?;
 
     println!("{:?}", instruction_meta);
+    println!("{:?}", insn);
 
     // Read the corresponding operands and construct the instruction object.
     // TODO
