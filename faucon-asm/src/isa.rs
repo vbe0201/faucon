@@ -1,4 +1,4 @@
-//!
+//! Falcon ISA definitions to be used by the assembler and the disassembler.
 
 use std::fmt;
 
@@ -79,6 +79,20 @@ impl InstructionMeta {
 /// and their variants.
 #[derive(Clone, Debug, PartialEq, Eq, Instruction)]
 pub enum InstructionKind {
+    /// The EXIT instruction.
+    ///
+    /// Halts microcode execution and triggers the EXIT interrupt so that the
+    /// processor can only be restarted by the host machine.
+    #[insn(opcode = 0xF8, subopcode = 0x02, operands())]
+    EXIT,
+
+    /// The SLEEP instruction.
+    ///
+    /// Puts the processor into sleep state until an unmasked interrupt is
+    /// received. Repeated until the given flag bit is cleared.
+    #[insn(opcode = 0xF4, subopcode = 0x28, operands(FLAG))]
+    SLEEP,
+
     /// An invalid or unknown instruction.
     XXX,
 }

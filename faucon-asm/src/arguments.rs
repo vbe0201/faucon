@@ -167,6 +167,12 @@ pub const SP: Argument = register!(Spr, 4);
 /// encoding its value in the instruction bytes.
 pub const FLAGS: Argument = register!(Spr, 8);
 
+/// A selected bit in the Falcon $flags register.
+///
+/// Treated as an 8-bit immediate by the hardware, used for miscellaneous
+/// instructions that operate on the flag bits.
+pub const FLAG: Argument = immediate!(U8, 2, 1, false, None, Some(0x1F));
+
 /// A Falcon special-purpose register, encoded in the high 4 bits of the second
 /// instruction byte.
 pub const SR1: Argument = register!(Spr, 1, true);
