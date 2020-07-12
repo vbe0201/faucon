@@ -22,9 +22,14 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<()> {
     let subopcode = subopcode_location.parse(&insn);
 
     // Now do the actual instruction lookup and read the remaining bytes.
-    let instruction_meta = lookup_instruction(operand_size.sized(), a, b, subopcode)
+    let mut instruction_meta = lookup_instruction(operand_size.sized(), a, b, subopcode)
         .ok_or(Error::UnknownInstruction(insn[0]))?;
-    read_operands(&mut insn, reader, &instruction_meta.operands)?;
+    read_operands(
+        &mut insn,
+        reader,
+        operand_size.value(),
+        &mut instruction_meta.operands,
+    )?;
 
     println!("{:?}", instruction_meta);
     println!("{:?}", insn);
@@ -54,12 +59,19 @@ fn lookup_instruction(sized: bool, a: u8, b: u8, subopcode: u8) -> Option<Instru
 fn read_operands<R: Read>(
     buffer: &mut Vec<u8>,
     reader: &mut R,
-    operands: &[Argument],
+    operand_size: u8,
+    operands: &mut [Argument],
 ) -> Result<()> {
-    for operand in operands.iter() {
+    for operand in operands.iter_mut() {
         // If the argument is actually a dummy placeholder, we can skip it.
         if operand == &Argument::Nop {
             continue;
+        }
+
+        // If the argument is a _SizeSwitch helper, evaluate it and replace it
+        // through a real operand to save us some hassle later on.
+        if let Argument::SizeConverter(c) = operand {
+            *operand = c(operand_size);
         }
 
         // Calculate the amount of bytes to read until the operand completely fits

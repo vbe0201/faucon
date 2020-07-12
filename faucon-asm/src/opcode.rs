@@ -42,21 +42,14 @@ impl OperandSize {
     }
 }
 
-/// Extracts the operand size from a given opcode.
-///
-/// It denotes on what size an instruction operates.
-pub(crate) const fn get_operand_size(opcode: u8) -> OperandSize {
-    match opcode >> 6 {
-        0b00 => OperandSize::EightBit,
-        0b01 => OperandSize::SixteenBit,
-        0b10 => OperandSize::ThirtyTwoBit,
-        _ => OperandSize::Unsized, // Only possibility that is left is 3 anyway.
-    }
-}
-
 impl From<u8> for OperandSize {
     fn from(opcode: u8) -> Self {
-        get_operand_size(opcode)
+        match opcode >> 6 {
+            0b00 => OperandSize::EightBit,
+            0b01 => OperandSize::SixteenBit,
+            0b10 => OperandSize::ThirtyTwoBit,
+            _ => OperandSize::Unsized, // Only possibility that is left is 3 anyway.
+        }
     }
 }
 

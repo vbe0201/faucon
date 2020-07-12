@@ -32,8 +32,6 @@ pub struct InstructionMeta {
     ///
     /// [`get_opcode_form`]: ../opcode/fn.get_opcode_form.html
     pub b: u8,
-    /// The operand size on which the instruction operates.
-    pub size: OperandSize,
     /// The subopcode of an instruction.
     ///
     /// If [`InstructionMeta::a`] is in the range of 0 through 2, the subopcode
@@ -59,13 +57,11 @@ impl InstructionMeta {
         operands: [Argument; 3],
     ) -> Self {
         let (a, b) = get_opcode_form(opcode);
-        let size = get_operand_size(opcode);
 
         InstructionMeta {
             kind,
             a,
             b,
-            size,
             subopcode,
             operands,
         }
@@ -79,6 +75,36 @@ impl InstructionMeta {
 /// and their variants.
 #[derive(Clone, Debug, PartialEq, Eq, Instruction)]
 pub enum InstructionKind {
+    /// The CMPU instruction.
+    ///
+    /// Compares two unsigned values and sets ALU flags based on the result.
+    #[insn(opcode = 0x30, subopcode = 0x04, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x31, subopcode = 0x04, operands(R2, I16ZXS))]
+    #[insn(opcode = 0x24, subopcode = 0x04, operands(R2, R1))]
+    CMPU,
+
+    /// The CMPS instruction.
+    ///
+    /// Compares two signed values and sets ALU flags based on the result.
+    #[insn(opcode = 0x30, subopcode = 0x05, operands(R2, I8SXS))]
+    #[insn(opcode = 0x31, subopcode = 0x05, operands(R2, I16SXS))]
+    #[insn(opcode = 0x25, subopcode = 0x05, operands(R2, R1))]
+    CMPS,
+
+    /// The CMP instruction.
+    ///
+    /// Compares two values and sets ALU flags based on the result.
+    #[insn(opcode = 0x30, subopcode = 0x06, operands(R2, I8SXS))]
+    #[insn(opcode = 0x31, subopcode = 0x06, operands(R2, I16SXS))]
+    #[insn(opcode = 0x26, subopcode = 0x06, operands(R2, R1))]
+    CMP,
+
+    /// The CLEAR instruction.
+    ///
+    /// Clears the contents of a register.
+    #[insn(opcode = 0x3D, subopcode = 0x04, operands(R2))]
+    CLEAR,
+
     /// The ADD instruction.
     ///
     /// Computes the sum of two operands and stores the result.

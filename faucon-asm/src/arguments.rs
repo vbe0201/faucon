@@ -94,6 +94,28 @@ pub const I8ZX32S1: Argument = immediate!(U32, 2, 1, false, Some(1), None);
 /// These are mainly used for memory addressing.
 pub const I8ZX32S2: Argument = immediate!(U32, 2, 1, false, Some(2), None);
 
+/// A helper that leverages the selection of a correct parser for immediates
+/// in sized instructions to the disassembler.
+///
+/// This handles zero-extension for the different operand sizes.
+pub const I8ZXS: Argument = Argument::SizeConverter(|size| match size {
+    0 => I8,
+    1 => I8ZX16,
+    2 => I8ZX32,
+    _ => unreachable!(),
+});
+
+/// A helper that leverages the selection of an appropriate parser for immediates
+/// in sized instructions to the disassembler.
+///
+/// This handles sign-extension for the different operand sizes.
+pub const I8SXS: Argument = Argument::SizeConverter(|size| match size {
+    0 => I8,
+    1 => I8SX16,
+    2 => I8SX32,
+    _ => unreachable!(),
+});
+
 /// An unsigned 16-bit immediate truncated to the low 8 bits.
 ///
 /// Used by 8-bit instructions which have a 16-bit immediate form for
@@ -119,6 +141,28 @@ pub const I16ZX32P1: Argument = immediate!(U32, 1, 2, false, None, None);
 ///
 /// These are used for most 32-bit instructions.
 pub const I16SX32: Argument = immediate!(I32, 2, 2, true, None, None);
+
+/// A helper that leverages the selection of a correct parser for immediates
+/// in sized instructions to the disassembler.
+///
+/// This handles zero-extension for the different operand sizes.
+pub const I16ZXS: Argument = Argument::SizeConverter(|size| match size {
+    0 => I16T8,
+    1 => I16,
+    2 => I16ZX32,
+    _ => unreachable!(),
+});
+
+/// A helper that leverages the selection of an appropriate parser for immediates
+/// in sized instructions to the disassembler.
+///
+/// This handles sign-extension for the different operand sizes.
+pub const I16SXS: Argument = Argument::SizeConverter(|size| match size {
+    0 => I16T8,
+    1 => I16,
+    2 => I16SX32,
+    _ => unreachable!(),
+});
 
 /// An unsigned 24-bit immediate zero-extended to 32 bits.
 ///
@@ -193,6 +237,12 @@ pub enum Argument {
     U32(Immediate<u32>),
     /// A signed 32-bit immediate.
     I32(Immediate<i32>),
+    /// An incredibly stupid hack to obtain variable operands parsers based on
+    /// the operand size argument.
+    ///
+    /// This is used for sized instructions where immediates need to be extended
+    /// differently for each size.
+    SizeConverter(fn(size: u8) -> Argument),
     /// A general-purpose CPU register.
     Gpr(Register),
     /// A special-purpose CPU register.
@@ -220,7 +270,7 @@ impl Argument {
             Argument::U32(imm) => imm.position,
             Argument::I32(imm) => imm.position,
             Argument::Gpr(reg) | Argument::Spr(reg) => reg.position,
-            Argument::Nop => 0,
+            _ => 0,
         }
     }
 
@@ -239,7 +289,7 @@ impl Argument {
             Argument::U32(imm) => imm.width,
             Argument::I32(imm) => imm.width,
             Argument::Gpr(_) | Argument::Spr(_) => 1,
-            Argument::Nop => 0,
+            _ => 0,
         }
     }
 }
