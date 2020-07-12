@@ -5,9 +5,14 @@ use std::io::Read;
 use crate::arguments::Argument;
 use crate::isa::*;
 use crate::opcode;
-use crate::{Error, Result};
+use crate::{Error, Instruction, Result};
 
-pub fn read_instruction<R: Read>(reader: &mut R) -> Result<()> {
+/// Reads an instruction from a given [`Read`]er and attempts to parse it into an
+/// [`Instruction`] object.
+///
+/// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+/// [`Instruction`]: ../struct.Instruction.html
+pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     let mut insn = Vec::new();
 
     // First, read the opcode of the next instruction and parse it.
@@ -31,13 +36,7 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<()> {
         &mut instruction_meta.operands,
     )?;
 
-    println!("{:?}", instruction_meta);
-    println!("{:?}", insn);
-
-    // Read the corresponding operands and construct the instruction object.
-    // TODO
-
-    Ok(())
+    Ok(Instruction::new(insn, operand_size, instruction_meta))
 }
 
 fn lookup_instruction(sized: bool, a: u8, b: u8, subopcode: u8) -> Option<InstructionMeta> {

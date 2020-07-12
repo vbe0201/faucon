@@ -73,7 +73,7 @@ impl InstructionMeta {
 /// Through internal implementation details, this enum is responsible for
 /// generating opcode lookup tables that can be used to identify instructions
 /// and their variants.
-#[derive(Clone, Debug, PartialEq, Eq, Instruction)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Instruction)]
 pub enum InstructionKind {
     /// The CMPU instruction.
     ///

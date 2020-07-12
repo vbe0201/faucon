@@ -4,10 +4,10 @@ use faucon_asm::{disassembler, Instruction};
 
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
-use instructions::process_instruction;
+//use instructions::process_instruction;
 pub use registers::*;
 
-mod instructions;
+//mod instructions;
 mod registers;
 
 /// Representation of the Falcon processor.
@@ -92,12 +92,12 @@ impl Cpu {
     pub fn step(&mut self) {
         match self.fetch_insn(self.registers.get_pc()) {
             Ok(insn) => {
-                process_instruction(self, &insn);
+                //process_instruction(self, &insn);
 
                 self.registers
                     .set_pc(self.registers.get_pc() + insn.len() as u32);
             }
-            Err(faucon_asm::Error::InvalidInstruction(_)) => todo!("Generate trap"),
+            Err(faucon_asm::Error::UnknownInstruction(_)) => todo!("Generate trap"),
             _ => todo!("Handle these errors in a sane way"),
         }
     }

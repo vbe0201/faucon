@@ -4,7 +4,6 @@ use std::convert::TryInto;
 use std::ptr;
 
 use crate::cpu::Cpu;
-use crate::memory::*;
 
 /// Supported request modes that the DMA engine can process.
 #[derive(Debug, PartialEq)]

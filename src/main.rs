@@ -32,7 +32,7 @@ fn read_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
 
 /// Uploads the contents of a binary to the Falcon IMEM.
 fn upload_code(cpu: &mut Cpu, address: u16, vaddress: u32, binary: &[u8]) {
-    for (index, mut chunk) in binary.chunks(4).enumerate() {
+    for (index, chunk) in binary.chunks(4).enumerate() {
         cpu.upload_code(
             address + (index << 2) as u16,
             vaddress,

@@ -1,5 +1,3 @@
-use faucon_asm::Register;
-
 /// A helper macro to generate access APIs for named special-purpose registers.
 macro_rules! impl_spr {
     ($registers:ident, $reg:ident, $val:tt) => {
@@ -42,17 +40,17 @@ impl CpuRegisters {
     }
 
     /// Gets the value of a given general-purpose register.
-    pub fn get_gpr(&self, reg: Register) -> u32 {
-        assert!(reg.value <= 15);
+    pub fn get_gpr(&self, reg: usize) -> u32 {
+        assert!(reg <= 15);
 
-        self.gpr[reg.value]
+        self.gpr[reg]
     }
 
     /// Sets a given general-purpose register to a given value.
-    pub fn set_gpr(&mut self, reg: Register, value: u32) {
-        assert!(reg.value <= 15);
+    pub fn set_gpr(&mut self, reg: usize, value: u32) {
+        assert!(reg <= 15);
 
-        self.gpr[reg.value] = value;
+        self.gpr[reg] = value;
     }
 }
 
