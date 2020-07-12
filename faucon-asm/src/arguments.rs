@@ -108,17 +108,22 @@ pub const I16: Argument = immediate!(U16, 2, 2, false, None, None);
 /// An unsigned 16-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for most 32-bit instructions.
-pub const I16ZX32: Argument = immediate!(U16, 2, 2, false, None, None);
+pub const I16ZX32: Argument = immediate!(U32, 2, 2, false, None, None);
 
-/// A signed 16-bit immediate zero-extended to 32 bits.
+/// An unsigned 16-bit immediate zero-extended to 32 bits.
+///
+/// These are used for Falcon v5 call instructions.
+pub const I16ZX32P1: Argument = immediate!(U32, 1, 2, false, None, None);
+
+/// A signed 16-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for most 32-bit instructions.
-pub const I16SX32: Argument = immediate!(I16, 2, 2, true, None, None);
+pub const I16SX32: Argument = immediate!(I32, 2, 2, true, None, None);
 
 /// An unsigned 24-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for absolute call/jump addresses.
-pub const I24: Argument = immediate!(U24, 2, 3, false, None, None);
+pub const I24ZX32: Argument = immediate!(U32, 1, 3, false, None, None);
 
 /// An unsigned 32-bit immediate.
 ///
@@ -225,13 +230,13 @@ impl Argument {
     /// [`Argument`]: enum.Argument.html
     pub fn width(&self) -> usize {
         match self {
-            Argument::U8(imm) => imm.position,
-            Argument::I8(imm) => imm.position,
-            Argument::U16(imm) => imm.position,
-            Argument::I16(imm) => imm.position,
-            Argument::U24(imm) => imm.position,
-            Argument::I24(imm) => imm.position,
-            Argument::U32(imm) => imm.position,
+            Argument::U8(imm) => imm.width,
+            Argument::I8(imm) => imm.width,
+            Argument::U16(imm) => imm.width,
+            Argument::I16(imm) => imm.width,
+            Argument::U24(imm) => imm.width,
+            Argument::I24(imm) => imm.width,
+            Argument::U32(imm) => imm.width,
             Argument::I32(imm) => imm.width,
             Argument::Gpr(_) | Argument::Spr(_) => 1,
             Argument::Nop => 0,

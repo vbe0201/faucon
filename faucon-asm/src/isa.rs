@@ -79,6 +79,36 @@ impl InstructionMeta {
 /// and their variants.
 #[derive(Clone, Debug, PartialEq, Eq, Instruction)]
 pub enum InstructionKind {
+    /// The CALL instruction.
+    ///
+    /// Performs an unconditional branch to an absolute address, pushing
+    /// the return address onto the stack.
+    #[insn(opcode = 0xF3, subopcode = 0x03, operands(I16ZX32P1))]
+    #[insn(opcode = 0xF4, subopcode = 0x21, operands(I8ZX32))]
+    #[insn(opcode = 0xF9, subopcode = 0x05, operands(R2))]
+    CALL,
+
+    /// The LCALL instruction.
+    ///
+    /// Performs an unconditional branch to an absolute address, pushing
+    /// the return address onto the stack.
+    // FIXME: This is effectively just a CALL. Why is that a dedicated instruction?
+    #[insn(opcode = 0x7E, subopcode = 0x01, operands(I24ZX32))]
+    LCALL,
+
+    /// The LJMP instruction.
+    ///
+    /// Performs an unconditional branch to an absolute address.
+    // FIXME: This is effectively just a JMP. Why is that a dedicated instruction?
+    #[insn(opcode = 0x3E, subopcode = 0x00, operands(I24ZX32))]
+    LJMP,
+
+    /// The RET instruction.
+    ///
+    /// Returns from a previous subroutine call.
+    #[insn(opcode = 0xF8, subopcode = 0x00, operands())]
+    RET,
+
     /// The EXIT instruction.
     ///
     /// Halts microcode execution and triggers the EXIT interrupt so that the
