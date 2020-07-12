@@ -79,6 +79,25 @@ impl InstructionMeta {
 /// and their variants.
 #[derive(Clone, Debug, PartialEq, Eq, Instruction)]
 pub enum InstructionKind {
+    /// The ADD instruction.
+    ///
+    /// Computes the sum of two operands and stores the result.
+    #[insn(opcode = 0xF5, subopcode = 0x30, operands(SP, I16SX32))]
+    #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, R2))]
+    ADD,
+
+    /// The PUSH instruction.
+    ///
+    /// Pushes a value onto the stack and increments the stack pointer by four.
+    #[insn(opcode = 0xF9, subopcode = 0x00, operands(R2))]
+    PUSH,
+
+    /// THE POP instruction.
+    ///
+    /// Pops a value off the stack and increments the stack pointer by four.
+    #[insn(opcode = 0xFC, subopcode = 0x00, operands(R2))]
+    POP,
+
     /// The CALL instruction.
     ///
     /// Performs an unconditional branch to an absolute address, pushing
