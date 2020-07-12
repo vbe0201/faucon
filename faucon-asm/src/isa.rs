@@ -242,6 +242,29 @@ pub enum InstructionKind {
 impl fmt::Display for InstructionKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mnemonic = match self {
+            InstructionKind::CMPU => "cmpu",
+            InstructionKind::CMPS => "cmps",
+            InstructionKind::CMP => "cmp",
+            InstructionKind::CLEAR => "clear",
+            InstructionKind::ADD => "add",
+            InstructionKind::PUSH => "push",
+            InstructionKind::POP => "pop",
+            InstructionKind::CALL => "call",
+            InstructionKind::LCALL => "lcall",
+            InstructionKind::LJMP => "ljmp",
+            InstructionKind::RET => "ret",
+            InstructionKind::EXIT => "exit",
+            InstructionKind::SLEEP => "sleep",
+            InstructionKind::PTLB => "ptlb",
+            InstructionKind::VTLB => "vtlb",
+            InstructionKind::ITLB => "itlb",
+            InstructionKind::IRET => "iret",
+            InstructionKind::TRAP => "trap",
+            InstructionKind::XCLD => "xcld",
+            InstructionKind::XDLD => "xdld",
+            InstructionKind::XDST => "xdst",
+            InstructionKind::XCWAIT => "xcwait",
+            InstructionKind::XDWAIT => "xdwait",
             _ => "???",
         };
 
