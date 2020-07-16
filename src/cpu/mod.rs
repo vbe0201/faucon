@@ -70,8 +70,8 @@ impl Cpu {
         };
 
         // Build the physical code address to read from.
-        let page_offset = (address & 0xFF) as u8;
-        let code_address = ((page_index << 8) | page_offset) as u16;
+        let page_offset = (address & 0xFF) as u16;
+        let code_address = ((page_index as u16) << 8) | page_offset;
 
         // If the page is marked usable, complete the access using the physical page.
         if tlb.get_flag(PageFlag::Usable) {
