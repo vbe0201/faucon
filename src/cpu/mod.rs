@@ -63,16 +63,19 @@ impl Cpu {
     /// virtual address.
     fn fetch_insn(&self, address: u32) -> faucon_asm::Result<Instruction> {
         // Look up the TLB to get the physical code page.
-        let (page, tlb) = match self.memory.tlb.lookup(address) {
+        let (page_index, tlb) = match self.memory.tlb.lookup(address) {
             Ok((page, tlb)) => (page, tlb),
             Err(LookupError::NoPageHits) => todo!("Generate trap"),
             Err(LookupError::MultiplePageHits) => todo!("Generate trap"),
         };
-        let page_offset = ((address >> 8) & 0xFF) as usize;
+
+        // Build the physical code address to read from.
+        let page_offset = (address & 0xFF) as u8;
+        let code_address = ((page_index << 8) | page_offset) as u16;
 
         // If the page is marked usable, complete the access using the physical page.
         if tlb.get_flag(PageFlag::Usable) {
-            let mut code = &self.memory.code[page as usize][page_offset..];
+            let mut code = &self.memory.code[code_address as usize..];
             return Ok(disassembler::read_instruction(&mut code)?);
         } else if tlb.get_flag(PageFlag::Busy) {
             // The page is marked busy, the access must be completed when possible.

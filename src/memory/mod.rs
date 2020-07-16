@@ -27,7 +27,7 @@ pub struct Memory {
     /// Code segment uses primitive paging in 0x100 byte pages.
     /// Address translation is done in hidden TLB memory, with one entry
     /// for each physical page.
-    pub code: Vec<[u8; PAGE_SIZE]>,
+    pub code: Vec<u8>,
     /// Representation of the hidden Falcon TLB.
     ///
     /// The TLB is used for address translation via an array of entries,
@@ -42,7 +42,7 @@ impl Memory {
         // TODO: Compute these values through UC_CAPS MMIO.
         Memory {
             data: vec![0; 0x4000],
-            code: vec![[0; PAGE_SIZE]; 0x80],
+            code: vec![0; PAGE_SIZE * 0x80],
             tlb: Tlb::new(),
         }
     }
@@ -71,12 +71,12 @@ impl Memory {
     /// Reads a word from a given offset in a physical page of the code
     /// space.
     pub fn read_code_page(&self, page: u8, offset: u8) -> u32 {
-        LittleEndian::read_u32(&self.code[page as usize][offset as usize..])
+        self.read_code_addr(((page << 8) | offset) as u16)
     }
 
     /// Reads a word from a given physical address in code space.
     pub fn read_code_addr(&self, address: u16) -> u32 {
-        self.read_code_page((address >> 8) as u8, (address & 0xFF) as u8)
+        LittleEndian::read_u32(&self.code[address as usize..])
     }
 
     /// Writes a byte to a given address in Falcon data space.
@@ -115,11 +115,11 @@ impl Memory {
     /// Writes a word to a given offset in a physical page of the code
     /// space.
     pub fn write_code_page(&mut self, page: u8, offset: u8, value: u32) {
-        LittleEndian::write_u32(&mut self.code[page as usize][offset as usize..], value);
+        self.write_code_addr(((page << 8) | offset) as u16, value);
     }
 
     /// Writes a word to a given physical address in code space.
     pub fn write_code_addr(&mut self, address: u16, value: u32) {
-        self.write_code_page((address >> 8) as u8, (address & 0xFF) as u8, value);
+        LittleEndian::write_u32(&mut self.code[address as usize..], value);
     }
 }

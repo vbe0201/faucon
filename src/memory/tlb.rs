@@ -61,7 +61,7 @@ impl Tlb {
     ///
     /// In case the page is found, a `(page_index, entry)` constellation is
     /// returned, where `page_index` denotes the physical page index and `entry`
-    /// the [`TlbEntry`] that was foud.
+    /// the [`TlbEntry`] that was found.
     ///
     /// [`TlbEntry`]: struct.TlbEntry.html
     /// [`LookupError`]: enum.LookupError.html
