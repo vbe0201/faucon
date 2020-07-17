@@ -202,7 +202,7 @@ pub const FLAGS: Argument = register!(Spr, 8);
 ///
 /// Treated as an 8-bit immediate by the hardware, used for miscellaneous
 /// instructions that operate on the flag bits.
-pub const FLAG: Argument = immediate!(U8, 2, 1, false, None, Some(0x1F));
+pub const FLAG: Argument = immediate!(Flag, 2, 1, false, None, Some(0x1F));
 
 /// A software trap value.
 ///
@@ -221,6 +221,13 @@ pub const SR2: Argument = register!(Spr, 1, false);
 /// Wrapper around Falcon instruction operands.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Argument {
+    /// An incredibly stupid hack to obtain variable operands parsers based on
+    /// the operand size argument.
+    ///
+    /// This is used for sized instructions where immediates need to be extended
+    /// differently for each size.
+    SizeConverter(fn(size: u8) -> Argument),
+
     /// An unsigned 8-bit immediate.
     U8(Immediate<u8>),
     /// A signed 8-bit immediate.
@@ -237,16 +244,13 @@ pub enum Argument {
     U32(Immediate<u32>),
     /// A signed 32-bit immediate.
     I32(Immediate<i32>),
-    /// An incredibly stupid hack to obtain variable operands parsers based on
-    /// the operand size argument.
-    ///
-    /// This is used for sized instructions where immediates need to be extended
-    /// differently for each size.
-    SizeConverter(fn(size: u8) -> Argument),
+
     /// A general-purpose CPU register.
     Gpr(Register),
     /// A special-purpose CPU register.
     Spr(Register),
+    /// A flag bit in the `$flags` register.
+    Flag(Immediate<u8>),
 
     /// A dummy value that is used as a hack to fulfill static allocation
     /// requirements in `faucon-asm-derive` codegen. This variant shall
@@ -270,6 +274,7 @@ impl Argument {
             Argument::U32(imm) => imm.position,
             Argument::I32(imm) => imm.position,
             Argument::Gpr(reg) | Argument::Spr(reg) => reg.position,
+            Argument::Flag(imm) => imm.position,
             _ => 0,
         }
     }
@@ -289,6 +294,7 @@ impl Argument {
             Argument::U32(imm) => imm.width,
             Argument::I32(imm) => imm.width,
             Argument::Gpr(_) | Argument::Spr(_) => 1,
+            Argument::Flag(imm) => imm.width,
             _ => 0,
         }
     }

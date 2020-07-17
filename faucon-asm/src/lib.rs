@@ -1,9 +1,16 @@
 use std::fmt;
 
+pub use disassembler::*;
+pub use operands::*;
+
+use arguments::Argument;
+use operands::Operand;
+
 mod arguments;
 pub mod disassembler;
 pub mod isa;
 pub mod opcode;
+pub mod operands;
 
 /// A result that is returned by the functions in this crate.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -80,11 +87,34 @@ impl Instruction {
     pub fn subopcode(&self) -> u8 {
         self.meta.subopcode
     }
+
+    /// A vector of instruction [`Operand`]s.
+    ///
+    /// [`Operand`]: ./operands/enum.Operand.html
+    pub fn operands(&self) -> Vec<Operand> {
+        let mut operands = Vec::new();
+
+        for arg in self.meta.operands.iter() {
+            // If the argument is a dummy placeholder, purposefully ignore it.
+            if arg == &Argument::Nop {
+                continue;
+            }
+
+            // Extract the real value of the operand from the instruction bytes.
+            operands.push(Operand::read(arg, &self.bytes));
+        }
+
+        operands
+    }
 }
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: Pretty-print operands as well.
-        write!(f, "{} {}", self.kind(), self.operand_size)
+        write!(f, "{} {}", self.kind(), self.operand_size)?;
+        for operand in self.operands() {
+            write!(f, "{}", operand)?;
+        }
+
+        Ok(())
     }
 }
