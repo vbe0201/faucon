@@ -56,6 +56,15 @@ impl Instruction {
         }
     }
 
+    /// Checks whether this instruction is invalid.
+    ///
+    /// This is the case when the instruction is described by [`InstructionKind::XXX`].
+    ///
+    /// [`InstructionKind::XXX`]: ./isa/enum.InstructionKind.html#variant.XXX
+    pub fn is_invalid(&self) -> bool {
+        self.kind().invalid()
+    }
+
     /// Gets the [`InstructionKind`] that is represented by this instruction variant.
     ///
     /// [`InstructionKind`]: ./isa/enum.InstructionKind.html
