@@ -112,6 +112,15 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, R2))]
     ADD,
 
+    /// The LD instruction.
+    ///
+    /// Loads a value from Falcon DMem to a register.
+    #[insn(opcode = 0x18, subopcode = 0x08, operands(R1, MEMRI))]
+    #[insn(opcode = 0x34, subopcode = 0x00, operands(R2, MEMSPI))]
+    #[insn(opcode = 0x3A, subopcode = 0x00, operands(R2, MEMSPR))]
+    #[insn(opcode = 0x3C, subopcode = 0x08, operands(R3, MEMRR))]
+    LD,
+
     /// The PUSH instruction.
     ///
     /// Pushes a value onto the stack and increments the stack pointer by four.
@@ -247,6 +256,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMP => "cmp",
             InstructionKind::CLEAR => "clear",
             InstructionKind::ADD => "add",
+            InstructionKind::LD => "ld",
             InstructionKind::PUSH => "push",
             InstructionKind::POP => "pop",
             InstructionKind::CALL => "call",
@@ -265,7 +275,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::XDST => "xdst",
             InstructionKind::XCWAIT => "xcwait",
             InstructionKind::XDWAIT => "xdwait",
-            _ => "???",
+            InstructionKind::XXX => "???",
         };
 
         write!(f, "{}", mnemonic)

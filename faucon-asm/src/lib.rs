@@ -110,9 +110,9 @@ impl Instruction {
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.kind(), self.operand_size)?;
+        write!(f, "{}{}", self.kind(), self.operand_size)?;
         for operand in self.operands() {
-            write!(f, "{}", operand)?;
+            write!(f, " {}", operand)?;
         }
 
         Ok(())

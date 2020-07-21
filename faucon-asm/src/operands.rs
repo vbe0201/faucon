@@ -203,7 +203,7 @@ impl fmt::Display for MemoryAccess {
             } => {
                 let offset_fmt = match offset {
                     0 => "".to_string(),
-                    _ => format!(" + {}", offset),
+                    _ => format!(" + {:#02x}", offset),
                 };
 
                 write!(f, "{}[{}{}]", space, base, offset_fmt)
