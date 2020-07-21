@@ -255,6 +255,27 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF8, subopcode = 0x03, operands())]
     XDWAIT,
 
+    /// The IOWR instruction.
+    ///
+    /// Asynchronously writes a word to the I/O space of the microprocessor.
+    #[insn(opcode = 0xF6, subopcode = 0x06, operands(IORI, R1))]
+    #[insn(opcode = 0xFA, subopcode = 0x00, operands(IOR, R1))]
+    IOWR,
+
+    /// The IOWRS instruction.
+    ///
+    /// Synchronously writes a word to the I/O space of the microprocessor.
+    #[insn(opcode = 0xF7, subopcode = 0x07, operands(IORI, R1))]
+    #[insn(opcode = 0xFA, subopcode = 0x01, operands(IOR, R2))]
+    IOWRS,
+
+    /// The IORD instruction.
+    ///
+    /// Reads a word from the I/O space of the processor.
+    #[insn(opcode = 0xCF, subopcode = 0x0F, operands(R1, IORI))]
+    #[insn(opcode = 0xFF, subopcode = 0x0F, operands(R3, IORR))]
+    IORD,
+
     /// An invalid or unknown instruction.
     XXX,
 }
@@ -287,6 +308,9 @@ impl fmt::Display for InstructionKind {
             InstructionKind::XDST => "xdst",
             InstructionKind::XCWAIT => "xcwait",
             InstructionKind::XDWAIT => "xdwait",
+            InstructionKind::IOWR => "iowr",
+            InstructionKind::IOWRS => "iowrs",
+            InstructionKind::IORD => "iord",
             InstructionKind::XXX => "???",
         };
 

@@ -46,6 +46,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
         let mut ri8 = vec![quote! { None }; 0x10];
         let mut i8 = vec![quote! { None }; 0x40];
         let mut i16 = vec![quote! { None }; 0x40];
+        let mut rir = vec![quote! { None }; 0x10];
         let mut n = vec![quote! { None }; 0x10];
         let mut r = vec![quote! { None }; 0x10];
         let mut rr = vec![quote! { None }; 0x10];
@@ -156,6 +157,12 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                             }
                             0x5 => {
                                 i16[subopcode] = value;
+                            }
+                            0x6 => {
+                                rir[subopcode] = value;
+                            }
+                            0x7 => {
+                                rir[subopcode] = value;
                             }
                             0x8 => {
                                 n[subopcode] = value;
@@ -294,6 +301,10 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 #(#i16),*
             ];
 
+            const FORM_RIR: [Option<InstructionMeta>; 0x10] = [
+                #(#rir),*
+            ];
+
             const FORM_N: [Option<InstructionMeta>; 0x10] = [
                 #(#n),*
             ];
@@ -401,6 +412,8 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                         0x3 => FORM_I16[subopcode].clone(),
                         0x4 => FORM_I8[subopcode].clone(),
                         0x5 => FORM_I16[subopcode].clone(),
+                        0x6 => FORM_RIR[subopcode].clone(),
+                        0x7 => FORM_RIR[subopcode].clone(),
                         0x8 => FORM_N[subopcode].clone(),
                         0x9 => FORM_R[subopcode].clone(),
                         0xA => FORM_RR[subopcode].clone(),

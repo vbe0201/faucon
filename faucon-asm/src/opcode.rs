@@ -142,6 +142,7 @@ pub fn get_subopcode_location(size: u8, a: u8, b: u8) -> Option<SubopcodeLocatio
         (0x3, 0x3, 0x0..=0x2) => Some(SubopcodeLocation::O2),
         (0x3, 0x3, 0x3) => Some(SubopcodeLocation::O1),
         (0x3, 0x3, 0x4..=0x5) => Some(SubopcodeLocation::OL),
+        (0x3, 0x3, 0x6..=0x7) => Some(SubopcodeLocation::O1),
         (0x3, 0x3, 0x8..=0x9) => Some(SubopcodeLocation::O2),
         (0x3, 0x3, 0xA) => Some(SubopcodeLocation::O3),
         (0x3, 0x3, 0xC) => Some(SubopcodeLocation::O2),
