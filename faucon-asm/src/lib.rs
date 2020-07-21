@@ -57,7 +57,7 @@
 //!
 //! ## Comparing instructions
 //!
-//! In Falcon assembly, it is quite usual than [`Instruction`]s have multiple variants
+//! In Falcon assembly, it is quite usual that [`Instruction`]s have multiple variants
 //! with different opcodes and different operand combinations. To compare the natures
 //! of instructions, [`Instruction::kind`] exposes an [`InstructionKind`] variant.
 //!
