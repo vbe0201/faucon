@@ -122,6 +122,16 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3F, subopcode = 0x0F, operands(R1, MEMR))]
     LD,
 
+    /// The ST instruction.
+    ///
+    /// Stores a value from a register to Falcon DMem.
+    #[insn(opcode = 0x20, subopcode = 0x00, operands(MEMR, R1))]
+    #[insn(opcode = 0x21, subopcode = 0x01, operands(MEMSPR, R2))]
+    #[insn(opcode = 0x30, subopcode = 0x01, operands(MEMSPI, R2))]
+    #[insn(opcode = 0x35, subopcode = 0x05, operands(MEMRI, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x09, operands(MEMRRALT, R1))]
+    ST,
+
     /// The PUSH instruction.
     ///
     /// Pushes a value onto the stack and increments the stack pointer by four.
@@ -258,6 +268,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CLEAR => "clear",
             InstructionKind::ADD => "add",
             InstructionKind::LD => "ld",
+            InstructionKind::ST => "st",
             InstructionKind::PUSH => "push",
             InstructionKind::POP => "pop",
             InstructionKind::CALL => "call",

@@ -91,6 +91,9 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                             0x4 => {
                                 swi8[subopcode] = value;
                             }
+                            0x5 => {
+                                srri8[subopcode] = value;
+                            }
                             0x6 => {
                                 smi8[subopcode] = value;
                             }
@@ -354,6 +357,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                         0x0 => FORM_SRI8[subopcode].clone(),
                         0x1 => FORM_SRI16[subopcode].clone(),
                         0x4 => FORM_SWI8[subopcode].clone(),
+                        0x5 => FORM_SRRI8[subopcode].clone(),
                         0x6 => FORM_SMI8[subopcode].clone(),
                         0x7 => FORM_SMI16[subopcode].clone(),
                         0x8 => FORM_SRR[subopcode].clone(),

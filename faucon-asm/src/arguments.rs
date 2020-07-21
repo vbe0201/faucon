@@ -366,6 +366,27 @@ pub const MEMRR: Argument = Argument::SizeConverter(|size| match size {
     _ => unreachable!(),
 });
 
+/// A memory access to an 8-bit value in Falcon DMem. The address is composed from a
+/// base address in a register and an offset in another register.
+pub const MEMRRALT8: Argument = memory!(DMem, 8, R2, R3, 1);
+
+/// A memory access to a 16-bit value in Falcon DMem. The address is composed from a
+/// base address in a register and an offset * 2 in another register.
+pub const MEMRRALT16: Argument = memory!(DMem, 16, R2, R3, 2);
+
+/// A memory access to a 32-bit value in Falcon DMem. The address is composed from a
+/// base address in a register and an offset * 4 in another register.
+pub const MEMRRALT32: Argument = memory!(DMem, 32, R2, R3, 4);
+
+/// A helper that leverages the selection of an appropriate parser for memory access
+/// encodings in sized instructions to the disassembler.
+pub const MEMRRALT: Argument = Argument::SizeConverter(|size| match size {
+    0 => MEMRRALT8,
+    1 => MEMRRALT16,
+    2 => MEMRRALT32,
+    _ => unreachable!(),
+});
+
 /// A memory access to a 32-bit value in Falcon IMem. The address is specified by a
 /// single register.
 pub const IOR: Argument = memory!(IMem, 32, R2);
