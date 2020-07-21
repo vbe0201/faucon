@@ -1,6 +1,106 @@
+//! Rust library for processing NVIDIA Falcon assembly.
+//!
+//! # About the Falcon
+//!
+//! The **Fa**st **L**ogic **Con**troller is a series of general-purpose embedded
+//! microprocessors that have been produced since around 2005. With over three
+//! billion units shipped, the Falcon has been used in many different places and
+//! platforms, primarily NVIDIA GPUs starting from G98, but really everywhere a
+//! controller for logic processing was needed.
+//!
+//! Falcon units consist of:
+//!
+//! - the core processor with its SRAM for code and data
+//! - the I/O space for communication with host systems
+//! - FIFO interface logic (optional)
+//! - memory interface logic (optional)
+//! - cryptographic AES coprocessor, making the Falcon a "secretful unit" (optional)
+//! - unit-specific logic to control, depending on how the processor is used (optional)
+//!
+//! # The Instruction Set Architecture
+//!
+//! The inner workings of Falcon assembly are documented elsewhere. If you see this
+//! disclaimer, odds are pretty high that nobody has started to work on it yet.
+//!
+//! The heart of this crate is the [`Instruction`] structure. Objects should never
+//! be created manually, unless you know what you are doing. Rather, instances
+//! should be obtained through the [`read_instruction`] function, which disassembles
+//! a chunk of binary data into Falcon assembly.
+//!
+//! See the respective documentation for more details on the usage possibilities.
+//!
+//! ## Pretty-printing instructions
+//!
+//! Instructions implement the [`Display`] trait so they can emit valid assembly code
+//! for the wrapped instruction which could be thrown at an assembler.
+//!
+//! ```
+//! let instruction = faucon_asm::read_instruction(&mut &[0xBFu8, 0x1Fu8][..])
+//!     .expect("Failed to disassemble the given bytes into a valid instruction");
+//!
+//! assert_eq!(instruction.to_string(), "ld b32 $r15 D[$r1]");
+//! ```
+//!
+//! ## Instruction operands
+//!
+//! Of course, an [`Instruction`] object lets you access its operands which are used to
+//! execute the operation. There are various types of operands in Falcon assembly:
+//!
+//! - registers (`$r0`, `$sp`, ...)
+//! - immediates (`0xAB`, `-0x98`, ...)
+//! - CPU flags from the `$flags` register (`pX`, `c`, ...)
+//! - direct memory accesses (`D[$sp + 0xAB]`, `I[$r0 + $r4]`, ...)
+//!
+//! To work with these data efficiently, Falcon wraps up the values and corresponding
+//! metadata in the [`Operand`] enumeration. A list of instruction operands can be
+//! obtained through [`Instruction::operands`].
+//!
+//! ## Comparing instructions
+//!
+//! In Falcon assembly, it is quite usual than [`Instruction`]s have multiple variants
+//! with different opcodes and different operand combinations. To compare the natures
+//! of instructions, [`Instruction::kind`] exposes an [`InstructionKind`] variant.
+//!
+//! ```
+//! let instruction = faucon_asm::read_instruction(&mut &[0xBFu8, 0x1Fu8][..])
+//!     .expect("Failed to disassemble the given bytes into a valid instruction");
+//!
+//! assert_eq!(instruction.kind(), faucon_asm::InstructionKind::LD);
+//! ```
+//!
+//! # Assembling instructions
+//!
+//! Functionality for assembling intermediate representation to machine code is
+//! currently unsupported and planned for the future.
+//!
+//! For the time being, it is advised to use `envyas` from the [envytools]
+//! collection.
+//!
+//! # Disassembling instructions
+//!
+//! As mentioned previously, the [`read_instruction`] can be used to disassemble
+//! raw instruction bytes into [`Instruction`] objects. The function can be called
+//! repeatedly on a buffer of code until an error or [`Error::Eof`] occurs.
+//!
+//! It is within the user's responsibility to ensure that all possible exceptions
+//! are handled correctly. The validity of an [`Instruction`] can be ensured through
+//! [`Instruction::is_valid`].
+//!
+//! [`Instruction`]: struct.Instruction.html
+//! [`read_instruction`]: fn.read_instruction.html
+//! [`Display`]: https://doc.rust-lang.org/std/fmt/trait.Display.html
+//! [`Operand`]: ./operands/enum.Operand.html
+//! [`Instruction::operands`]: struct.Instruction.html#method.operands
+//! [`Instruction::kind`]: struct.Instruction.html#method.kind
+//! [`InstructionKind`]: ./isa/enum.InstructionKind.html
+//! [envytools]: https://github.com/envytools/envytools
+//! [`Error::Eof`]: enum.Error.html#variant.Eof
+//! [`Instruction::is_valid`]: struct.Instruction.html#method.is_valid
+
 use std::fmt;
 
 pub use disassembler::*;
+pub use isa::InstructionKind;
 pub use operands::*;
 
 use arguments::Argument;
@@ -54,6 +154,15 @@ impl Instruction {
             operand_size,
             meta,
         }
+    }
+
+    /// Checks whether this instruction is valid.
+    ///
+    /// This is the case when the instruction is described by [`InstructionKind::XXX`].
+    ///
+    /// [`InstructionKind::XXX`]: ./isa/enum.InstructionKind.html#variant.XXX
+    pub fn is_valid(&self) -> bool {
+        !self.is_invalid()
     }
 
     /// Checks whether this instruction is invalid.
