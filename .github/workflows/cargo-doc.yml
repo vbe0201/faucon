@@ -13,10 +13,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install latest stable toolchain
+      - name: Install latest nightly toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           override: true
 
       - name: Generate documentation
@@ -24,6 +24,8 @@ jobs:
         with:
           command: doc
           args: --all-features
+        env:
+          RUSTDOCFLAGS: -Z unstable-options --enable-index-page
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@2.0.3
