@@ -23,36 +23,36 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
         let name = &ast.ident;
 
         // Prepare the opcode tables.
-        let mut srri8 = vec![quote! { None }; 0xF];
-        let mut srwi8 = vec![quote! { None }; 0xF];
-        let mut srwi16 = vec![quote! { None }; 0xF];
-        let mut sri8 = vec![quote! { None }; 0xF];
-        let mut sri16 = vec![quote! { None }; 0xF];
-        let mut swi8 = vec![quote! { None }; 0xF];
-        let mut smi8 = vec![quote! { None }; 0xF];
-        let mut smi16 = vec![quote! { None }; 0xF];
-        let mut srr = vec![quote! { None }; 0xF];
-        let mut srw = vec![quote! { None }; 0xF];
-        let mut swr = vec![quote! { None }; 0xF];
-        let mut smr = vec![quote! { None }; 0xF];
-        let mut srrw = vec![quote! { None }; 0xF];
-        let mut sm = vec![quote! { None }; 0xF];
-        let mut i24 = vec![quote! { None }; 0xF];
-        let mut rwi8 = vec![quote! { None }; 0xF];
+        let mut srri8 = vec![quote! { None }; 0x10];
+        let mut srwi8 = vec![quote! { None }; 0x10];
+        let mut srwi16 = vec![quote! { None }; 0x10];
+        let mut sri8 = vec![quote! { None }; 0x10];
+        let mut sri16 = vec![quote! { None }; 0x10];
+        let mut swi8 = vec![quote! { None }; 0x10];
+        let mut smi8 = vec![quote! { None }; 0x10];
+        let mut smi16 = vec![quote! { None }; 0x10];
+        let mut srr = vec![quote! { None }; 0x10];
+        let mut srw = vec![quote! { None }; 0x10];
+        let mut swr = vec![quote! { None }; 0x10];
+        let mut smr = vec![quote! { None }; 0x10];
+        let mut srrw = vec![quote! { None }; 0x10];
+        let mut sm = vec![quote! { None }; 0x10];
+        let mut i24 = vec![quote! { None }; 0x10];
+        let mut rwi8 = vec![quote! { None }; 0x10];
         let mut ri32 = vec![quote! { None }; 0x1];
-        let mut rwi16 = vec![quote! { None }; 0xF];
-        let mut mi8 = vec![quote! { None }; 0xF];
-        let mut mi16 = vec![quote! { None }; 0xF];
-        let mut ri8 = vec![quote! { None }; 0xF];
-        let mut i8 = vec![quote! { None }; 0x3F];
-        let mut i16 = vec![quote! { None }; 0x3F];
-        let mut n = vec![quote! { None }; 0xF];
-        let mut r = vec![quote! { None }; 0xF];
-        let mut rr = vec![quote! { None }; 0xF];
-        let mut w = vec![quote! { None }; 0xF];
-        let mut mr = vec![quote! { None }; 0xF];
-        let mut rw = vec![quote! { None }; 0xF];
-        let mut rrw = vec![quote! { None }; 0xF];
+        let mut rwi16 = vec![quote! { None }; 0x10];
+        let mut mi8 = vec![quote! { None }; 0x10];
+        let mut mi16 = vec![quote! { None }; 0x10];
+        let mut ri8 = vec![quote! { None }; 0x10];
+        let mut i8 = vec![quote! { None }; 0x40];
+        let mut i16 = vec![quote! { None }; 0x40];
+        let mut n = vec![quote! { None }; 0x10];
+        let mut r = vec![quote! { None }; 0x10];
+        let mut rr = vec![quote! { None }; 0x10];
+        let mut w = vec![quote! { None }; 0x10];
+        let mut mr = vec![quote! { None }; 0x10];
+        let mut rw = vec![quote! { None }; 0x10];
+        let mut rrw = vec![quote! { None }; 0x10];
 
         let mut register_instruction =
             |vname: &syn::Ident, opcode: u8, subopcode: u8, operands: Vec<syn::Meta>| {
@@ -117,6 +117,9 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                             }
                             0xE => {
                                 i24[subopcode] = value;
+                            }
+                            0xF => {
+                                srr[subopcode] = value;
                             }
                             _ => unreachable!(),
                         },
@@ -196,67 +199,67 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
         }
 
         Ok(quote! {
-            const FORM_SRRI8: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SRRI8: [Option<InstructionMeta>; 0x10] = [
                 #(#srri8),*
             ];
 
-            const FORM_SRWI8: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SRWI8: [Option<InstructionMeta>; 0x10] = [
                 #(#srwi8),*
             ];
 
-            const FORM_SRWI16: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SRWI16: [Option<InstructionMeta>; 0x10] = [
                 #(#srwi16),*
             ];
 
-            const FORM_SRI8: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SRI8: [Option<InstructionMeta>; 0x10] = [
                 #(#sri8),*
             ];
 
-            const FORM_SRI16: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SRI16: [Option<InstructionMeta>; 0x10] = [
                 #(#sri16),*
             ];
 
-            const FORM_SWI8: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SWI8: [Option<InstructionMeta>; 0x10] = [
                 #(#swi8),*
             ];
 
-            const FORM_SMI8: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SMI8: [Option<InstructionMeta>; 0x10] = [
                 #(#smi8),*
             ];
 
-            const FORM_SMI16: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SMI16: [Option<InstructionMeta>; 0x10] = [
                 #(#smi16),*
             ];
 
-            const FORM_SRR: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SRR: [Option<InstructionMeta>; 0x10] = [
                 #(#srr),*
             ];
 
-            const FORM_SRW: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SRW: [Option<InstructionMeta>; 0x10] = [
                 #(#srw),*
             ];
 
-            const FORM_SWR: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SWR: [Option<InstructionMeta>; 0x10] = [
                 #(#swr),*
             ];
 
-            const FORM_SMR: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SMR: [Option<InstructionMeta>; 0x10] = [
                 #(#smr),*
             ];
 
-            const FORM_SRRW: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SRRW: [Option<InstructionMeta>; 0x10] = [
                 #(#srrw),*
             ];
 
-            const FORM_SM: [Option<InstructionMeta>; 0xF] = [
+            const FORM_SM: [Option<InstructionMeta>; 0x10] = [
                 #(#sm),*
             ];
 
-            const FORM_I24: [Option<InstructionMeta>; 0xF] = [
+            const FORM_I24: [Option<InstructionMeta>; 0x10] = [
                 #(#i24),*
             ];
 
-            const FORM_RWI8: [Option<InstructionMeta>; 0xF] = [
+            const FORM_RWI8: [Option<InstructionMeta>; 0x10] = [
                 #(#rwi8),*
             ];
 
@@ -264,55 +267,55 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 #(#ri32),*
             ];
 
-            const FORM_RWI16: [Option<InstructionMeta>; 0xF] = [
+            const FORM_RWI16: [Option<InstructionMeta>; 0x10] = [
                 #(#rwi16),*
             ];
 
-            const FORM_MI8: [Option<InstructionMeta>; 0xF] = [
+            const FORM_MI8: [Option<InstructionMeta>; 0x10] = [
                 #(#mi8),*
             ];
 
-            const FORM_MI16: [Option<InstructionMeta>; 0xF] = [
+            const FORM_MI16: [Option<InstructionMeta>; 0x10] = [
                 #(#mi16),*
             ];
 
-            const FORM_RI8: [Option<InstructionMeta>; 0xF] = [
+            const FORM_RI8: [Option<InstructionMeta>; 0x10] = [
                 #(#ri8),*
             ];
 
-            const FORM_I8: [Option<InstructionMeta>; 0x3F] = [
+            const FORM_I8: [Option<InstructionMeta>; 0x40] = [
                 #(#i8),*
             ];
 
-            const FORM_I16: [Option<InstructionMeta>; 0x3F] = [
+            const FORM_I16: [Option<InstructionMeta>; 0x40] = [
                 #(#i16),*
             ];
 
-            const FORM_N: [Option<InstructionMeta>; 0xF] = [
+            const FORM_N: [Option<InstructionMeta>; 0x10] = [
                 #(#n),*
             ];
 
-            const FORM_R: [Option<InstructionMeta>; 0xF] = [
+            const FORM_R: [Option<InstructionMeta>; 0x10] = [
                 #(#r),*
             ];
 
-            const FORM_RR: [Option<InstructionMeta>; 0xF] = [
+            const FORM_RR: [Option<InstructionMeta>; 0x10] = [
                 #(#rr),*
             ];
 
-            const FORM_W: [Option<InstructionMeta>; 0xF] = [
+            const FORM_W: [Option<InstructionMeta>; 0x10] = [
                 #(#w),*
             ];
 
-            const FORM_MR: [Option<InstructionMeta>; 0xF] = [
+            const FORM_MR: [Option<InstructionMeta>; 0x10] = [
                 #(#mr),*
             ];
 
-            const FORM_RW: [Option<InstructionMeta>; 0xF] = [
+            const FORM_RW: [Option<InstructionMeta>; 0x10] = [
                 #(#rw),*
             ];
 
-            const FORM_RRW: [Option<InstructionMeta>; 0xF] = [
+            const FORM_RRW: [Option<InstructionMeta>; 0x10] = [
                 #(#rrw),*
             ];
 
@@ -360,6 +363,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                         0xC => FORM_SRRW[subopcode].clone(),
                         0xD => FORM_SM[subopcode].clone(),
                         0xE => FORM_I24[subopcode].clone(),
+                        0xF => FORM_SRR[subopcode].clone(),
                         _ => None,
                     }
                 }

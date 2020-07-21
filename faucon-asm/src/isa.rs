@@ -119,6 +119,7 @@ pub enum InstructionKind {
     #[insn(opcode = 0x34, subopcode = 0x00, operands(R2, MEMSPI))]
     #[insn(opcode = 0x3A, subopcode = 0x00, operands(R2, MEMSPR))]
     #[insn(opcode = 0x3C, subopcode = 0x08, operands(R3, MEMRR))]
+    #[insn(opcode = 0x3F, subopcode = 0x0F, operands(R1, MEMR))]
     LD,
 
     /// The PUSH instruction.
