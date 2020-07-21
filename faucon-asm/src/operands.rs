@@ -2,7 +2,24 @@
 
 use std::fmt;
 
-use crate::arguments::{Argument, Immediate, Register};
+use crate::arguments::{Argument, MemoryAccess as ArgMemoryAccess};
+
+/// A Falcon CPU register.
+///
+/// It is described by a tuple which holds the kind of register and its index
+/// which is required for addressing.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Register(RegisterKind, usize);
+
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0 == RegisterKind::Gpr {
+            write!(f, "$r{}", self.1)
+        } else {
+            write!(f, "${}", get_spr_name(self.1).unwrap_or("unk"))
+        }
+    }
+}
 
 /// Gets the dedicated name of a special-purpose register based on the given register
 /// index.
@@ -87,6 +104,114 @@ pub enum MemorySpace {
     DMem,
 }
 
+impl fmt::Display for MemorySpace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let fmt = match self {
+            MemorySpace::IMem => "I",
+            MemorySpace::DMem => "D",
+        };
+
+        write!(f, "{}", fmt)
+    }
+}
+
+/// The types of CPU registers that are utilized by the Falcon processor.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegisterKind {
+    /// A general-purpose CPU register.
+    Gpr,
+    /// A special-purpose CPU register.
+    Spr,
+}
+
+/// A direct memory access to an address in a specified space.
+///
+/// Some instructions directly operate on a given memory chunk, where the location can
+/// be described in various variants:
+///
+/// - Access through a single register holding the address: `[$reg]`
+/// - Access through two registers for address and offset with scale: `[$reg1 + $reg2 * scale]`
+/// - Access through a register for address and an immediate for offset: `[$reg + imm]`
+///
+/// It is within the user's responsibility to correctly interpret and process the variants
+/// of this enumeration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MemoryAccess {
+    /// A form where the memory address is derived from a single register: `[$reg]`
+    Reg {
+        /// The memory space which should be accessed.
+        space: MemorySpace,
+        /// A descriptor of the CPU register that holds the address.
+        base: Register,
+        /// The width of the value to read.
+        width: usize,
+    },
+    /// A form where the memory address is derived from two registers: `[$reg1 + $reg2 * scale]`
+    RegReg {
+        /// The memory space which should be accessed.
+        space: MemorySpace,
+        /// A descriptor of the CPU register that holds the base address.
+        base: Register,
+        /// An offset to the base address that is denoted by the register operand.
+        offset: Register,
+        /// A constant scale for the offset value.
+        scale: u8,
+        /// The width of the value to read.
+        width: usize,
+    },
+    /// A form where the memory address is derived from a register and an immediate: `[$reg + imm]`
+    RegImm {
+        /// The memory space which should be accessed.
+        space: MemorySpace,
+        /// A descriptor of the CPU register that holds the base address.
+        base: Register,
+        /// An offset of the base address that is denoted by the register operand.
+        offset: u32,
+        /// The width of the value to read.
+        width: usize,
+    },
+}
+
+impl fmt::Display for MemoryAccess {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MemoryAccess::Reg {
+                space,
+                base,
+                width: _,
+            } => write!(f, "{}[{}]", space, base),
+            MemoryAccess::RegReg {
+                space,
+                base,
+                offset,
+                scale,
+                width: _,
+            } => {
+                let offset_fmt = match scale {
+                    0 => "".to_string(),
+                    1 => format!(" + {}", offset),
+                    _ => format!(" + {} * {}", offset, scale),
+                };
+
+                write!(f, "{}[{}{}]", space, base, offset_fmt)
+            }
+            MemoryAccess::RegImm {
+                space,
+                base,
+                offset,
+                width: _,
+            } => {
+                let offset_fmt = match offset {
+                    0 => "".to_string(),
+                    _ => format!(" + {}", offset),
+                };
+
+                write!(f, "{}[{}{}]", space, base, offset_fmt)
+            }
+        }
+    }
+}
+
 /// An operand in Falcon assembly that belongs to an [`Instruction`].
 ///
 /// Operands usually denote CPU registers, immediates, and memory addressing for
@@ -99,12 +224,9 @@ pub enum MemorySpace {
 /// [`Instruction::operands`]: ../struct.Instruction.html#method.operands
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operand {
-    /// A general-purpose CPU register that wraps around the index that is assigned
-    /// to the register.
-    Gpr(usize),
-    /// A special-purpose CPU register that wraps around the index that is assigned
-    /// to the register.
-    Spr(usize),
+    /// A CPU register that wraps around the kind of register and the index that is
+    /// assigned to it.
+    Register(Register),
     /// A CPU flag that wraps around an 8-bit immediate denoting the index of a bit
     /// in the `$flags` register.
     Flag(u8),
@@ -128,6 +250,8 @@ pub enum Operand {
     ///
     /// [`u32`]: https://doc.rust-lang.org/stable/std/primitive.u32.html
     I32(u32),
+    /// A direct access to a memory space at a given address.
+    Memory(MemoryAccess),
 }
 
 impl Operand {
@@ -152,9 +276,46 @@ impl Operand {
             Argument::I32(imm) => Operand::I32(imm.read(insn) as u32),
 
             // Register forms.
-            Argument::Gpr(reg) => Operand::Gpr(reg.read(insn) as usize),
-            Argument::Spr(reg) => Operand::Spr(reg.read(insn) as usize),
+            Argument::Register(reg) => {
+                Operand::Register(Register(reg.kind, reg.read(insn) as usize))
+            }
             Argument::Flag(imm) => Operand::Flag(imm.read(insn)),
+
+            // Direct memory access.
+            Argument::Memory(mem) => match mem {
+                ArgMemoryAccess::Reg(space, width, reg) => {
+                    let reg = reg.as_ref().unwrap();
+
+                    Operand::Memory(MemoryAccess::Reg {
+                        space: *space,
+                        base: Register(reg.kind, reg.read(insn) as usize),
+                        width: *width,
+                    })
+                }
+                ArgMemoryAccess::RegReg(space, width, reg1, reg2, scale) => {
+                    let reg1 = reg1.as_ref().unwrap();
+                    let reg2 = reg2.as_ref().unwrap();
+
+                    Operand::Memory(MemoryAccess::RegReg {
+                        space: *space,
+                        base: Register(reg1.kind, reg1.read(insn) as usize),
+                        offset: Register(reg2.kind, reg2.read(insn) as usize),
+                        scale: *scale,
+                        width: *width,
+                    })
+                }
+                ArgMemoryAccess::RegImm(space, width, reg, imm) => {
+                    let reg = reg.as_ref().unwrap();
+                    let imm = imm.as_ref().unwrap();
+
+                    Operand::Memory(MemoryAccess::RegImm {
+                        space: *space,
+                        base: Register(reg.kind, reg.read(insn) as usize),
+                        offset: imm.read(insn),
+                        width: *width,
+                    })
+                }
+            },
 
             // The Nop placeholder, which should never be interpreted.
             Argument::Nop => panic!("Attempt to parse an illegal Nop argument"),
@@ -165,13 +326,13 @@ impl Operand {
 impl fmt::Display for Operand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Operand::Gpr(reg) => write!(f, "$r{}", reg),
-            Operand::Spr(reg) => write!(f, "${}", get_spr_name(*reg).unwrap_or("unk")),
+            Operand::Register(reg) => write!(f, "{}", reg),
             Operand::Flag(flag) => write!(f, "{}", get_flag_name(*flag as usize).unwrap_or("unk")),
             Operand::I8(val) => write!(f, "{:#02x}", val),
             Operand::I16(val) => write!(f, "{:#04x}", val),
             Operand::I24(val) => write!(f, "{:#06x}", val),
             Operand::I32(val) => write!(f, "{:#08x}", val),
+            Operand::Memory(mem) => write!(f, "{}", mem),
         }
     }
 }
