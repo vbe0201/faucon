@@ -9,13 +9,10 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use cpu::Cpu;
 use debugger::Debugger;
+use faucon_emu::cpu::Cpu;
 
-mod cpu;
 mod debugger;
-mod dma;
-mod memory;
 
 /// Reads out the contents of a given binary file.
 fn read_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {

@@ -2,7 +2,8 @@
 
 use std::io::{stdin, stdout, Write};
 
-use crate::cpu::Cpu;
+use faucon_emu::cpu::Cpu;
+
 use commands::Command;
 
 mod commands;

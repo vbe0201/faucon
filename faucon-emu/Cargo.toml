@@ -1,16 +1,13 @@
 [package]
-name = "faucon-asm-derive"
+name = "faucon-emu"
 version = "0.1.0"
 authors = ["Valentin B. <valentin.be@protonmail.com>"]
-description = "Procedural derive macros to be used by faucon-asm."
+description = "Implementation of an NVIDIA Falcon CPU emulator"
 license = "Apache-2.0/MIT"
 homepage = "https://github.com/vbe0201/faucon"
 edition = "2018"
 
-[lib]
-proc-macro = true
-
 [dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = "1.0"
+byteorder = "1.3"
+faucon-asm = { path = "../faucon-asm" }
+paste = "0.1"
