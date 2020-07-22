@@ -104,7 +104,6 @@ pub use isa::InstructionKind;
 pub use operands::*;
 
 use arguments::Argument;
-use operands::Operand;
 
 mod arguments;
 pub mod disassembler;

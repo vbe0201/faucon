@@ -14,7 +14,7 @@ mod registers;
 /// Representation of the Falcon processor.
 pub struct Cpu {
     /// The Falcon CPU registers.
-    registers: CpuRegisters,
+    pub registers: CpuRegisters,
     /// The Falcon SRAM for code and data.
     memory: Memory,
     /// The Falcon DMA engine.

@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use faucon_asm::{Register, RegisterKind};
+use faucon_asm::{Operand, Register, RegisterKind};
 
 /// A special-purpose register that holds the address for Interrupt Vector 0.
 pub const IV0: Register = Register(RegisterKind::Spr, 0);
@@ -81,6 +81,26 @@ impl IndexMut<Register> for CpuRegisters {
         match reg.0 {
             RegisterKind::Gpr => &mut self.gpr[reg.1],
             RegisterKind::Spr => &mut self.spr[reg.1],
+        }
+    }
+}
+
+impl Index<Operand> for CpuRegisters {
+    type Output = u32;
+
+    fn index(&self, operand: Operand) -> &Self::Output {
+        match operand {
+            Operand::Register(reg) => &self[reg],
+            _ => panic!("Invalid instruction hit"),
+        }
+    }
+}
+
+impl IndexMut<Operand> for CpuRegisters {
+    fn index_mut(&mut self, operand: Operand) -> &mut Self::Output {
+        match operand {
+            Operand::Register(reg) => &mut self[reg],
+            _ => panic!("Invalid instruction hit"),
         }
     }
 }
