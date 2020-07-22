@@ -1,7 +1,7 @@
 # faucon: NVIDIA Falcon Microprocessor Suite
 
 faucon aims to provide a comprehensive tooling suite for the Falcon microprocessors, including
-an assembler, disassembler, a CPU emulator for debugging purposes, and documentation for the
+an assembler,a  disassembler, a CPU emulator for debugging purposes, and documentation on the
 architecture. For the time being, faucon explicitly targets the fuc5 generation of these MCUs.
 
 See [the wiki](https://github.com/vbe0201/faucon/wiki) for architecture documentation.
