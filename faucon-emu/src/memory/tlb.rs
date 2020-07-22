@@ -55,9 +55,9 @@ impl Tlb {
     /// Translates a virtual address to a physical address.
     pub fn translate_addr(&self, address: u32) -> Result<u16, LookupError> {
         let (page_index, _) = self.lookup(address)?;
-        let page_offset = (address & 0xFF) as u8;
+        let page_offset = (address & 0xFF) as u16;
 
-        Ok(((page_index as u16) << 8) | page_offset as u16)
+        Ok(((page_index as u16) << 8) | page_offset)
     }
 
     /// Finds a [`TlbEntry`] that corresponds to the given virtual address
