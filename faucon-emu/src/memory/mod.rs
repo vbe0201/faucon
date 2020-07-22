@@ -7,7 +7,7 @@ pub use tlb::*;
 mod tlb;
 
 /// The size of a physical memory page in Falcon code space.
-const PAGE_SIZE: usize = 0x100;
+pub const PAGE_SIZE: usize = 0x100;
 
 /// Representation of the Falcon memory space.
 ///

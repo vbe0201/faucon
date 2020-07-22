@@ -4,10 +4,11 @@ use faucon_asm::{disassembler, Instruction};
 
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
-//use instructions::process_instruction;
+
+use instructions::process_instruction;
 pub use registers::*;
 
-//mod instructions;
+mod instructions;
 mod registers;
 
 /// Representation of the Falcon processor.
@@ -59,8 +60,6 @@ impl Cpu {
         }
     }
 
-    /// Retrieves the next instruction by looking up the TLB corresponding to the given
-    /// virtual address.
     fn fetch_insn(&self, address: u32) -> faucon_asm::Result<Instruction> {
         // Look up the TLB to get the physical code page.
         let (page_index, tlb) = match self.memory.tlb.lookup(address) {
@@ -89,12 +88,11 @@ impl Cpu {
 
     /// Executes the next instruction at the address held by the PC register.
     pub fn step(&mut self) {
-        match self.fetch_insn(self.registers.get_pc()) {
+        match self.fetch_insn(self.registers[PC]) {
             Ok(insn) => {
-                //process_instruction(self, &insn);
+                process_instruction(self, &insn);
 
-                self.registers
-                    .set_pc(self.registers.get_pc() + insn.len() as u32);
+                self.registers[PC] += insn.len() as u32;
             }
             Err(faucon_asm::Error::UnknownInstruction(_)) => todo!("Generate trap"),
             _ => todo!("Handle these errors in a sane way"),

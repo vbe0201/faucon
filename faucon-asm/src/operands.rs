@@ -9,7 +9,7 @@ use crate::arguments::{Argument, MemoryAccess as ArgMemoryAccess};
 /// It is described by a tuple which holds the kind of register and its index
 /// which is required for addressing.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Register(RegisterKind, usize);
+pub struct Register(pub RegisterKind, pub usize);
 
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
