@@ -12,6 +12,8 @@ use std::path::Path;
 use debugger::Debugger;
 use faucon_emu::cpu::Cpu;
 
+#[macro_use]
+mod macros;
 mod debugger;
 
 /// Reads out the contents of a given binary file.

@@ -3,10 +3,9 @@ use std::io::Write;
 
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-/// Prints a success message.
 macro_rules! ok {
     ($title:expr, $msg:expr) => {
-        $crate::debugger::macros::print($title, $msg, termcolor::Color::Green).unwrap();
+        $crate::macros::print($title, $msg, termcolor::Color::Green).unwrap();
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -14,10 +13,9 @@ macro_rules! ok {
     };
 }
 
-/// Prints an info message.
 macro_rules! info {
     ($title:expr, $msg:expr) => {
-        $crate::debugger::macros::print($title, $msg, termcolor::Color::Cyan).unwrap();
+        $crate::macros::print($title, $msg, termcolor::Color::Cyan).unwrap();
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -25,10 +23,9 @@ macro_rules! info {
     };
 }
 
-/// Prints an error message.
 macro_rules! error {
     ($title:expr, $msg:expr) => {
-        $crate::debugger::macros::print($title, $msg, termcolor::Color::Red).unwrap();
+        $crate::macros::print($title, $msg, termcolor::Color::Red).unwrap();
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -36,7 +33,6 @@ macro_rules! error {
     };
 }
 
-/// Prints a colored message.
 pub(super) fn print(title: &str, msg: &str, color: Color) -> Result<(), Box<dyn Error>> {
     let stdout = StandardStream::stdout(ColorChoice::Always);
     let mut stdout = stdout.lock();

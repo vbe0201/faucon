@@ -7,8 +7,6 @@ use faucon_emu::cpu::Cpu;
 use commands::Command;
 
 mod commands;
-#[macro_use]
-mod macros;
 
 /// The debugger used by the faucon emulator.
 ///
