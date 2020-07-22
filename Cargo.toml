@@ -2,7 +2,7 @@
 name = "faucon"
 version = "0.1.0"
 authors = ["Valentin B. <valentin.be@protonmail.com>"]
-description = "NVIDIA Falcon CPU emulator"
+description = "A comprehensive tooling suite for the NVIDIA Falcon microprocessors"
 license = "Apache-2.0/MIT"
 readme = "README.md"
 homepage = "https://github.com/vbe0201/faucon"

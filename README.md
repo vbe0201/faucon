@@ -1,20 +1,21 @@
-# faucon: NVIDIA Falcon CPU Emulator in Rust
+# faucon: NVIDIA Falcon Microprocessor Suite
 
-faucon aims to be a spec-compliant emulator of the proprietary NVIDIA Falcon microprocessors,
-with a strong focus on a public documentation effort of the processor internals based on
-reverse-engineering results.
+faucon aims to provide a comprehensive tooling suite for the Falcon microprocessors, including
+an assembler, disassembler, a CPU emulator for debugging purposes, and documentation for the
+architecture. For the time being, faucon explicitly targets the fuc5 generation of these MCUs.
 
-See [the wiki](https://github.com/vbe0201/faucon/wiki) for documentation on the architecture,
-the source code for a reference implementation of the core CPU functionality.
+See [the wiki](https://github.com/vbe0201/faucon/wiki) for architecture documentation.
 
 ## Components
 
 - [`faucon-asm-derive`](./faucon-asm-derive): Internal implementation details of `faucon-asm`
 
-- [`faucon-asm`](./faucon-asm): A crate for working with the Falcon ISA, effectively providing
-a binary disassembler for the emulator
+- [`faucon-asm`](./faucon-asm): A crate for processing Falcon assembly, providing binary
+disassembling capabilities
 
-- [`faucon`](./src): The implementation of the CPU emulator
+- [`faucon-emu`](./faucon-emu): Implementation of the CPU functionality for emulation
+
+- [`faucon`](./src): Command-line interface for invoking and driving the provided tools
 
 ## Setup
 
@@ -47,3 +48,4 @@ faucon is distributed under the terms of either the Apache License (Version 2.0)
 MIT license, at the user's choice.
 
 See [LICENSE-APACHE](./LICENSE-APACHE) and [LICENSE-MIT](./LICENSE-MIT) for details.
+Contributions to the faucon project must be made under the terms of both licenses.
