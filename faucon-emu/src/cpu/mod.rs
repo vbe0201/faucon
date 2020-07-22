@@ -80,10 +80,6 @@ impl Cpu {
         } else if tlb.get_flag(PageFlag::Busy) {
             // The page is marked busy, the access must be completed when possible.
             todo!("Wait for the page to be marked as usable");
-        } else if tlb.get_flag(PageFlag::Secret) {
-            // As secret is the only flag that is being set, complete the
-            // access in Authenticated Mode.
-            todo!("^");
         }
 
         // If the page wouldn't have any flags at all, the method

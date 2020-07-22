@@ -6,8 +6,6 @@ pub enum PageFlag {
     Usable = 1 << 0,
     /// Indicates that the page is mapped but code is still being uploaded.
     Busy = 1 << 1,
-    /// Indicates that the page contains secret code.
-    Secret = 1 << 2,
 }
 
 /// Potential TLB lookup errors.
@@ -147,19 +145,13 @@ impl TlbEntry {
     /// Maps the physical page corresponding to the TLB entry to the virtual page
     /// space the given address belongs to.
     ///
-    /// NOTE: This sets [`PageFlag::Busy`] and, depending on the value of `secret`,
-    /// maybe also [`PageFlag::Secret`] for this entry. It is within the caller's
+    /// NOTE: This sets [`PageFlag::Busy`]. It is within the caller's
     /// responsibility to change this after code has been uploaded.
     ///
     /// [`PageFlag::Busy`]: enum.PageFlag.html#variant.Busy
-    /// [`PageFlag::Secret`]: enum.PageFlag.html#variant.Secret
-    pub fn map(&mut self, address: u32, secret: bool) {
+    pub fn map(&mut self, address: u32, _secret: bool) {
         self.virtual_page_number = (address >> 8) as u16 & ((1 << 8) - 1);
         self.set_flag(PageFlag::Busy, true);
-
-        if secret {
-            self.set_flag(PageFlag::Secret, true);
-        }
     }
 
     /// Toggles a flag in the page settings based on the value of `set`.
@@ -195,9 +187,7 @@ impl TlbEntry {
     /// NOTE: Pages containing secret code cannot be cleared.
     /// The page has to be re-uploaded with non-secret data first.
     pub fn clear(&mut self) {
-        if !self.get_flag(PageFlag::Secret) {
-            self.virtual_page_number = 0;
-            self.flags = 0;
-        }
+        self.virtual_page_number = 0;
+        self.flags = 0;
     }
 }
