@@ -19,6 +19,9 @@ pub fn ptlb(cpu: &mut Cpu, insn: &Instruction) -> usize {
     // Build and write the result value.
     cpu.registers[destination] = (tlb.flags as u32) << 24 | (tlb.virtual_page_number as u32) << 8;
 
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
     1
 }
 
@@ -33,6 +36,9 @@ pub fn vtlb(cpu: &mut Cpu, insn: &Instruction) -> usize {
     // Look up the TLB to get the result value and write it to the destination.
     let result = cpu.memory.tlb.lookup_raw(cpu.registers[source] & 0xFFFFFF);
     cpu.registers[destination] = result;
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
 
     1
 }
@@ -50,6 +56,9 @@ pub fn itlb(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Clear the entry.
     tlb.clear();
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
 
     1
 }

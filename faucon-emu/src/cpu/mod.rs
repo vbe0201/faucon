@@ -19,6 +19,16 @@ pub struct Cpu {
     memory: Memory,
     /// The Falcon DMA engine.
     dma_engine: dma::Engine,
+    /// A boolean that is used to determine whether the PC should be
+    /// incremented after an instruction.
+    ///
+    /// Traditionally, the PC is incremented by the instruction length
+    /// after execution. But in special cases where instructions modify
+    /// the PC in a custom manner, this behavior might result in invalid
+    /// PC values. Thus, instructions can modify this boolean to decide
+    /// whether the PC should be regularly incremented or to indicate that
+    /// the instruction itself does that.
+    increment_pc: bool,
 }
 
 impl Cpu {
@@ -28,6 +38,7 @@ impl Cpu {
             registers: CpuRegisters::new(),
             memory: Memory::new(),
             dma_engine: dma::Engine::new(),
+            increment_pc: false,
         }
     }
 
@@ -102,7 +113,11 @@ impl Cpu {
             Ok(insn) => {
                 process_instruction(self, &insn);
 
-                self.registers[PC] += insn.len() as u32;
+                // Check if it is necessary to increment the PC.
+                // If not, this has already been done by the instruction itself.
+                if self.increment_pc {
+                    self.registers[PC] += insn.len() as u32;
+                }
             }
             Err(faucon_asm::Error::UnknownInstruction(_)) => todo!("Generate trap"),
             _ => todo!("Handle these errors in a sane way"),
