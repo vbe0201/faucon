@@ -17,7 +17,10 @@ fn main() {
     let binary = code::read_falcon_binary(env::args().nth(1).unwrap());
 
     let mut cpu = Cpu::new();
-    code::upload_to_imem(&mut cpu, 0, 0, &binary);
+    if let Err(()) = code::upload_to_imem(&mut cpu, 0, 0, &binary) {
+        error!("Failed to upload code:", "The binary is too large!");
+        return;
+    }
 
     let mut debugger = Debugger::new(cpu);
     debugger.run();

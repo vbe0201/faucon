@@ -31,6 +31,16 @@ impl Cpu {
         }
     }
 
+    /// Returns the length of the Falcon code segment.
+    pub fn imem_size(&self) -> usize {
+        self.memory.code.len()
+    }
+
+    /// Returns the length of the Falcon data segment.
+    pub fn dmem_size(&self) -> usize {
+        self.memory.data.len()
+    }
+
     /// Uploads a code word to IMEM at a given physical and virtual address.
     pub fn upload_code(&mut self, address: u16, vaddress: u32, value: u32) {
         // TODO: Add support for all the secret stuff.

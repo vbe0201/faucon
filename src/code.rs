@@ -53,10 +53,17 @@ pub fn read_falcon_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
 /// Uploads a Falcon binary that was obtained from [`read_falcon_binary`] into the
 /// code segment of the processor.
 ///
+/// Returns an error if the binary is too large to fit into the Falcon code segment.
+///
 /// [`read_falcon_binary`]: fn.read_falcon_binary.html
-pub fn upload_to_imem(cpu: &mut Cpu, address: u16, vaddress: u32, binary: &[u8]) {
+pub fn upload_to_imem(cpu: &mut Cpu, address: u16, vaddress: u32, binary: &[u8]) -> Result<(), ()> {
     assert_eq!((address & 0xFC), 0);
     assert_eq!((vaddress & 0xFC), 0);
+
+    // Check if the binary would fit the Falcon code segment.
+    if binary.len() > cpu.imem_size() {
+        return Err(());
+    }
 
     for (i, page) in binary.chunks(CODE_ALIGNMENT).enumerate() {
         upload_page_to_imem(
@@ -66,6 +73,8 @@ pub fn upload_to_imem(cpu: &mut Cpu, address: u16, vaddress: u32, binary: &[u8])
             page,
         );
     }
+
+    Ok(())
 }
 
 fn upload_page_to_imem(cpu: &mut Cpu, address: u16, vaddress: u32, page: &[u8]) {
