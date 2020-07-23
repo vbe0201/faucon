@@ -31,21 +31,30 @@ named!(
     command<&str, Command>,
     alt!(
         complete!(command_help)
-            | complete!(command_exit)
-            | complete!(command_repeat)
-            | complete!(command_step)
+        | complete!(command_exit)
+        | complete!(command_repeat)
+        | complete!(command_step)
     )
 );
 
 named!(
     command_help<&str, Command>,
-    do_parse!(alt!(tag_no_case!("help") | tag_no_case!("h")) >> eof!() >> (Command::Help))
+    do_parse!(
+        alt!(complete!(tag_no_case!("help")) | complete!(tag_no_case!("h")))
+            >> eof!()
+            >> (Command::Help)
+    )
 );
 
 named!(
     command_exit<&str, Command>,
     do_parse!(
-        alt!(tag_no_case!("exit") | tag_no_case!("quit") | tag_no_case!("e") | tag_no_case!("q"))
+        alt!(
+            complete!(tag_no_case!("exit"))
+            | complete!(tag_no_case!("quit"))
+            | complete!(tag_no_case!("e"))
+            | complete!(tag_no_case!("q"))
+        )
             >> eof!()
             >> (Command::Exit)
     )
@@ -54,14 +63,16 @@ named!(
 named!(
     command_repeat<&str, Command>,
     do_parse!(
-        alt!(tag_no_case!("repeat") | tag_no_case!("r")) >> eof!() >> (Command::Repeat)
+        alt!(complete!(tag_no_case!("repeat")) | complete!(tag_no_case!("r")))
+            >> eof!()
+            >> (Command::Repeat)
     )
 );
 
 named!(
     command_step<&str, Command>,
     do_parse!(
-        alt!(tag_no_case!("step") | tag_no_case!("s"))
+        alt!(complete!(tag_no_case!(("step"))) | complete!(tag_no_case!("s")))
             >> count:
                 opt!(preceded!(
                     space1,

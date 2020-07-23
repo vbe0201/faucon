@@ -75,11 +75,11 @@ impl Debugger {
     /// Shows help details for the debugger.
     fn show_help(&self) {
         info!("faucon debugger", "\n---------------");
-        info!("(h)elp", "- Shows this message");
-        info!("(e)xit/(q)uit", "- Exits the debugger");
-        info!("(r)epeat", "- Repeats the last command");
-        info!(
-            "(s)tep [count]?",
+        ok!("(h)elp", "- Shows this message");
+        ok!("(e)xit/(q)uit", "- Exits the debugger");
+        ok!("(r)epeat", "- Repeats the last command");
+        ok!(
+            "(s)tep [count]",
             "- Steps through [count] instructions. [count] defaults to 1"
         );
     }
@@ -93,7 +93,6 @@ impl Debugger {
     }
 }
 
-/// Reads user input for parsing debugger commands.
 fn read_input() -> String {
     let mut input = String::new();
     stdin().read_line(&mut input).unwrap();
