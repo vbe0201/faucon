@@ -52,6 +52,20 @@ impl Cpu {
         self.memory.data.len()
     }
 
+    /// Pushes a word onto the stack and decrements the stack pointer by 4.
+    pub fn stack_push(&mut self, word: u32) {
+        self.registers[SP] -= 4;
+        self.memory.write_data_word(self.registers[SP], word);
+    }
+
+    /// Pops a word off the stack and increments the stack pointer by 4.
+    pub fn stack_pop(&mut self) -> u32 {
+        let word = self.memory.read_data_word(self.registers[SP]);
+        self.registers[SP] += 4;
+
+        word
+    }
+
     /// Uploads a code word to IMEM at a given physical and virtual address.
     pub fn upload_code(&mut self, address: u16, vaddress: u32, value: u32) {
         // TODO: Add support for all the secret stuff.
