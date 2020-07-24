@@ -9,14 +9,19 @@ mod vm;
 /// Processes the given instruction on the microprocessor and returns the amount
 /// of CPU cycles the operation took.
 pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let handler = get_handler(insn);
+    handler(cpu, insn)
+}
+
+fn get_handler(insn: &Instruction) -> impl Fn(&mut Cpu, &Instruction) -> usize {
     match insn.kind() {
-        InstructionKind::LD => data::ld(cpu, insn),
-        InstructionKind::ST => data::st(cpu, insn),
-        InstructionKind::PUSH => data::push(cpu, insn),
-        InstructionKind::POP => data::pop(cpu, insn),
-        InstructionKind::PTLB => vm::ptlb(cpu, insn),
-        InstructionKind::VTLB => vm::vtlb(cpu, insn),
-        InstructionKind::ITLB => vm::itlb(cpu, insn),
+        InstructionKind::LD => data::ld,
+        InstructionKind::ST => data::st,
+        InstructionKind::PUSH => data::push,
+        InstructionKind::POP => data::pop,
+        InstructionKind::PTLB => vm::ptlb,
+        InstructionKind::VTLB => vm::vtlb,
+        InstructionKind::ITLB => vm::itlb,
         _ => unimplemented!(),
     }
 }
