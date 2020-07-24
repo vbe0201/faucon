@@ -2,7 +2,42 @@
 
 use faucon_asm::Instruction;
 
+use super::utils;
 use super::Cpu;
+
+/// Loads a value from data segment to a register.
+pub fn ld(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register and memory access descriptor).
+    let destination = operands[0];
+    let source = operands[1];
+
+    // Read the value from DMem and store it in the destination register.
+    utils::memory_to_register(cpu, insn.operand_size, source, destination);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
+/// Stores a value from a register to data segment.
+pub fn st(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (memory access descriptor and register).
+    let destination = operands[0];
+    let source = operands[1];
+
+    // Write the value in the source register to DMem.
+    utils::register_to_memory(cpu, insn.operand_size, source, destination);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
 
 /// Pushes a given register onto the stack.
 pub fn push(cpu: &mut Cpu, insn: &Instruction) -> usize {

@@ -6,7 +6,7 @@ use std::fmt;
 ///
 /// The size is determined by the highest two bits of the first
 /// instruction byte.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OperandSize {
     /// The instruction operates on operands of 8 bits in size.
     EightBit,
