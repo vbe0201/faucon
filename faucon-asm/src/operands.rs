@@ -143,8 +143,6 @@ pub enum MemoryAccess {
         space: MemorySpace,
         /// A descriptor of the CPU register that holds the address.
         base: Register,
-        /// The width of the value to read.
-        width: usize,
     },
     /// A form where the memory address is derived from two registers: `[$reg1 + $reg2 * scale]`
     RegReg {
@@ -156,8 +154,6 @@ pub enum MemoryAccess {
         offset: Register,
         /// A constant scale for the offset value.
         scale: u8,
-        /// The width of the value to read.
-        width: usize,
     },
     /// A form where the memory address is derived from a register and an immediate: `[$reg + imm]`
     RegImm {
@@ -167,25 +163,18 @@ pub enum MemoryAccess {
         base: Register,
         /// An offset of the base address that is denoted by the register operand.
         offset: u32,
-        /// The width of the value to read.
-        width: usize,
     },
 }
 
 impl fmt::Display for MemoryAccess {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MemoryAccess::Reg {
-                space,
-                base,
-                width: _,
-            } => write!(f, "{}[{}]", space, base),
+            MemoryAccess::Reg { space, base } => write!(f, "{}[{}]", space, base),
             MemoryAccess::RegReg {
                 space,
                 base,
                 offset,
                 scale,
-                width: _,
             } => {
                 let offset_fmt = match scale {
                     0 => "".to_string(),
@@ -199,7 +188,6 @@ impl fmt::Display for MemoryAccess {
                 space,
                 base,
                 offset,
-                width: _,
             } => {
                 let offset_fmt = match offset {
                     0 => "".to_string(),
@@ -283,16 +271,15 @@ impl Operand {
 
             // Direct memory access.
             Argument::Memory(mem) => match mem {
-                ArgMemoryAccess::Reg(space, width, reg) => {
+                ArgMemoryAccess::Reg(space, reg) => {
                     let reg = reg.as_ref().unwrap();
 
                     Operand::Memory(MemoryAccess::Reg {
                         space: *space,
                         base: Register(reg.kind, reg.read(insn) as usize),
-                        width: *width,
                     })
                 }
-                ArgMemoryAccess::RegReg(space, width, reg1, reg2, scale) => {
+                ArgMemoryAccess::RegReg(space, reg1, reg2, scale) => {
                     let reg1 = reg1.as_ref().unwrap();
                     let reg2 = reg2.as_ref().unwrap();
 
@@ -301,10 +288,9 @@ impl Operand {
                         base: Register(reg1.kind, reg1.read(insn) as usize),
                         offset: Register(reg2.kind, reg2.read(insn) as usize),
                         scale: *scale,
-                        width: *width,
                     })
                 }
-                ArgMemoryAccess::RegImm(space, width, reg, imm) => {
+                ArgMemoryAccess::RegImm(space, reg, imm) => {
                     let reg = reg.as_ref().unwrap();
                     let imm = imm.as_ref().unwrap();
 
@@ -312,7 +298,6 @@ impl Operand {
                         space: *space,
                         base: Register(reg.kind, reg.read(insn) as usize),
                         offset: imm.read(insn),
-                        width: *width,
                     })
                 }
             },
