@@ -4,6 +4,7 @@ use super::*;
 
 mod branch;
 mod data;
+mod intr;
 mod utils;
 mod vm;
 
@@ -27,6 +28,8 @@ fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usi
         InstructionKind::PTLB => vm::ptlb,
         InstructionKind::VTLB => vm::vtlb,
         InstructionKind::ITLB => vm::itlb,
+        InstructionKind::IRET => intr::iret,
+        InstructionKind::TRAP => intr::trap,
         _ => unimplemented!(),
     }
 }
