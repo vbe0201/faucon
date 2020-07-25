@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::str::FromStr;
 
-use nom::character::complete::{digit1, space1};
+use nom::character::complete::{digit1, hex_digit1, space1};
 
 /// Commands that can be executed by the Falcon debugger.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -30,10 +30,10 @@ impl FromStr for Command {
 named!(
     command<&str, Command>,
     alt!(
-        complete!(command_help)
-        | complete!(command_exit)
-        | complete!(command_repeat)
-        | complete!(command_step)
+        command_help
+        | command_exit
+        | command_repeat
+        | command_step
     )
 );
 
@@ -72,13 +72,20 @@ named!(
 named!(
     command_step<&str, Command>,
     do_parse!(
-        alt!(complete!(tag_no_case!(("step"))) | complete!(tag_no_case!("s")))
-            >> count:
-                opt!(preceded!(
-                    space1,
-                    map_res!(digit1, |s: &str| s.parse::<u32>())
-                ))
+        alt!(complete!(tag_no_case!("step")) | complete!(tag_no_case!("s")))
+            >> count: opt!(preceded!(space1, integer))
             >> eof!()
             >> (Command::Step(count.unwrap_or(1)))
+    )
+);
+
+named!(
+    integer<&str, u32>,
+    alt!(
+        preceded!(
+            tag!("0x"),
+            map_res!(hex_digit1, |num: &str| u32::from_str_radix(&num[..], 16))
+        )
+        | map_res!(digit1, |num: &str| num.parse::<u32>())
     )
 );
