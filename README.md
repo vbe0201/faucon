@@ -1,5 +1,10 @@
 # faucon: NVIDIA Falcon Microprocessor Suite
 
+[![Cargo Test](https://github.com/vbe0201/faucon/workflows/Cargo%20Test/badge.svg)](https://github.com/vbe0201/faucon)
+[![Cargo D0c](https://github.com/vbe0201/faucon/workflows/Cargo%20Doc/badge.svg)](https://github.com/vbe0201/faucon)
+[![Discord](https://img.shields.io/discord/439418034130780182?color=blue)](https://discord.gg/MZJbNZY)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](./README.md#license)
+
 faucon aims to provide a comprehensive tooling suite for the Falcon microprocessors, including
 an assembler,a  disassembler, a CPU emulator for debugging purposes, and documentation on the
 architecture. For the time being, faucon explicitly targets the fuc5 generation of these MCUs.
