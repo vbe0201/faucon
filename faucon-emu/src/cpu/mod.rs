@@ -31,6 +31,34 @@ pub struct Cpu {
     increment_pc: bool,
 }
 
+enum_from_primitive! {
+    /// Falcon trap kinds that can be delivered to the microprocessor.
+    ///
+    /// Traps behave similar to interrupts, but generally are triggered by
+    /// internal events rather than host machine mechanisms.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[repr(u8)]
+    pub enum Trap {
+        /// A software trap that can be triggered by a TRAP instruction.
+        Software0 = 0x0,
+        /// A software trap that can be triggered by a TRAP instruction.
+        Software1 = 0x1,
+        /// A software trap that can be triggered by a TRAP instruction.
+        Software2 = 0x2,
+        /// A software trap that can be triggered by a TRAP instruction.
+        Software3 = 0x3,
+        /// A trap that is triggered whenever the processor encounters an unknown
+        /// or invalid opcode.
+        InvalidOpcode = 0x8,
+        /// A trap that is triggered on page faults because of no hits in the TLB.
+        VmNoHit = 0xA,
+        /// A trap that is triggered on page faults because of multiple hits in the TLB.
+        VmMultiHit = 0xB,
+        /// A trap that is triggered whenever a debugging breakpoint is reached.
+        Breakpoint = 0xF,
+    }
+}
+
 impl Cpu {
     /// Creates a new instance of the CPU.
     pub fn new() -> Self {
@@ -66,6 +94,34 @@ impl Cpu {
         word
     }
 
+    /// Triggers a [`Trap`] that should be delivered to the processor.
+    ///
+    /// [`Trap`]: enum.Trap.html
+    pub fn trigger_trap(&mut self, trap: Trap) {
+        // Set the Trap Active bit in the flags register.
+        self.registers[FLAGS] |= 1 << 24;
+
+        // Store the trap status, composed of the current PC and the trap reason.
+        self.registers[TSTATUS] = self.registers[PC] | ((trap as u8 & 0xF) as u32) << 20;
+
+        // Store the interrupt state.
+        self.registers
+            .set_flag(CpuFlag::IS0, self.registers.get_flag(CpuFlag::IE0));
+        self.registers
+            .set_flag(CpuFlag::IS1, self.registers.get_flag(CpuFlag::IE1));
+        self.registers
+            .set_flag(CpuFlag::IS2, self.registers.get_flag(CpuFlag::IE2));
+        self.registers.set_flag(CpuFlag::IE0, false);
+        self.registers.set_flag(CpuFlag::IE1, false);
+        self.registers.set_flag(CpuFlag::IE2, false);
+
+        // Push the return address onto the stack.
+        self.stack_push(self.registers[PC]);
+
+        // Jump into the trap vector.
+        self.registers[PC] = self.registers[TV];
+    }
+
     /// Uploads a code word to IMEM at a given physical and virtual address.
     pub fn upload_code(&mut self, address: u16, vaddress: u32, value: u32) {
         // TODO: Add support for all the secret stuff.
@@ -95,36 +151,57 @@ impl Cpu {
         }
     }
 
-    fn fetch_insn(&self, address: u32) -> faucon_asm::Result<Instruction> {
+    fn fetch_insn(&mut self, address: u32) -> Option<Instruction> {
         // Look up the TLB to get the physical code page.
-        let (page_index, tlb) = match self.memory.tlb.lookup(address) {
-            Ok((page, tlb)) => (page, tlb),
-            Err(LookupError::NoPageHits) => todo!("Generate trap"),
-            Err(LookupError::MultiplePageHits) => todo!("Generate trap"),
+        let result = match self.memory.tlb.lookup(address) {
+            Ok((page, tlb)) => Some((page, tlb)),
+            Err(LookupError::NoPageHits) => {
+                self.trigger_trap(Trap::VmNoHit);
+
+                None
+            }
+            Err(LookupError::MultiplePageHits) => {
+                self.trigger_trap(Trap::VmMultiHit);
+
+                None
+            }
         };
 
-        // Build the physical code address to read from.
-        let page_offset = (address & 0xFF) as u16;
-        let code_address = ((page_index as u16) << 8) | page_offset;
+        if let Some((page_index, tlb)) = result {
+            // Build the physical code address to read from.
+            let page_offset = (address & 0xFF) as u16;
+            let code_address = ((page_index as u16) << 8) | page_offset;
 
-        // If the page is marked usable, complete the access using the physical page.
-        if tlb.get_flag(PageFlag::Usable) {
-            let mut code = &self.memory.code[code_address as usize..];
-            return Ok(disassembler::read_instruction(&mut code)?);
-        } else if tlb.get_flag(PageFlag::Busy) {
-            // The page is marked busy, the access must be completed when possible.
-            todo!("Wait for the page to be marked as usable");
+            // If the page is marked usable, complete the access using the physical page.
+            if tlb.get_flag(PageFlag::Usable) {
+                let mut code = &self.memory.code[code_address as usize..];
+                match disassembler::read_instruction(&mut code) {
+                    Ok(insn) => Some(insn),
+                    Err(faucon_asm::Error::UnknownInstruction(_)) => {
+                        self.trigger_trap(Trap::InvalidOpcode);
+
+                        None
+                    }
+                    Err(faucon_asm::Error::IoError) => panic!("Rust exploded"),
+                    Err(faucon_asm::Error::Eof) => None,
+                }
+            } else if tlb.get_flag(PageFlag::Busy) {
+                // The page is marked busy, the access must be completed when possible.
+                todo!("Wait for the page to be marked as usable");
+
+                None
+            } else {
+                unreachable!()
+            }
+        } else {
+            None
         }
-
-        // If the page wouldn't have any flags at all, the method
-        // would already opt out at TLB lookup.
-        unreachable!();
     }
 
     /// Executes the next instruction at the address held by the PC register.
     pub fn step(&mut self) {
         match self.fetch_insn(self.registers[PC]) {
-            Ok(insn) => {
+            Some(insn) => {
                 process_instruction(self, &insn);
 
                 // Check if it is necessary to increment the PC.
@@ -133,8 +210,7 @@ impl Cpu {
                     self.registers[PC] += insn.len() as u32;
                 }
             }
-            Err(faucon_asm::Error::UnknownInstruction(_)) => todo!("Generate trap"),
-            _ => todo!("Handle these errors in a sane way"),
+            None => return,
         }
     }
 }
