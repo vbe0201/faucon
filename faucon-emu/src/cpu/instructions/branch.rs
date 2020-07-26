@@ -18,7 +18,7 @@ pub fn call(cpu: &mut Cpu, insn: &Instruction) -> usize {
         Operand::I8(imm) => imm as u32,
         Operand::I16(imm) => imm as u32,
         Operand::I24(imm) | Operand::I32(imm) => imm,
-        _ => panic!("Invalid instruction hit"),
+        _ => unreachable!(),
     };
 
     // Signal irregular PC increment to the CPU.
@@ -38,7 +38,7 @@ pub fn jmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
         Operand::I8(imm) => imm as u32,
         Operand::I16(imm) => imm as u32,
         Operand::I24(imm) | Operand::I32(imm) => imm,
-        _ => panic!("Invalid instruction hit"),
+        _ => unreachable!(),
     };
 
     // Signal irregular PC increment to the CPU.

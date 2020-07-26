@@ -149,7 +149,7 @@ impl Index<Operand> for CpuRegisters {
     fn index(&self, operand: Operand) -> &Self::Output {
         match operand {
             Operand::Register(reg) => &self[reg],
-            _ => panic!("Invalid instruction hit"),
+            _ => panic!("Invalid operand supplied"),
         }
     }
 }
@@ -158,7 +158,7 @@ impl IndexMut<Operand> for CpuRegisters {
     fn index_mut(&mut self, operand: Operand) -> &mut Self::Output {
         match operand {
             Operand::Register(reg) => &mut self[reg],
-            _ => panic!("Invalid instruction hit"),
+            _ => panic!("Invalid operand supplied"),
         }
     }
 }

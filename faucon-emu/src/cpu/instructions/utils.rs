@@ -31,7 +31,7 @@ pub fn parse_memory_access(cpu: &mut Cpu, mem: Operand) -> (MemorySpace, u32) {
             } => (space, cpu.registers[base] + offset),
         }
     } else {
-        panic!("Invalid instruction hit")
+        panic!("Invalid operand supplied")
     }
 }
 

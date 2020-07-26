@@ -18,6 +18,9 @@ pub fn iret(cpu: &mut Cpu, _: &Instruction) -> usize {
     cpu.registers
         .set_flag(CpuFlag::IE2, cpu.registers.get_flag(CpuFlag::IS2));
 
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
     1
 }
 
@@ -30,8 +33,11 @@ pub fn trap(cpu: &mut Cpu, insn: &Instruction) -> usize {
     if let Operand::I8(imm) = trap {
         cpu.trigger_trap(Trap::from_u8(imm).unwrap());
     } else {
-        panic!("Invalid instruction hit");
+        unreachable!();
     }
+
+    // Signal irregular PC modification to the CPU.
+    cpu.increment_pc = false;
 
     1
 }
