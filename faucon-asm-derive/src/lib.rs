@@ -23,6 +23,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
         let name = &ast.ident;
 
         // Prepare the opcode tables.
+        let mut mrr = vec![quote! { None }; 0x3];
         let mut srri8 = vec![quote! { None }; 0x10];
         let mut srwi8 = vec![quote! { None }; 0x10];
         let mut srwi16 = vec![quote! { None }; 0x10];
@@ -74,7 +75,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 match size {
                     0x0..=0x2 => match a {
                         0x0 => {
-                            srri8[b] = value;
+                            mrr[subopcode] = value;
                         }
                         0x1 => {
                             srwi8[b] = value;
@@ -88,6 +89,9 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                             }
                             0x1 => {
                                 sri16[subopcode] = value;
+                            }
+                            0x2 => {
+                                srr[subopcode] = value;
                             }
                             0x4 => {
                                 swi8[subopcode] = value;
@@ -209,6 +213,10 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
         }
 
         Ok(quote! {
+            const FORM_MRR: [Option<InstructionMeta>; 0x3] = [
+                #(#mrr),*
+            ];
+
             const FORM_SRRI8: [Option<InstructionMeta>; 0x10] = [
                 #(#srri8),*
             ];
@@ -346,11 +354,12 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                 ///
                 /// This covers the opcode range from 0x00 to 0xBF. Form 1 essentially
                 /// means that `a` decides the form and `b` selects the subopcode.
-                pub fn parse_sized_form_1(a: u8, b: u8) -> Option<InstructionMeta> {
+                pub fn parse_sized_form_1(a: u8, b: u8, subopcode: u8) -> Option<InstructionMeta> {
                     let b = b as usize;
+                    let subopcode = subopcode as usize;
 
                     match a {
-                        0x0 => FORM_SRRI8[b].clone(),
+                        0x0 => FORM_MRR[subopcode].clone(),
                         0x1 => FORM_SRWI8[b].clone(),
                         0x2 => FORM_SRWI16[b].clone(),
                         _ => None,
@@ -367,6 +376,7 @@ fn impl_instruction(ast: &DeriveInput) -> Result<proc_macro2::TokenStream> {
                     match b {
                         0x0 => FORM_SRI8[subopcode].clone(),
                         0x1 => FORM_SRI16[subopcode].clone(),
+                        0x2 => FORM_SRR[0x2].clone(),
                         0x4 => FORM_SWI8[subopcode].clone(),
                         0x5 => FORM_SRRI8[subopcode].clone(),
                         0x6 => FORM_SMI8[subopcode].clone(),

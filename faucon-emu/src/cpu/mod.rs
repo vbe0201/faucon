@@ -188,8 +188,6 @@ impl Cpu {
             } else if tlb.get_flag(PageFlag::Busy) {
                 // The page is marked busy, the access must be completed when possible.
                 todo!("Wait for the page to be marked as usable");
-
-                None
             } else {
                 unreachable!()
             }
