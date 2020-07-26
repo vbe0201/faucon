@@ -44,7 +44,7 @@ fn lookup_instruction(sized: bool, a: u8, b: u8, subopcode: u8) -> Option<Instru
         if a == 3 {
             InstructionKind::parse_sized_form_2(b, subopcode)
         } else {
-            InstructionKind::parse_sized_form_1(a, b)
+            InstructionKind::parse_sized_form_1(a, b, subopcode)
         }
     } else {
         if a == 3 {

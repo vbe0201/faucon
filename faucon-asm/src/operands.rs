@@ -313,10 +313,10 @@ impl fmt::Display for Operand {
         match self {
             Operand::Register(reg) => write!(f, "{}", reg),
             Operand::Flag(flag) => write!(f, "{}", get_flag_name(*flag as usize).unwrap_or("unk")),
-            Operand::I8(val) => write!(f, "{:#02x}", val),
-            Operand::I16(val) => write!(f, "{:#04x}", val),
-            Operand::I24(val) => write!(f, "{:#06x}", val),
-            Operand::I32(val) => write!(f, "{:#08x}", val),
+            Operand::I8(val) => write!(f, "{:#x}", val),
+            Operand::I16(val) => write!(f, "{:#x}", val),
+            Operand::I24(val) => write!(f, "{:#x}", val),
+            Operand::I32(val) => write!(f, "{:#x}", val),
             Operand::Memory(mem) => write!(f, "{}", mem),
         }
     }

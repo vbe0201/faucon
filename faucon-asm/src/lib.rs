@@ -104,6 +104,7 @@ pub use isa::InstructionKind;
 pub use operands::*;
 
 use arguments::Argument;
+use opcode::*;
 
 mod arguments;
 pub mod disassembler;
@@ -135,18 +136,22 @@ pub enum Error {
 pub struct Instruction {
     bytes: Vec<u8>,
     /// The operand size of the instruction.
-    pub operand_size: opcode::OperandSize,
+    pub operand_size: OperandSize,
     meta: isa::InstructionMeta,
 }
 
 impl Instruction {
     /// Constructs a new instruction from its byte representation and metadata.
-    pub fn new(
-        bytes: Vec<u8>,
-        operand_size: opcode::OperandSize,
-        meta: isa::InstructionMeta,
-    ) -> Self {
+    pub fn new(bytes: Vec<u8>, mut operand_size: OperandSize, meta: isa::InstructionMeta) -> Self {
         // TODO: InstructionKind::XXX?
+
+        // Certain Falcon weirdos encode their subopcode in the high size bits and thus
+        // making the instruction per se unsized. We need to make sure to not use a false
+        // positive operand size.
+        let (a, b) = get_opcode_form(bytes[0]);
+        if get_subopcode_location(operand_size.value(), a, b) == Some(SubopcodeLocation::OH) {
+            operand_size = OperandSize::Unsized;
+        }
 
         Instruction {
             bytes,
@@ -192,7 +197,7 @@ impl Instruction {
     /// masked out.
     pub fn opcode(&self) -> u8 {
         match self.operand_size {
-            opcode::OperandSize::Unsized => self.bytes[0],
+            OperandSize::Unsized => self.bytes[0],
             _ => self.bytes[0] & !0xC0,
         }
     }

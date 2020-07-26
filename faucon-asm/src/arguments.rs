@@ -122,6 +122,11 @@ pub const I8ZX32: Argument = immediate!(U32, 2, 1, false, None, None);
 /// These are used for memory addressing and most 32-bit instructions.
 pub const I8SX32: Argument = immediate!(I32, 2, 1, true, None, None);
 
+/// A signed 8-bit immediate sign-extended to 32 bits.
+///
+/// These are used for Falcon v5 MOV instructions.
+pub const I8SX32P1: Argument = immediate!(I32, 1, 1, true, None, None);
+
 /// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
 /// by one.
 ///
@@ -182,6 +187,11 @@ pub const I16ZX32P1: Argument = immediate!(U32, 1, 2, false, None, None);
 /// These are used for most 32-bit instructions.
 pub const I16SX32: Argument = immediate!(I32, 2, 2, true, None, None);
 
+/// A signed 16-bit immediate sign-extended to 32 bits.
+///
+/// These are used for Falcon v5 MOV instructions.
+pub const I16SX32P1: Argument = immediate!(I32, 1, 2, true, None, None);
+
 /// A helper that leverages the selection of a correct parser for immediates
 /// in sized instructions to the disassembler.
 ///
@@ -209,10 +219,19 @@ pub const I16SXS: Argument = Argument::SizeConverter(|size| match size {
 /// These are used for absolute call/jump addresses.
 pub const I24ZX32: Argument = immediate!(U32, 1, 3, false, None, None);
 
+/// A signed 24-bit immediate sign-extended to 32 bits.
+///
+/// These are used for Falcon v5 CALL instructions.
+pub const I24SX32: Argument = immediate!(I32, 1, 3, true, None, None);
+
 /// An unsigned 32-bit immediate.
 ///
 /// These are used for mov instructions.
 pub const I32: Argument = immediate!(U32, 1, 4, false, None, None);
+
+/// A Falcon general-purpose register, encoded in the low 4 bits of the first
+/// instruction byte.
+pub const R0: Argument = register!(Gpr, 0, false);
 
 /// A Falcon general-purpose register, encoded in the low 4 bits of the second
 /// instruction byte.
