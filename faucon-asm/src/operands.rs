@@ -49,10 +49,6 @@ pub fn get_spr_name(value: usize) -> Option<&'static str> {
 /// bit index.
 #[rustfmt::skip]
 pub fn get_flag_name(value: usize) -> Option<&'static str> {
-    // TODO: Figure out bits 0x1A-0x1F.
-    // XXX: 0x1A-0x1C apparently have something to do with interrupts.
-    // XXX: 0x1D-0x1F are copies of the above, stored by interrupt delivery and restored by iret.
-
     [
         /* 0x00 */ Some("p0"),
         /* 0x01 */ Some("p1"),
