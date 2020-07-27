@@ -101,6 +101,7 @@ use std::fmt;
 
 pub use disassembler::*;
 pub use isa::InstructionKind;
+pub use opcode::OperandSize;
 pub use operands::*;
 
 use arguments::Argument;

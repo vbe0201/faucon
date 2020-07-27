@@ -2,8 +2,7 @@
 
 use faucon_asm::Instruction;
 
-use super::utils;
-use super::Cpu;
+use super::{utils, Cpu};
 
 /// Loads a value from data segment to a register.
 pub fn ld(cpu: &mut Cpu, insn: &Instruction) -> usize {
@@ -14,7 +13,7 @@ pub fn ld(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let source = operands[1];
 
     // Read the value from DMem and store it in the destination register.
-    utils::memory_to_register(cpu, insn.operand_size, source, destination);
+    utils::write_reg(cpu, insn.operand_size, destination, source);
 
     // Signal regular PC increment to the CPU.
     cpu.increment_pc = true;
@@ -31,7 +30,7 @@ pub fn st(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let source = operands[1];
 
     // Write the value in the source register to DMem.
-    utils::register_to_memory(cpu, insn.operand_size, source, destination);
+    utils::write_mem(cpu, insn.operand_size, source, destination);
 
     // Signal regular PC increment to the CPU.
     cpu.increment_pc = true;

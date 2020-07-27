@@ -46,48 +46,50 @@ pub const XTARGETS: Register = Register(RegisterKind::Spr, 11);
 /// A special-purpose register that holds details on triggered traps.
 pub const TSTATUS: Register = Register(RegisterKind::Spr, 12);
 
-/// Flag bits for the `flags` special-purpose register.
-#[derive(Debug)]
-#[repr(u32)]
-pub enum CpuFlag {
-    /// General-purpose predicate 0.
-    P0 = 1 << 0,
-    /// General-purpose predicate 1.
-    P1 = 1 << 1,
-    /// General-purpose predicate 2.
-    P2 = 1 << 2,
-    /// General-purpose predicate 3.
-    P3 = 1 << 3,
-    /// General-purpose predicate 4.
-    P4 = 1 << 4,
-    /// General-purpose predicate 5.
-    P5 = 1 << 5,
-    /// General-purpose predicate 6.
-    P6 = 1 << 6,
-    /// General-purpose predicate 7.
-    P7 = 1 << 7,
-    /// ALU carry flag.
-    CARRY = 1 << 8,
-    /// ALU signed overflow flag.
-    OVERFLOW = 1 << 9,
-    /// ALU sign/negative flag.
-    NEGATIVE = 1 << 10,
-    /// ALU zero flag.
-    ZERO = 1 << 11,
-    /// Interrupt 0 enable flag.
-    IE0 = 1 << 16,
-    /// Interrupt 1 enable flag.
-    IE1 = 1 << 17,
-    /// Interrupt 2 enable flag.
-    IE2 = 1 << 18,
-    /// Interrupt 0 saved enable flag.
-    IS0 = 1 << 20,
-    /// Interrupt 1 saved enable flag.
-    IS1 = 1 << 21,
-    /// Interrupt 2 saved enable flag.
-    IS2 = 1 << 22,
-    /// Trap handler active flag.
-    TA = 1 << 24,
+enum_from_primitive! {
+    /// Flag bits for the `flags` special-purpose register.
+    #[derive(Debug)]
+    #[repr(u32)]
+    pub enum CpuFlag {
+        /// General-purpose predicate 0.
+        P0 = 1 << 0,
+        /// General-purpose predicate 1.
+        P1 = 1 << 1,
+        /// General-purpose predicate 2.
+        P2 = 1 << 2,
+        /// General-purpose predicate 3.
+        P3 = 1 << 3,
+        /// General-purpose predicate 4.
+        P4 = 1 << 4,
+        /// General-purpose predicate 5.
+        P5 = 1 << 5,
+        /// General-purpose predicate 6.
+        P6 = 1 << 6,
+        /// General-purpose predicate 7.
+        P7 = 1 << 7,
+        /// ALU carry flag.
+        CARRY = 1 << 8,
+        /// ALU signed overflow flag.
+        OVERFLOW = 1 << 9,
+        /// ALU sign/negative flag.
+        NEGATIVE = 1 << 10,
+        /// ALU zero flag.
+        ZERO = 1 << 11,
+        /// Interrupt 0 enable flag.
+        IE0 = 1 << 16,
+        /// Interrupt 1 enable flag.
+        IE1 = 1 << 17,
+        /// Interrupt 2 enable flag.
+        IE2 = 1 << 18,
+        /// Interrupt 0 saved enable flag.
+        IS0 = 1 << 20,
+        /// Interrupt 1 saved enable flag.
+        IS1 = 1 << 21,
+        /// Interrupt 2 saved enable flag.
+        IS2 = 1 << 22,
+        /// Trap handler active flag.
+        TA = 1 << 24,
+    }
 }
 
 /// Representation of all Falcon CPU registers.

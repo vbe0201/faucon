@@ -1,8 +1,8 @@
 //! Instructions related to Falcon code branching.
 
-use faucon_asm::{Instruction, Operand};
+use faucon_asm::Instruction;
 
-use super::{Cpu, PC};
+use super::{utils, Cpu, PC};
 
 /// Performs a (long) subroutine call to an absolute target address.
 pub fn call(cpu: &mut Cpu, insn: &Instruction) -> usize {
@@ -13,13 +13,7 @@ pub fn call(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.stack_push(cpu.registers[PC] + insn.len() as u32);
 
     // Branch to the absolute address.
-    cpu.registers[PC] = match target {
-        Operand::Register(reg) => cpu.registers[reg],
-        Operand::I8(imm) => imm as u32,
-        Operand::I16(imm) => imm as u32,
-        Operand::I24(imm) | Operand::I32(imm) => imm,
-        _ => unreachable!(),
-    };
+    cpu.registers[PC] = utils::get_value(cpu, insn.operand_size, target);
 
     // Signal irregular PC increment to the CPU.
     cpu.increment_pc = false;
@@ -33,13 +27,7 @@ pub fn jmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let target = insn.operands()[0];
 
     // Branch to the absolute address.
-    cpu.registers[PC] = match target {
-        Operand::Register(reg) => cpu.registers[reg],
-        Operand::I8(imm) => imm as u32,
-        Operand::I16(imm) => imm as u32,
-        Operand::I24(imm) | Operand::I32(imm) => imm,
-        _ => unreachable!(),
-    };
+    cpu.registers[PC] = utils::get_value(cpu, insn.operand_size, target);
 
     // Signal irregular PC increment to the CPU.
     cpu.increment_pc = false;
