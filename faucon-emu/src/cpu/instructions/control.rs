@@ -14,6 +14,23 @@ pub fn exit(cpu: &mut Cpu, _: &Instruction) -> usize {
     1
 }
 
+/// Halts the microcode execution until an interrupt is received.
+pub fn sleep(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    // Extract the instruction operands (a flag bit).
+    let flag = insn.operands()[0];
+
+    // If the flag bit is set, put the processor into sleeping state.
+    let flag = utils::parse_flag(flag).unwrap();
+    if cpu.registers.get_flag(flag) {
+        cpu.state = ExecutionState::Sleeping;
+    }
+
+    // Signal irregular PC increment to the CPU.
+    cpu.increment_pc = false;
+
+    1
+}
+
 /// Copies a value into another register.
 pub fn mov(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();
