@@ -65,8 +65,11 @@ pub fn get_value(cpu: &Cpu, size: OperandSize, source: Operand) -> u32 {
 pub fn write_reg(cpu: &mut Cpu, size: OperandSize, destination: Operand, source: Operand) {
     let value = get_value(cpu, size, source);
     match size {
-        OperandSize::EightBit | OperandSize::SixteenBit => cpu.registers[destination] |= value,
-        OperandSize::ThirtyTwoBit | OperandSize::Unsized => cpu.registers[destination] = value,
+        OperandSize::EightBit => cpu.registers[destination] &= !0xFF | value,
+        OperandSize::SixteenBit => cpu.registers[destination] &= !0xFFFF | value,
+        OperandSize::ThirtyTwoBit | OperandSize::Unsized => {
+            cpu.registers[destination] &= !0xFFFFFFFF | value;
+        }
     }
 }
 
