@@ -2,6 +2,7 @@ use faucon_asm::{Instruction, InstructionKind};
 
 use super::*;
 
+mod alu;
 mod branch;
 mod control;
 mod data;
@@ -18,6 +19,7 @@ pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
 fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usize {
     match insn.kind() {
+        InstructionKind::CLEAR => alu::clear,
         InstructionKind::MOV => control::mov,
         InstructionKind::CALL => branch::call,
         InstructionKind::LCALL => branch::call,
