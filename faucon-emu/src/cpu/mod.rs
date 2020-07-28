@@ -19,6 +19,9 @@ pub struct Cpu {
     memory: Memory,
     /// The Falcon DMA engine.
     dma_engine: dma::Engine,
+    /// The current execution state of the processor that controls the way
+    /// the CPU executes code.
+    state: ExecutionState,
     /// A boolean that is used to determine whether the PC should be
     /// incremented after an instruction.
     ///
@@ -29,6 +32,26 @@ pub struct Cpu {
     /// whether the PC should be regularly incremented or to indicate that
     /// the instruction itself does that.
     increment_pc: bool,
+}
+
+/// The execution state of the Falcon processor which controls its behavior.
+///
+/// The execution states influence code execution and how interrupts are
+/// being handled. There are different ways to change the processor state,
+/// including resets, instructions, interrupts, and host interaction.
+pub enum ExecutionState {
+    /// The processor is actively running and executes instructions.
+    Running,
+    /// The processor is stopped and executes no instructions.
+    ///
+    /// In this state, the processor is finally halted until it gets
+    /// reset and restarted by the host system.
+    Stopped,
+    /// The processor is sleeping and executes no instructions.
+    ///
+    /// In this state, the processor is halted, but internal interrupts
+    /// can restart execution.
+    Sleeping,
 }
 
 enum_from_primitive! {
@@ -66,6 +89,7 @@ impl Cpu {
             registers: CpuRegisters::new(),
             memory: Memory::new(),
             dma_engine: dma::Engine::new(),
+            state: ExecutionState::Stopped,
             increment_pc: false,
         }
     }
