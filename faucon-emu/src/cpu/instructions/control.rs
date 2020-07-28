@@ -2,7 +2,17 @@
 
 use faucon_asm::Instruction;
 
-use super::{utils, Cpu};
+use super::{utils, Cpu, ExecutionState};
+
+/// Halts the microcode execution and triggers the EXIT interrupt.
+pub fn exit(cpu: &mut Cpu, _: &Instruction) -> usize {
+    // Modify the execution state of the processor.
+    cpu.state = ExecutionState::Stopped;
+
+    // TODO: Trigger EXIT interrupt.
+
+    1
+}
 
 /// Copies a value into another register.
 pub fn mov(cpu: &mut Cpu, insn: &Instruction) -> usize {

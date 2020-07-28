@@ -29,6 +29,7 @@ fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usi
         InstructionKind::ST => data::st,
         InstructionKind::PUSH => data::push,
         InstructionKind::POP => data::pop,
+        InstructionKind::EXIT => control::exit,
         InstructionKind::PTLB => vm::ptlb,
         InstructionKind::VTLB => vm::vtlb,
         InstructionKind::ITLB => vm::itlb,
