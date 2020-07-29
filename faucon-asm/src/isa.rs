@@ -105,6 +105,14 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3D, subopcode = 0x04, operands(R2))]
     CLEAR,
 
+    /// The SETP instruction.
+    ///
+    /// Sets a given bit in the `$flags` register to the lowest bit of the
+    /// source register.
+    #[insn(opcode = 0xF2, subopcode = 0x08, operands(FLAG, R2))]
+    #[insn(opcode = 0xFA, subopcode = 0x08, operands(R1, R2))]
+    SETP,
+
     /// The MOV instruction.
     ///
     /// Moves values of immediates or registers to other registers.
@@ -299,6 +307,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMPS => "cmps",
             InstructionKind::CMP => "cmp",
             InstructionKind::CLEAR => "clear",
+            InstructionKind::SETP => "setp",
             InstructionKind::MOV => "mov",
             InstructionKind::ADD => "add",
             InstructionKind::LD => "ld",

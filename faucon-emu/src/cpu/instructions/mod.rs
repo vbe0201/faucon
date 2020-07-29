@@ -20,6 +20,7 @@ pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
 fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usize {
     match insn.kind() {
         InstructionKind::CLEAR => alu::clear,
+        InstructionKind::SETP => alu::setp,
         InstructionKind::MOV => control::mov,
         InstructionKind::CALL => branch::call,
         InstructionKind::LCALL => branch::call,
