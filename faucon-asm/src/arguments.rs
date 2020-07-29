@@ -91,12 +91,6 @@ macro_rules! memory {
 /// ignored.
 pub const NOP: Argument = Argument::Nop;
 
-/// An unsigned 8-bit immediate that represents a `0` literally.
-///
-/// This is needed for ALU instructions where certain variants default to
-/// forms with 0 instead of an actual encoded operand.
-pub const NULL: Argument = immediate!(U8, 0);
-
 /// An unsigned 8-bit immediate.
 ///
 /// These are used for bit positions, shifts and 8-bit instructions.
