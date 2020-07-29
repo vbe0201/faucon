@@ -18,6 +18,35 @@ pub fn clear(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
+/// Modifies a bit in a register.
+pub fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register, register, immediate/register/flag).
+    let destination = operands[0];
+    let source1 = operands[1];
+    let source2 = operands[2];
+
+    // Set the bit accordingly.
+    let bit = match source2 {
+        Operand::Register(reg) => cpu.registers[reg] & 0x1FF,
+        Operand::Flag(flag) => flag as u32,
+        Operand::I8(imm) => imm as u32,
+        _ => unreachable!(),
+    };
+    cpu.registers[destination] = cpu.registers[source1] >> bit & 1;
+
+    // Set the ALU flags accordingly.
+    cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
+    cpu.registers
+        .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
 /// Sets a specific CPU flag to a given value.
 pub fn setp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();

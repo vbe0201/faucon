@@ -105,6 +105,16 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3D, subopcode = 0x04, operands(R2))]
     CLEAR,
 
+    /// The XBIT instruction.
+    ///
+    /// Extracts a bit from a specified register and stores it in the lowest
+    /// bit of the destination register, setting all other bits to 0.
+    #[insn(opcode = 0xC8, subopcode = 0x08, operands(R1, R2, I8))]
+    #[insn(opcode = 0xFF, subopcode = 0x08, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF0, subopcode = 0x0C, operands(R2, FLAGS, FLAG))]
+    #[insn(opcode = 0xFE, subopcode = 0x0C, operands(R1, FLAGS, R2))]
+    XBIT,
+
     /// The SETP instruction.
     ///
     /// Sets a given bit in the `$flags` register to the lowest bit of the
@@ -307,6 +317,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMPS => "cmps",
             InstructionKind::CMP => "cmp",
             InstructionKind::CLEAR => "clear",
+            InstructionKind::XBIT => "xbit",
             InstructionKind::SETP => "setp",
             InstructionKind::MOV => "mov",
             InstructionKind::ADD => "add",
