@@ -115,6 +115,33 @@ pub enum InstructionKind {
     #[insn(opcode = 0xFE, subopcode = 0x0C, operands(R1, FLAGS, R2))]
     XBIT,
 
+    /// The BSET instruction.
+    ///
+    /// Sets a specific bit in a given register.
+    #[insn(opcode = 0xF0, subopcode = 0x09, operands(R2, I8))]
+    #[insn(opcode = 0xFD, subopcode = 0x09, operands(R2, R1))]
+    #[insn(opcode = 0xF4, subopcode = 0x31, operands(FLAGS, FLAG))]
+    #[insn(opcode = 0xF9, subopcode = 0x09, operands(FLAGS, R2))]
+    BSET,
+
+    /// The BCLR instruction.
+    ///
+    /// Clears a specific bit in a given register.
+    #[insn(opcode = 0xF0, subopcode = 0x0A, operands(R2, I8))]
+    #[insn(opcode = 0xFD, subopcode = 0x0A, operands(R2, R1))]
+    #[insn(opcode = 0xF4, subopcode = 0x32, operands(FLAGS, FLAG))]
+    #[insn(opcode = 0xF9, subopcode = 0x0A, operands(FLAGS, R2))]
+    BCLR,
+
+    /// The BTGL instruction.
+    ///
+    /// Toggles (flips) a specific bit in a given register.
+    #[insn(opcode = 0xF0, subopcode = 0x0B, operands(R2, I8))]
+    #[insn(opcode = 0xFD, subopcode = 0x0B, operands(R2, R1))]
+    #[insn(opcode = 0xF4, subopcode = 0x33, operands(FLAGS, FLAG))]
+    #[insn(opcode = 0xF9, subopcode = 0x0B, operands(FLAGS, R2))]
+    BTGL,
+
     /// The SETP instruction.
     ///
     /// Sets a given bit in the `$flags` register to the lowest bit of the
@@ -318,6 +345,9 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMP => "cmp",
             InstructionKind::CLEAR => "clear",
             InstructionKind::XBIT => "xbit",
+            InstructionKind::BSET => "bset",
+            InstructionKind::BCLR => "bclr",
+            InstructionKind::BTGL => "btgl",
             InstructionKind::SETP => "setp",
             InstructionKind::MOV => "mov",
             InstructionKind::ADD => "add",

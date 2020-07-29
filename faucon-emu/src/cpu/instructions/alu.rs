@@ -1,7 +1,7 @@
 //! Arithmetic Falcon instructions.
 
 use enum_primitive::FromPrimitive;
-use faucon_asm::{Instruction, Operand};
+use faucon_asm::{Instruction, InstructionKind, Operand};
 
 use super::{utils, Cpu, CpuFlag};
 
@@ -31,7 +31,7 @@ pub fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let bit = match source2 {
         Operand::Register(reg) => cpu.registers[reg] & 0x1FF,
         Operand::Flag(flag) => flag as u32,
-        Operand::I8(imm) => imm as u32,
+        Operand::I8(imm) => imm as u32 & 0x1FF,
         _ => unreachable!(),
     };
     cpu.registers[destination] = cpu.registers[source1] >> bit & 1;
@@ -40,6 +40,35 @@ pub fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers
         .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
+/// Modifies a given bit in a register.
+pub fn bitop(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register and register or immediate).
+    let destination = operands[0];
+    let source = operands[1];
+
+    // Extract the bit and perform the operation.
+    let bit = match source {
+        Operand::Register(reg) => cpu.registers[reg] & 0x1FF,
+        Operand::Flag(flag) => flag as u32,
+        Operand::I8(imm) => imm as u32 & 0x1FF,
+        _ => unreachable!(),
+    };
+
+    match insn.kind() {
+        InstructionKind::BSET => cpu.registers[destination] |= 1 << bit,
+        InstructionKind::BCLR => cpu.registers[destination] &= !(1 << bit),
+        InstructionKind::BTGL => cpu.registers[destination] ^= 1 << bit,
+        _ => unreachable!(),
+    };
 
     // Signal regular PC increment to the CPU.
     cpu.increment_pc = true;

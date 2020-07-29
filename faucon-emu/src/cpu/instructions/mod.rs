@@ -21,6 +21,9 @@ fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usi
     match insn.kind() {
         InstructionKind::CLEAR => alu::clear,
         InstructionKind::XBIT => alu::xbit,
+        InstructionKind::BSET => alu::bitop,
+        InstructionKind::BCLR => alu::bitop,
+        InstructionKind::BTGL => alu::bitop,
         InstructionKind::SETP => alu::setp,
         InstructionKind::MOV => control::mov,
         InstructionKind::CALL => branch::call,
