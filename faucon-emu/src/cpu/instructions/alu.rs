@@ -22,6 +22,37 @@ pub fn clear(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
+/// Performs a sign-extension of the given operand.
+pub fn sext(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register, register and register or immediate).
+    let destination = operands[0];
+    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
+    let source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+
+    // Perform the sign-extension and store the result.
+    let bit = source2 & 0x1F;
+    if source1 & 1 << bit != 0 {
+        cpu.registers[destination] = source1 & ((1 << bit) - 1) | (-(1 << bit as i32)) as u32;
+    } else {
+        cpu.registers[destination] = source1 & ((1 << bit) - 1);
+    }
+
+    // Store the CPU flags accordingly.
+    cpu.registers.set_flag(
+        CpuFlag::NEGATIVE,
+        sign(cpu.registers[destination], insn.operand_size),
+    );
+    cpu.registers
+        .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
 pub fn bitwise(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();
 

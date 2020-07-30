@@ -105,6 +105,15 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3D, subopcode = 0x04, operands(R2))]
     CLEAR,
 
+    /// The SEXT instruction.
+    ///
+    /// Sign-extends a value and stores the result.
+    #[insn(opcode = 0xC2, subopcode = 0x02, operands(R1, R2, I8))]
+    #[insn(opcode = 0xF0, subopcode = 0x02, operands(R2, R2, I8))]
+    #[insn(opcode = 0xFD, subopcode = 0x02, operands(R2, R2, R1))]
+    #[insn(opcode = 0xFF, subopcode = 0x02, operands(R3, R2, R1))]
+    SEXT,
+
     /// The AND instruction.
     ///
     /// Performs a binary AND operation on two operands.
@@ -393,6 +402,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMPS => "cmps",
             InstructionKind::CMP => "cmp",
             InstructionKind::CLEAR => "clear",
+            InstructionKind::SEXT => "sext",
             InstructionKind::AND => "and",
             InstructionKind::OR => "or",
             InstructionKind::XOR => "xor",
