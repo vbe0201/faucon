@@ -1,9 +1,13 @@
 //! Arithmetic Falcon instructions.
 
 use enum_primitive::FromPrimitive;
-use faucon_asm::{Instruction, InstructionKind, Operand};
+use faucon_asm::{Instruction, InstructionKind, Operand, OperandSize};
 
 use super::{utils, Cpu, CpuFlag};
+
+fn sign(x: u32, size: OperandSize) -> bool {
+    (x >> (size.value() as u32 - 1) & 1) != 0
+}
 
 pub fn clear(cpu: &mut Cpu, insn: &Instruction) -> usize {
     // Extract the instruction operands (a single register).
@@ -11,6 +15,38 @@ pub fn clear(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Clear the register.
     utils::write_reg(cpu, insn.operand_size, destination, Operand::I8(0));
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
+pub fn bitwise(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register, register and register or immediate).
+    let destination = operands[0];
+    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
+    let source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+
+    // Perform the calculation and store the result.
+    match insn.kind() {
+        InstructionKind::AND => cpu.registers[destination] = source1 & source2,
+        InstructionKind::OR => cpu.registers[destination] = source1 | source2,
+        InstructionKind::XOR => cpu.registers[destination] = source1 ^ source2,
+        _ => unreachable!(),
+    };
+
+    // Set CPU flags accordingly.
+    cpu.registers.set_flag(CpuFlag::CARRY, false);
+    cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
+    cpu.registers.set_flag(
+        CpuFlag::NEGATIVE,
+        sign(cpu.registers[destination], insn.operand_size),
+    );
+    cpu.registers
+        .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
 
     // Signal regular PC increment to the CPU.
     cpu.increment_pc = true;

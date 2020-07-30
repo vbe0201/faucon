@@ -20,6 +20,9 @@ pub fn process_instruction(cpu: &mut Cpu, insn: &Instruction) -> usize {
 fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usize {
     match insn.kind() {
         InstructionKind::CLEAR => alu::clear,
+        InstructionKind::AND => alu::bitwise,
+        InstructionKind::OR => alu::bitwise,
+        InstructionKind::XOR => alu::bitwise,
         InstructionKind::XBIT => alu::xbit,
         InstructionKind::BSET => alu::bitop,
         InstructionKind::BCLR => alu::bitop,

@@ -105,6 +105,39 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3D, subopcode = 0x04, operands(R2))]
     CLEAR,
 
+    /// The AND instruction.
+    ///
+    /// Performs a binary AND operation on two operands.
+    #[insn(opcode = 0xC4, subopcode = 0x04, operands(R1, R2, I8ZX32))]
+    #[insn(opcode = 0xE4, subopcode = 0x04, operands(R1, R2, I16ZX32))]
+    #[insn(opcode = 0xF0, subopcode = 0x04, operands(R2, R2, I8ZX32))]
+    #[insn(opcode = 0xF1, subopcode = 0x04, operands(R2, R2, I16ZX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x04, operands(R2, R2, R1))]
+    #[insn(opcode = 0xFF, subopcode = 0x04, operands(R3, R2, R1))]
+    AND,
+
+    /// The OR instruction.
+    ///
+    /// Performs a binary OR operation on two operands.
+    #[insn(opcode = 0xC5, subopcode = 0x05, operands(R1, R2, I8ZX32))]
+    #[insn(opcode = 0xE5, subopcode = 0x05, operands(R1, R2, I16ZX32))]
+    #[insn(opcode = 0xF0, subopcode = 0x05, operands(R2, R2, I8ZX32))]
+    #[insn(opcode = 0xF1, subopcode = 0x05, operands(R2, R2, I16ZX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x05, operands(R2, R2, R1))]
+    #[insn(opcode = 0xFF, subopcode = 0x05, operands(R3, R2, R1))]
+    OR,
+
+    /// The XOR instruction.
+    ///
+    /// Performs a binary XOR operation on two operands.
+    #[insn(opcode = 0xC6, subopcode = 0x06, operands(R1, R2, I8ZX32))]
+    #[insn(opcode = 0xE6, subopcode = 0x06, operands(R1, R2, I16ZX32))]
+    #[insn(opcode = 0xF0, subopcode = 0x06, operands(R2, R2, I8ZX32))]
+    #[insn(opcode = 0xF1, subopcode = 0x06, operands(R2, R2, I16ZX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x06, operands(R2, R2, R1))]
+    #[insn(opcode = 0xFF, subopcode = 0x06, operands(R3, R2, R1))]
+    XOR,
+
     /// The XBIT instruction.
     ///
     /// Extracts a bit from a specified register and stores it in the lowest
@@ -360,6 +393,9 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMPS => "cmps",
             InstructionKind::CMP => "cmp",
             InstructionKind::CLEAR => "clear",
+            InstructionKind::AND => "and",
+            InstructionKind::OR => "or",
+            InstructionKind::XOR => "xor",
             InstructionKind::XBIT => "xbit",
             InstructionKind::BSET => "bset",
             InstructionKind::BCLR => "bclr",
