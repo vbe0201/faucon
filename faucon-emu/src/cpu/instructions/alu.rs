@@ -76,6 +76,35 @@ pub fn bitop(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
+/// Performs a division or takes the modulus of two operands.
+pub fn divmod(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register, register and register or immediate).
+    let destination = operands[0];
+    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
+    let source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+
+    // Divide both operands and handle unsupported divisions by zero.
+    let div_result = if source2 == 0 {
+        0xFFFFFFFF
+    } else {
+        source1 / source2
+    };
+
+    // Finalize the operation and store the result accordingly to the instruction.
+    match insn.kind() {
+        InstructionKind::DIV => cpu.registers[destination] = div_result,
+        InstructionKind::MOD => cpu.registers[destination] = source1 - div_result * source2,
+        _ => unreachable!(),
+    };
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    30
+}
+
 /// Sets a specific CPU flag to a given value.
 pub fn setp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();

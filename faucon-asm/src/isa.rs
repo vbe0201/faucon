@@ -142,6 +142,22 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF9, subopcode = 0x0B, operands(FLAGS, R2))]
     BTGL,
 
+    /// The DIV instruction.
+    ///
+    /// Performs unsigned 32-bit division on two operands.
+    #[insn(opcode = 0xCC, subopcode = 0x0C, operands(R1, R2, I8ZX32))]
+    #[insn(opcode = 0xEC, subopcode = 0x0C, operands(R1, R2, I16ZX32))]
+    #[insn(opcode = 0xFF, subopcode = 0x0C, operands(R3, R2, R1))]
+    DIV,
+
+    /// The MOD instruction.
+    ///
+    /// Takes the modulus of two 32-bit unsigned operands.
+    #[insn(opcode = 0xCD, subopcode = 0x0D, operands(R1, R2, I8ZX32))]
+    #[insn(opcode = 0xED, subopcode = 0x0D, operands(R1, R2, I16ZX32))]
+    #[insn(opcode = 0xFF, subopcode = 0x0D, operands(R3, R2, R1))]
+    MOD,
+
     /// The SETP instruction.
     ///
     /// Sets a given bit in the `$flags` register to the lowest bit of the
@@ -348,6 +364,8 @@ impl fmt::Display for InstructionKind {
             InstructionKind::BSET => "bset",
             InstructionKind::BCLR => "bclr",
             InstructionKind::BTGL => "btgl",
+            InstructionKind::DIV => "div",
+            InstructionKind::MOD => "mod",
             InstructionKind::SETP => "setp",
             InstructionKind::MOV => "mov",
             InstructionKind::ADD => "add",
