@@ -73,7 +73,7 @@ pub fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.registers[destination] = cpu.registers[source1] >> bit & 1;
 
     // Set the ALU flags accordingly.
-    cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
+    cpu.registers.set_flag(CpuFlag::NEGATIVE, false);
     cpu.registers
         .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
 
