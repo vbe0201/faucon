@@ -65,9 +65,7 @@ impl Debugger {
                 Ok(Command::Exit) => break,
                 Ok(Command::Repeat) => unreachable!(),
                 Ok(Command::Step(count)) => self.step(count),
-                Ok(Command::Disassemble(address, amount)) => {
-                    self.disassemble(address as usize, amount)
-                }
+                Ok(Command::Disassemble(address, amount)) => self.disassemble(address, amount),
                 Err(ref e) => error!("Failed to parse command:", "{:?}", e),
             }
 
@@ -96,15 +94,27 @@ impl Debugger {
         }
     }
 
-    fn disassemble(&mut self, address: usize, amount: u32) {
-        let mut count = 0;
-        while let Ok(insn) = read_instruction(&mut &self.falcon.memory.code[address..]) {
-            if count >= amount {
-                break;
-            }
+    fn disassemble(&mut self, vaddress: u32, amount: u32) {
+        let address = self.falcon.memory.tlb.translate_addr(vaddress).unwrap() as usize;
+        let code = &mut &self.falcon.memory.code[address..];
 
-            println!("{}", insn);
-            count += 1;
+        for _ in 0..amount {
+            match read_instruction(code) {
+                Ok(insn) => println!("{}", insn),
+                Err(faucon_asm::Error::Eof) => break,
+                Err(e) => {
+                    match e {
+                        faucon_asm::Error::UnknownInstruction(_) => {
+                            error!("Aborting due to error:", "An unknown instruction was hit")
+                        }
+                        faucon_asm::Error::IoError => {
+                            error!("Aborting due to error:", "Rust exploded")
+                        }
+                        faucon_asm::Error::Eof => {}
+                    };
+                    break;
+                }
+            };
         }
     }
 }
