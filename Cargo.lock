@@ -37,6 +37,7 @@ dependencies = [
 name = "faucon"
 version = "0.1.0"
 dependencies = [
+ "faucon-asm 0.1.0",
  "faucon-emu 0.1.0",
  "nom 5.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "termcolor 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -16,7 +16,7 @@ pub struct Cpu {
     /// The Falcon CPU registers.
     pub registers: CpuRegisters,
     /// The Falcon SRAM for code and data.
-    memory: Memory,
+    pub memory: Memory,
     /// The Falcon DMA engine.
     dma_engine: dma::Engine,
     /// The current execution state of the processor that controls the way

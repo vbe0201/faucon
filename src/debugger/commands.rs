@@ -14,6 +14,9 @@ pub enum Command {
     Repeat,
     /// Steps through a given amount of CPU instructions.
     Step(u32),
+    /// Disassembles the next few instructions starting from the given
+    /// address.
+    Disassemble(u32),
 }
 
 impl FromStr for Command {
@@ -34,6 +37,7 @@ named!(
         | command_exit
         | command_repeat
         | command_step
+        | command_disassemble
     )
 );
 
@@ -76,6 +80,16 @@ named!(
             >> count: opt!(preceded!(space1, integer))
             >> eof!()
             >> (Command::Step(count.unwrap_or(1)))
+    )
+);
+
+named!(
+    command_disassemble<&str, Command>,
+    do_parse!(
+        alt!(complete!(tag_no_case!("disasm")) | complete!(tag_no_case!("dis")))
+            >> address: preceded!(space1, integer)
+            >> eof!()
+            >> (Command::Disassemble(address))
     )
 );
 

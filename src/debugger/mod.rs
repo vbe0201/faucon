@@ -2,6 +2,7 @@
 
 use std::io::{stdin, stdout, Write};
 
+use faucon_asm::read_instruction;
 use faucon_emu::cpu::Cpu;
 
 use commands::Command;
@@ -64,6 +65,7 @@ impl Debugger {
                 Ok(Command::Exit) => break,
                 Ok(Command::Repeat) => unreachable!(),
                 Ok(Command::Step(count)) => self.step(count),
+                Ok(Command::Disassemble(address)) => self.disassemble(address as usize, 10),
                 Err(ref e) => error!("Failed to parse command:", "{:?}", e),
             }
 
@@ -82,13 +84,28 @@ impl Debugger {
             "(s)tep [count]",
             "- Steps through [count] instructions. [count] defaults to 1"
         );
+        ok!(
+            "(dis)asm [addr]",
+            "- Disassembles the next few instructions starting from virtual address [addr]."
+        );
     }
 
-    /// Executes the step command.
     fn step(&mut self, count: u32) {
         for _ in 0..count {
             // TODO: Print stepped instruction?
             self.falcon.step();
+        }
+    }
+
+    fn disassemble(&mut self, address: usize, amount: u32) {
+        let mut count = 0;
+        while let Ok(insn) = read_instruction(&mut &self.falcon.memory.code[address..]) {
+            if count >= amount {
+                break;
+            }
+
+            println!("{}", insn);
+            count += 1;
         }
     }
 }
