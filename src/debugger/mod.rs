@@ -65,7 +65,9 @@ impl Debugger {
                 Ok(Command::Exit) => break,
                 Ok(Command::Repeat) => unreachable!(),
                 Ok(Command::Step(count)) => self.step(count),
-                Ok(Command::Disassemble(address)) => self.disassemble(address as usize, 10),
+                Ok(Command::Disassemble(address, amount)) => {
+                    self.disassemble(address as usize, amount)
+                }
                 Err(ref e) => error!("Failed to parse command:", "{:?}", e),
             }
 
@@ -80,13 +82,10 @@ impl Debugger {
         ok!("(h)elp", "- Shows this message");
         ok!("(e)xit/(q)uit", "- Exits the debugger");
         ok!("(r)epeat", "- Repeats the last command");
+        ok!("(s)tep [count]", "- Steps through [count|1] instructions.");
         ok!(
-            "(s)tep [count]",
-            "- Steps through [count] instructions. [count] defaults to 1"
-        );
-        ok!(
-            "(dis)asm [addr]",
-            "- Disassembles the next few instructions starting from virtual address [addr]."
+            "(dis)asm [addr] [amount]",
+            "- Disassembles the next [amount|10] instructions starting from virtual address [addr]."
         );
     }
 

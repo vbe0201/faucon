@@ -16,7 +16,7 @@ pub enum Command {
     Step(u32),
     /// Disassembles the next few instructions starting from the given
     /// address.
-    Disassemble(u32),
+    Disassemble(u32, u32),
 }
 
 impl FromStr for Command {
@@ -88,8 +88,9 @@ named!(
     do_parse!(
         alt!(complete!(tag_no_case!("disasm")) | complete!(tag_no_case!("dis")))
             >> address: preceded!(space1, integer)
+            >> count: opt!(preceded!(space1, integer))
             >> eof!()
-            >> (Command::Disassemble(address))
+            >> (Command::Disassemble(address, count.unwrap_or(10)))
     )
 );
 
