@@ -9,6 +9,87 @@ fn sign(x: u32, size: OperandSize) -> bool {
     (x >> (size.value() as u32 - 1) & 1) != 0
 }
 
+fn carry(a: bool, b: bool, c: bool) -> bool {
+    // If a and b are both set, there is always carry out.
+    if a && b {
+        return true;
+    }
+
+    // One of a and b is set. In this case, there is carry out if
+    // the result has bit 0 set.
+    if a || b && !c {
+        return true;
+    }
+
+    // Neither a nor b is set, there is no possibility of carry out.
+    false
+}
+
+fn overflow(a: bool, b: bool, c: bool) -> bool {
+    a == b && a != c
+}
+
+/// Compares two operands and stores ALU flags based on the result.
+pub fn cmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register and register or immediate).
+    let source1 = utils::get_value(cpu, insn.operand_size, operands[0]);
+    let source2 = utils::get_value(cpu, insn.operand_size, operands[1]);
+
+    // Subtract the operands and set ALU flags based on the result.
+    let diff = source1.wrapping_sub(source2);
+    cpu.registers.set_flag(CpuFlag::ZERO, diff == 0);
+    match insn.kind() {
+        InstructionKind::CMPS => {
+            cpu.registers.set_flag(
+                CpuFlag::CARRY,
+                overflow(
+                    sign(source1, insn.operand_size),
+                    !sign(source2, insn.operand_size),
+                    sign(diff, insn.operand_size),
+                ) ^ sign(diff, insn.operand_size),
+            );
+        }
+        InstructionKind::CMPU => {
+            cpu.registers.set_flag(
+                CpuFlag::CARRY,
+                !carry(
+                    sign(source1, insn.operand_size),
+                    !sign(source2, insn.operand_size),
+                    sign(diff, insn.operand_size),
+                ),
+            );
+        }
+        InstructionKind::CMP => {
+            cpu.registers.set_flag(
+                CpuFlag::CARRY,
+                !carry(
+                    sign(source1, insn.operand_size),
+                    !sign(source2, insn.operand_size),
+                    sign(diff, insn.operand_size),
+                ),
+            );
+            cpu.registers.set_flag(
+                CpuFlag::OVERFLOW,
+                overflow(
+                    sign(source1, insn.operand_size),
+                    !sign(source2, insn.operand_size),
+                    sign(diff, insn.operand_size),
+                ),
+            );
+            cpu.registers
+                .set_flag(CpuFlag::NEGATIVE, sign(diff, insn.operand_size));
+        }
+        _ => unreachable!(),
+    };
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
 /// Sets the high 16 bits of a register ot a given value.
 pub fn sethi(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();
