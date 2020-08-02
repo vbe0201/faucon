@@ -101,6 +101,6 @@ named!(
             tag!("0x"),
             map_res!(hex_digit1, |num: &str| u32::from_str_radix(&num[..], 16))
         )
-        | map_res!(digit1, |num: &str| num.parse::<u32>())
+        | flat_map!(digit1, parse_to!(u32))
     )
 );
