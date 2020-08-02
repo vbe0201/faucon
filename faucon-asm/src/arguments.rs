@@ -133,6 +133,12 @@ pub const I8ZX32S1: Argument = immediate!(U32, 2, 1, false, Some(1), None);
 /// These are mainly used for memory addressing.
 pub const I8ZX32S2: Argument = immediate!(U32, 2, 1, false, Some(2), None);
 
+/// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
+/// by 16.
+///
+/// These are used by the SETHI instruction.
+pub const I8ZX32S16: Argument = immediate!(U32, 2, 1, false, Some(16), None);
+
 /// A helper that leverages the selection of a correct parser for immediates
 /// in sized instructions to the disassembler.
 ///

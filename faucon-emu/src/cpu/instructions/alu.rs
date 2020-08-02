@@ -9,12 +9,30 @@ fn sign(x: u32, size: OperandSize) -> bool {
     (x >> (size.value() as u32 - 1) & 1) != 0
 }
 
+/// Sets the high 16 bits of a register ot a given value.
+pub fn sethi(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register and immediate).
+    let destination = operands[0];
+    let source = utils::get_value(cpu, insn.operand_size, operands[1]);
+
+    // Store the source value in the high 16 bits of the destination register.
+    cpu.registers[destination] = cpu.registers[destination] & 0xFFFF | source << 0x10;
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
+/// Clears a given CPU register.
 pub fn clear(cpu: &mut Cpu, insn: &Instruction) -> usize {
     // Extract the instruction operands (a single register).
     let destination = insn.operands()[0];
 
     // Clear the register.
-    utils::write_reg(cpu, insn.operand_size, destination, Operand::I8(0));
+    cpu.registers[destination] = 0;
 
     // Signal regular PC increment to the CPU.
     cpu.increment_pc = true;
@@ -53,6 +71,7 @@ pub fn sext(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
+/// Performs a bitwise operation on two operands and stores the result.
 pub fn bitwise(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();
 

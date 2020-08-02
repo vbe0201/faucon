@@ -99,6 +99,13 @@ pub enum InstructionKind {
     #[insn(opcode = 0x26, subopcode = 0x06, operands(R2, R1))]
     CMP,
 
+    /// The SETHI instruction.
+    ///
+    /// Sets the high 16 bits of a register to a value, without thouching
+    /// the low 16 bits.
+    #[insn(opcode = 0xF0, subopcode = 0x03, operands(R2, I8ZX32S16))]
+    SETHI,
+
     /// The CLEAR instruction.
     ///
     /// Clears the contents of a register.
@@ -401,6 +408,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMPU => "cmpu",
             InstructionKind::CMPS => "cmps",
             InstructionKind::CMP => "cmp",
+            InstructionKind::SETHI => "sethi",
             InstructionKind::CLEAR => "clear",
             InstructionKind::SEXT => "sext",
             InstructionKind::AND => "and",
