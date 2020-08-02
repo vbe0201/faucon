@@ -40,6 +40,34 @@ pub fn clear(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
+/// Multiplies two operands and stores the result.
+pub fn mul(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register, register and register or immediate).
+    let destination = operands[0];
+    let mut source1 = utils::get_value(cpu, insn.operand_size, operands[1]) & 0xFFFF;
+    let mut source2 = utils::get_value(cpu, insn.operand_size, operands[2]) & 0xFFFF;
+
+    // If the instruction is MULS, sign-extend the operands properly.
+    if insn.kind() == InstructionKind::MULS {
+        if source1 & 0x8000 != 0 {
+            source1 |= 0xFFFF0000;
+        }
+        if source2 & 0x8000 != 0 {
+            source2 |= 0xFFFF0000;
+        }
+    }
+
+    // Perform the multiplication and store the result.
+    cpu.registers[destination] = source1.wrapping_mul(source2);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
 /// Performs a sign-extension of the given operand.
 pub fn sext(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();

@@ -21,6 +21,8 @@ fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usi
     match insn.kind() {
         InstructionKind::SETHI => alu::sethi,
         InstructionKind::CLEAR => alu::clear,
+        InstructionKind::MULU => alu::mul,
+        InstructionKind::MULS => alu::mul,
         InstructionKind::SEXT => alu::sext,
         InstructionKind::AND => alu::bitwise,
         InstructionKind::OR => alu::bitwise,

@@ -112,6 +112,26 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3D, subopcode = 0x04, operands(R2))]
     CLEAR,
 
+    /// THE MULU instruction.
+    ///
+    /// Performs an unsigned multiplication and stores the result.
+    #[insn(opcode = 0xC0, subopcode = 0x00, operands(R1, R2, I8ZX32))]
+    #[insn(opcode = 0xE0, subopcode = 0x00, operands(R1, R2, I16ZX32))]
+    #[insn(opcode = 0xF0, subopcode = 0x00, operands(R2, R2, I8ZX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x00, operands(R2, R2, R1))]
+    #[insn(opcode = 0xFF, subopcode = 0x00, operands(R3, R2, R1))]
+    MULU,
+
+    /// The MULS instruction.
+    ///
+    /// Performs a signed multiplication and stores the result.
+    #[insn(opcode = 0xC1, subopcode = 0x01, operands(R1, R2, I8SX32))]
+    #[insn(opcode = 0xE1, subopcode = 0x01, operands(R1, R2, I16SX32))]
+    #[insn(opcode = 0xF0, subopcode = 0x01, operands(R2, R2, I8SX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x01, operands(R2, R2, R1))]
+    #[insn(opcode = 0xFF, subopcode = 0x01, operands(R3, R2, R1))]
+    MULS,
+
     /// The SEXT instruction.
     ///
     /// Sign-extends a value and stores the result.
@@ -410,6 +430,8 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMP => "cmp",
             InstructionKind::SETHI => "sethi",
             InstructionKind::CLEAR => "clear",
+            InstructionKind::MULU => "mulu",
+            InstructionKind::MULS => "muls",
             InstructionKind::SEXT => "sext",
             InstructionKind::AND => "and",
             InstructionKind::OR => "or",
