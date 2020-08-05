@@ -92,6 +92,8 @@ pub enum SubopcodeLocation {
     OL,
     /// The subopcode is encoded in the low 4 bits of byte 2.
     O3,
+    /// The subopcode is encoded in the low 4 bits of byte 4.
+    O5,
 }
 
 impl SubopcodeLocation {
@@ -107,6 +109,7 @@ impl SubopcodeLocation {
             SubopcodeLocation::O2 => 1,
             SubopcodeLocation::OL => 1,
             SubopcodeLocation::O3 => 2,
+            SubopcodeLocation::O5 => 4,
         }
     }
 
@@ -118,6 +121,7 @@ impl SubopcodeLocation {
             SubopcodeLocation::O2 => insn[1] & 0xF,
             SubopcodeLocation::OL => insn[1] & 0x3F,
             SubopcodeLocation::O3 => insn[2] & 0xF,
+            SubopcodeLocation::O5 => insn[4] & 0xF,
         }
     }
 }
@@ -133,7 +137,8 @@ pub fn get_subopcode_location(size: u8, a: u8, b: u8) -> Option<SubopcodeLocatio
         (0x0..=0x2, 0x3, 0x0..=0x4) => Some(SubopcodeLocation::O2),
         (0x0..=0x2, 0x3, 0x5) => Some(SubopcodeLocation::O1),
         (0x0..=0x2, 0x3, 0x6..=0x7) => Some(SubopcodeLocation::O2),
-        (0x0..=0x2, 0x3, 0x8..=0xC) => Some(SubopcodeLocation::O3),
+        (0x0..=0x2, 0x3, 0x8) => Some(SubopcodeLocation::O5),
+        (0x0..=0x2, 0x3, 0x9..=0xC) => Some(SubopcodeLocation::O3),
         (0x0..=0x2, 0x3, 0xD) => Some(SubopcodeLocation::O2),
         (0x0..=0x2, 0x3, 0xE) => Some(SubopcodeLocation::OH),
         (0x0..=0x2, 0x3, 0xF) => Some(SubopcodeLocation::O1),

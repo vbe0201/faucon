@@ -99,6 +99,52 @@ pub enum InstructionKind {
     #[insn(opcode = 0x26, subopcode = 0x06, operands(R2, R1))]
     CMP,
 
+    /// The ADD instruction.
+    ///
+    /// Computes the sum of two operands and stores the result.
+    #[insn(opcode = 0x10, subopcode = 0x00, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x00, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x37, subopcode = 0x00, operands(R2, R2, I16ZXS))]
+    #[insn(opcode = 0x38, subopcode = 0x00, operands(R1, R2, I16ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x00, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x00, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF5, subopcode = 0x30, operands(SP, I16SX32))]
+    #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, R2))]
+    ADD,
+
+    /// The ADC instruction.
+    ///
+    /// Computes the sum of two operands with a carry and stores the result.
+    #[insn(opcode = 0x11, subopcode = 0x01, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x01, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x37, subopcode = 0x01, operands(R2, R2, I16ZXS))]
+    #[insn(opcode = 0x38, subopcode = 0x01, operands(R1, R2, I16ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x01, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x01, operands(R3, R2, R1))]
+    ADC,
+
+    /// The SUB instruction.
+    ///
+    /// Subtracts two operands and stores the result.
+    #[insn(opcode = 0x12, subopcode = 0x02, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x02, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x37, subopcode = 0x02, operands(R2, R2, I16ZXS))]
+    #[insn(opcode = 0x38, subopcode = 0x02, operands(R1, R2, I16ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x02, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x02, operands(R3, R2, R1))]
+    SUB,
+
+    /// The SBB instruction.
+    ///
+    /// Subtracts two operands with borrow and stores the result.
+    #[insn(opcode = 0x13, subopcode = 0x03, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x03, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x37, subopcode = 0x03, operands(R2, R2, I16ZXS))]
+    #[insn(opcode = 0x38, subopcode = 0x03, operands(R1, R2, I16ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x03, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x03, operands(R3, R2, R1))]
+    SBB,
+
     /// The SETHI instruction.
     ///
     /// Sets the high 16 bits of a register to a value, without thouching
@@ -246,13 +292,6 @@ pub enum InstructionKind {
     #[insn(opcode = 0xFE, subopcode = 0x00, operands(SR2, R2))]
     #[insn(opcode = 0xFE, subopcode = 0x01, operands(R1, SR1))]
     MOV,
-
-    /// The ADD instruction.
-    ///
-    /// Computes the sum of two operands and stores the result.
-    #[insn(opcode = 0xF5, subopcode = 0x30, operands(SP, I16SX32))]
-    #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, R2))]
-    ADD,
 
     /// The LD instruction.
     ///
@@ -428,6 +467,10 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMPU => "cmpu",
             InstructionKind::CMPS => "cmps",
             InstructionKind::CMP => "cmp",
+            InstructionKind::ADD => "add",
+            InstructionKind::ADC => "adc",
+            InstructionKind::SUB => "sub",
+            InstructionKind::SBB => "sbb",
             InstructionKind::SETHI => "sethi",
             InstructionKind::CLEAR => "clear",
             InstructionKind::MULU => "mulu",
@@ -444,7 +487,6 @@ impl fmt::Display for InstructionKind {
             InstructionKind::MOD => "mod",
             InstructionKind::SETP => "setp",
             InstructionKind::MOV => "mov",
-            InstructionKind::ADD => "add",
             InstructionKind::LD => "ld",
             InstructionKind::ST => "st",
             InstructionKind::PUSH => "push",

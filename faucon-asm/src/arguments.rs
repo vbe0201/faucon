@@ -544,36 +544,36 @@ impl<T: PrimInt + NumCast> Immediate<T> {
         let value: T = match self.width {
             1 => {
                 if self.sign {
-                    cast(insn[self.position] as i8).unwrap()
+                    cast(insn[self.position] as i8 & self.mask() as i8).unwrap()
                 } else {
-                    cast(insn[self.position]).unwrap()
+                    cast(insn[self.position] & self.mask() as u8).unwrap()
                 }
             }
             2 => {
                 if self.sign {
-                    cast(LittleEndian::read_i16(&insn[self.position..])).unwrap()
+                    cast(LittleEndian::read_i16(&insn[self.position..]) & self.mask() as i16).unwrap()
                 } else {
-                    cast(LittleEndian::read_u16(&insn[self.position..])).unwrap()
+                    cast(LittleEndian::read_u16(&insn[self.position..]) & self.mask() as u16).unwrap()
                 }
             }
             3 => {
                 if self.sign {
-                    cast(LittleEndian::read_i24(&insn[self.position..])).unwrap()
+                    cast(LittleEndian::read_i24(&insn[self.position..]) & self.mask() as i32).unwrap()
                 } else {
-                    cast(LittleEndian::read_u24(&insn[self.position..])).unwrap()
+                    cast(LittleEndian::read_u24(&insn[self.position..]) & self.mask() as u32).unwrap()
                 }
             }
             4 => {
                 if self.sign {
-                    cast(LittleEndian::read_i32(&insn[self.position..])).unwrap()
+                    cast(LittleEndian::read_i32(&insn[self.position..]) & self.mask() as i32).unwrap()
                 } else {
-                    cast(LittleEndian::read_u32(&insn[self.position..])).unwrap()
+                    cast(LittleEndian::read_u32(&insn[self.position..]) & self.mask() as u32).unwrap()
                 }
             }
             _ => unreachable!(),
         };
 
-        (value & cast(self.mask()).unwrap()) << self.shift()
+        value << self.shift()
     }
 }
 

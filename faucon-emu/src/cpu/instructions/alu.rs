@@ -90,6 +90,108 @@ pub fn cmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
+/*
+uint<sz>_t res;
+if (op == add)
+    res = SRC1 + SRC2;
+else if (op == adc)
+    res = SRC1 + SRC2 + $flags.c;
+else if (op == sub)
+    res = SRC1 - SRC2;
+else if (op == sbb)
+    res = SRC1 - SRC2 - $flags.c;
+
+if (op == add || op == adc) {
+    $flags.c = C(S(SRC1), S(SRC2), S(res));
+    $flags.o = O(S(SRC1), S(SRC2), S(res));
+} else {
+    $flags.c = !C(S(SRC1), !S(SRC2), S(res));
+    $flags.o = O(S(SRC1), !S(SRC2), S(res));
+}
+DST = res;
+$flags.s = S(res);
+$flags.z = (res == 0);
+
+*/
+
+pub fn addsub(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register, register and register or immediate).
+    let destination = operands[0];
+    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
+    let source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+
+    // Perform the operation.
+    let c = cpu.registers.get_flag(CpuFlag::CARRY) as u32;
+    let res = match insn.kind() {
+        InstructionKind::ADD => source1.wrapping_add(source2),
+        InstructionKind::ADC => source1.wrapping_add(source2).wrapping_add(c),
+        InstructionKind::SUB => source1.wrapping_sub(source2),
+        InstructionKind::SBB => source1.wrapping_sub(source2).wrapping_sub(c),
+        _ => unreachable!(),
+    };
+
+    // Store some ALU flags based on the operands and the result.
+    match insn.kind() {
+        InstructionKind::ADD | InstructionKind::ADC => {
+            cpu.registers.set_flag(
+                CpuFlag::CARRY,
+                carry(
+                    sign(source1, insn.operand_size),
+                    sign(source2, insn.operand_size),
+                    sign(res, insn.operand_size),
+                ),
+            );
+            cpu.registers.set_flag(
+                CpuFlag::OVERFLOW,
+                overflow(
+                    sign(source1, insn.operand_size),
+                    sign(source2, insn.operand_size),
+                    sign(res, insn.operand_size),
+                ),
+            );
+        }
+        InstructionKind::SUB | InstructionKind::SBB => {
+            cpu.registers.set_flag(
+                CpuFlag::CARRY,
+                !carry(
+                    sign(source1, insn.operand_size),
+                    !sign(source2, insn.operand_size),
+                    sign(res, insn.operand_size),
+                ),
+            );
+            cpu.registers.set_flag(
+                CpuFlag::OVERFLOW,
+                overflow(
+                    sign(source1, insn.operand_size),
+                    !sign(source2, insn.operand_size),
+                    sign(res, insn.operand_size),
+                ),
+            );
+        }
+        _ => unreachable!(),
+    };
+
+    // Store the result value accordingly.
+    match insn.operand_size {
+        OperandSize::EightBit => cpu.registers[destination] &= !0xFF | res,
+        OperandSize::SixteenBit => cpu.registers[destination] &= !0xFFFF | res,
+        OperandSize::ThirtyTwoBit => cpu.registers[destination] = res,
+        _ => unreachable!(),
+    };
+
+    // Set the remaining ALU flags.
+    cpu.registers
+        .set_flag(CpuFlag::NEGATIVE, sign(res as u32, insn.operand_size));
+    cpu.registers.set_flag(CpuFlag::ZERO, res == 0);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
 /// Sets the high 16 bits of a register ot a given value.
 pub fn sethi(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();
