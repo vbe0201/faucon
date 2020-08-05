@@ -108,8 +108,8 @@ pub enum InstructionKind {
     #[insn(opcode = 0x38, subopcode = 0x00, operands(R1, R2, I16ZXS))]
     #[insn(opcode = 0x3B, subopcode = 0x00, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x00, operands(R3, R2, R1))]
-    #[insn(opcode = 0xF5, subopcode = 0x30, operands(SP, I16SX32))]
-    #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, R2))]
+    #[insn(opcode = 0xF5, subopcode = 0x30, operands(SP, SP, I16SX32))]
+    #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, SP, R2))]
     ADD,
 
     /// The ADC instruction.
@@ -144,6 +144,51 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3B, subopcode = 0x03, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x03, operands(R3, R2, R1))]
     SBB,
+
+    /// The SHL instruction.
+    ///
+    /// Shifts a value left and stores the result.
+    #[insn(opcode = 0x14, subopcode = 0x04, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x04, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x04, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x04, operands(R3, R2, R1))]
+    SHL,
+
+    /// The SHR instruction.
+    ///
+    /// Shifts a value right and stores the result.
+    #[insn(opcode = 0x15, subopcode = 0x05, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x05, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x05, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x05, operands(R3, R2, R1))]
+    SHR,
+
+    /// The SAR instruction.
+    ///
+    /// Shifts a value right with sign bit and stores the result.
+    #[insn(opcode = 0x17, subopcode = 0x07, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x07, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x07, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x07, operands(R3, R2, R1))]
+    SAR,
+
+    /// The SHLC instruction.
+    ///
+    /// Shifts a value left with carry in and stores the result.
+    #[insn(opcode = 0x1C, subopcode = 0x0C, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x0C, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x0C, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x0C, operands(R3, R2, R1))]
+    SHLC,
+
+    /// The SHRC instruction.
+    ///
+    /// Shifts a value right with carry in and stores the result.
+    #[insn(opcode = 0x1D, subopcode = 0x0D, operands(R1, R2, I8ZXS))]
+    #[insn(opcode = 0x36, subopcode = 0x0D, operands(R2, R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x0D, operands(R2, R2, R1))]
+    #[insn(opcode = 0x3C, subopcode = 0x0D, operands(R3, R2, R1))]
+    SHRC,
 
     /// The SETHI instruction.
     ///
@@ -471,6 +516,11 @@ impl fmt::Display for InstructionKind {
             InstructionKind::ADC => "adc",
             InstructionKind::SUB => "sub",
             InstructionKind::SBB => "sbb",
+            InstructionKind::SHL => "shl",
+            InstructionKind::SHR => "shr",
+            InstructionKind::SAR => "sar",
+            InstructionKind::SHLC => "shlc",
+            InstructionKind::SHRC => "shrc",
             InstructionKind::SETHI => "sethi",
             InstructionKind::CLEAR => "clear",
             InstructionKind::MULU => "mulu",

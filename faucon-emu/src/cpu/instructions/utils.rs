@@ -73,6 +73,17 @@ pub fn write_reg(cpu: &mut Cpu, size: OperandSize, destination: Operand, source:
     }
 }
 
+/// Writes a given value to a destination register.
+pub fn write_value_to_reg(cpu: &mut Cpu, size: OperandSize, destination: Operand, source: u32) {
+    match size {
+        OperandSize::EightBit => cpu.registers[destination] &= !0xFF | (source & 0xFF),
+        OperandSize::SixteenBit => cpu.registers[destination] &= !0xFFFF | (source & 0xFFFF),
+        OperandSize::ThirtyTwoBit | OperandSize::Unsized => {
+            cpu.registers[destination] &= !0xFFFFFFFF | source
+        }
+    }
+}
+
 /// Reads a value from the given [`MemoryAccess`] descriptor.
 ///
 /// This is usually used by instruction handlers and should only be called when it

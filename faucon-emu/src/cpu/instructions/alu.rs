@@ -90,30 +90,7 @@ pub fn cmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
-/*
-uint<sz>_t res;
-if (op == add)
-    res = SRC1 + SRC2;
-else if (op == adc)
-    res = SRC1 + SRC2 + $flags.c;
-else if (op == sub)
-    res = SRC1 - SRC2;
-else if (op == sbb)
-    res = SRC1 - SRC2 - $flags.c;
-
-if (op == add || op == adc) {
-    $flags.c = C(S(SRC1), S(SRC2), S(res));
-    $flags.o = O(S(SRC1), S(SRC2), S(res));
-} else {
-    $flags.c = !C(S(SRC1), !S(SRC2), S(res));
-    $flags.o = O(S(SRC1), !S(SRC2), S(res));
-}
-DST = res;
-$flags.s = S(res);
-$flags.z = (res == 0);
-
-*/
-
+/// Performs an additional or subtraction, based on the instruction, and stores the result.
 pub fn addsub(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();
 
@@ -174,17 +151,92 @@ pub fn addsub(cpu: &mut Cpu, insn: &Instruction) -> usize {
     };
 
     // Store the result value accordingly.
+    utils::write_value_to_reg(cpu, insn.operand_size, destination, res);
+
+    // Set the remaining ALU flags.
+    cpu.registers.set_flag(
+        CpuFlag::NEGATIVE,
+        sign(cpu.registers[destination], insn.operand_size),
+    );
+    cpu.registers
+        .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
+/// Carries out a bitwise shift and stores the result.
+pub fn shift(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+
+    // Extract the instruction operands (register, register and register or immediate).
+    let destination = operands[0];
+    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
+    let mut source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+
+    // Truncate source2 accordingly, depending on the operand size.
     match insn.operand_size {
-        OperandSize::EightBit => cpu.registers[destination] &= !0xFF | res,
-        OperandSize::SixteenBit => cpu.registers[destination] &= !0xFFFF | res,
-        OperandSize::ThirtyTwoBit => cpu.registers[destination] = res,
+        OperandSize::EightBit => source2 &= 0x7,
+        OperandSize::SixteenBit => source2 &= 0xF,
+        OperandSize::ThirtyTwoBit => source2 &= 0x1F,
         _ => unreachable!(),
     };
 
+    // Carry out the operation and store the result.
+    let res = match insn.kind() {
+        InstructionKind::SHL | InstructionKind::SHLC => {
+            let mut result = source1.wrapping_shl(source2);
+
+            if insn.kind() == InstructionKind::SHLC && source2 != 0 {
+                result |= (cpu.registers.get_flag(CpuFlag::CARRY) as u32) << (source2 - 1);
+            }
+
+            if source2 == 0 {
+                cpu.registers.set_flag(CpuFlag::CARRY, false);
+            } else {
+                cpu.registers.set_flag(
+                    CpuFlag::CARRY,
+                    (source1 >> (insn.operand_size.value() as u32 - source2) & 1) != 0,
+                );
+            }
+
+            result
+        }
+        InstructionKind::SHR | InstructionKind::SAR | InstructionKind::SHRC => {
+            let mut result = source1.wrapping_shr(source2);
+
+            if insn.kind() == InstructionKind::SHRC && source2 != 0 {
+                result |= (cpu.registers.get_flag(CpuFlag::CARRY) as u32)
+                    << (insn.operand_size.value() as u32 - source2);
+            } else if insn.kind() == InstructionKind::SAR && sign(source1, insn.operand_size) {
+                result |= !0 << (insn.operand_size.value() as u32 - source2);
+            }
+
+            if source2 == 0 {
+                cpu.registers.set_flag(CpuFlag::CARRY, false);
+            } else {
+                cpu.registers
+                    .set_flag(CpuFlag::CARRY, ((source2 - 1) & 1) != 0);
+            }
+
+            result
+        }
+        _ => unreachable!(),
+    };
+
+    // Store the result value accordingly.
+    utils::write_value_to_reg(cpu, insn.operand_size, destination, res);
+
     // Set the remaining ALU flags.
+    cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
+    cpu.registers.set_flag(
+        CpuFlag::NEGATIVE,
+        sign(cpu.registers[destination], insn.operand_size),
+    );
     cpu.registers
-        .set_flag(CpuFlag::NEGATIVE, sign(res as u32, insn.operand_size));
-    cpu.registers.set_flag(CpuFlag::ZERO, res == 0);
+        .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
 
     // Signal regular PC increment to the CPU.
     cpu.increment_pc = true;
