@@ -69,6 +69,24 @@ number.
 clock_freq = 700.123456
 ```
 
+### [falcon.dma]
+
+Configuration options related to the DMA controller functionality of the Falcon.
+
+#### ports
+
+The external Falcon memory ports that should be emulated. A port is a buffer of memory that is allocated
+on the host system, which can be utilised as the source/destination of Falcon DMA transfers. These ports
+should be specified as objects, specifying the `index` (0-7), the emulated `start_addr` and the `size`.
+Up to 7 possible ports will be stored in an array by this configuration entry.
+
+```toml
+ports = [
+    { index = 0, start_addr = 0xDEADBEEF, size = 0x10 },
+    { index = 7, start_addr = 0xF00DBABE, size = 0x50 },
+]
+```
+
 ### [ptimer]
 
 Configuration options related to the timers that the Falcon uses and has access to.
