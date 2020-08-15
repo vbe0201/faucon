@@ -244,6 +244,45 @@ pub fn shift(cpu: &mut Cpu, insn: &Instruction) -> usize {
     1
 }
 
+/// Performs a unary binary operation.
+pub fn unary(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    let operands = insn.operands();
+    
+    // Extract the instruction operands (register and immediate).
+    let destination = operands[0];
+    let source = utils::get_value(cpu, insn.operand_size, operands[1]);
+    
+    // Carry out the operation and store the result.
+    match insn.kind() {
+
+        InstructionKind::NOT => {
+            cpu.registers[destination] = !source;
+            cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
+        }
+        InstructionKind::NEG => {
+            cpu.registers[destination] = source.wrapping_neg();
+            cpu.registers.set_flag(CpuFlag::OVERFLOW, 
+                                   cpu.registers[destination] == 1 << (insn.operand_size.value() - 1));
+        }
+        InstructionKind::HSWAP => {
+            cpu.registers[destination] = source >> (insn.operand_size.value() / 2) | source << (insn.operand_size.value() / 2);
+            cpu.registers.set_flag(CpuFlag::OVERFLOW, cpu.registers[destination] == 0);
+        }
+
+        _ => unreachable!(),
+
+    };
+
+    // Set the remaining ALU flags.
+    cpu.registers.set_flag(CpuFlag::NEGATIVE, sign(cpu.registers[destination], insn.operand_size));
+    cpu.registers.set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1
+}
+
 /// Sets the high 16 bits of a register ot a given value.
 pub fn sethi(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();

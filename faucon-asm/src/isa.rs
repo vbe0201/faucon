@@ -190,6 +190,27 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3C, subopcode = 0x0D, operands(R3, R2, R1))]
     SHRC,
 
+    /// The NOT instruction.
+    ///
+    /// Flips all bits in a value.
+    #[insn(opcode = 0x39, subopcode = 0x00, operands(R1, R2))]
+    #[insn(opcode = 0x3D, subopcode = 0x01, operands(R2, R2))]
+    NOT,
+
+    /// The NEG instruction.
+    ///
+    /// Negates a value
+    #[insn(opcode = 0x39, subopcode = 0x01, operands(R1, R2))]
+    #[insn(opcode = 0x3D, subopcode = 0x00, operands(R2, R2))]
+    NEG,
+
+    /// The HSWAP instruction.
+    ///
+    ///  Rotates a value by half it's size
+    #[insn(opcode = 0x39, subopcode = 0x03, operands(R1, R2))]
+    #[insn(opcode = 0x3D, subopcode = 0x03, operands(R2, R2))]
+    HSWAP,
+
     /// The SETHI instruction.
     ///
     /// Sets the high 16 bits of a register to a value, without thouching
@@ -380,7 +401,7 @@ pub enum InstructionKind {
     CALL,
 
     /// The LCALL instruction.
-    ///
+    ///3d
     /// Performs an unconditional branch to an absolute address, pushing
     /// the return address onto the stack.
     // FIXME: This is effectively just a CALL. Why is that a dedicated instruction?
@@ -521,6 +542,9 @@ impl fmt::Display for InstructionKind {
             InstructionKind::SAR => "sar",
             InstructionKind::SHLC => "shlc",
             InstructionKind::SHRC => "shrc",
+            InstructionKind::NOT => "not",
+            InstructionKind::NEG => "neg",
+            InstructionKind::HSWAP => "hswap",
             InstructionKind::SETHI => "sethi",
             InstructionKind::CLEAR => "clear",
             InstructionKind::MULU => "mulu",
