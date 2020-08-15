@@ -401,7 +401,7 @@ pub enum InstructionKind {
     CALL,
 
     /// The LCALL instruction.
-    ///3d
+    ///
     /// Performs an unconditional branch to an absolute address, pushing
     /// the return address onto the stack.
     // FIXME: This is effectively just a CALL. Why is that a dedicated instruction?
