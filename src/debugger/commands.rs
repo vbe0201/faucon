@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::str::FromStr;
 
-use nom::character::complete::{digit1, digit0, hex_digit1, space1};
+use nom::character::complete::{digit1, hex_digit1, space1};
 
 /// Commands that can be executed by the Falcon debugger.
 #[derive(Clone, Copy, Debug, PartialEq)]
