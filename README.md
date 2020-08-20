@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](./README.md#license)
 
 faucon aims to provide a comprehensive tooling suite for the Falcon microprocessors, including
-an assembler,a  disassembler, a CPU emulator for debugging purposes, and documentation on the
+an assembler, a  disassembler, a CPU emulator for debugging purposes, and documentation on the
 architecture. For the time being, faucon explicitly targets the fuc5 generation of these MCUs.
 
 See [the wiki](https://github.com/vbe0201/faucon/wiki) for architecture documentation.

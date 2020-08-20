@@ -226,7 +226,7 @@ pub const I24SX32: Argument = immediate!(I32, 1, 3, true, None, None);
 
 /// An unsigned 32-bit immediate.
 ///
-/// These are used for mov instructions.
+/// These are used for MOV instructions.
 pub const I32: Argument = immediate!(U32, 1, 4, false, None, None);
 
 /// A Falcon general-purpose register, encoded in the low 4 bits of the first

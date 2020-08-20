@@ -67,8 +67,8 @@ fn read_operands<R: Read>(
             continue;
         }
 
-        // If the argument is a _SizeSwitch helper, evaluate it and replace it
-        // through a real operand to save us some hassle later on.
+        // If the argument is a SizeConverter helper, evaluate it and replace
+        // it with a real operand to save us some hassle later on.
         if let Argument::SizeConverter(c) = operand {
             *operand = c(operand_size);
         }
