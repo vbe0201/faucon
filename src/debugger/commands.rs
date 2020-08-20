@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::str::FromStr;
 
+use faucon_asm::RegisterKind;
 use nom::character::complete::{digit1, hex_digit1, space1};
 
 /// Commands that can be executed by the Falcon debugger.
@@ -17,6 +18,11 @@ pub enum Command {
     /// Disassembles the next few instructions starting from the given
     /// address.
     Disassemble(u32, u32),
+    /// Dumps all registers that belong to the given [`RegisterKind`]
+    /// group.
+    ///
+    /// [`RegisterKind`]: /faucon-asm/operands/enum.RegisterKind.html
+    RegDump(RegisterKind),
 }
 
 impl FromStr for Command {
@@ -38,6 +44,7 @@ named!(
         | command_repeat
         | command_step
         | command_disassemble
+        | command_regdump
     )
 );
 
@@ -91,6 +98,22 @@ named!(
             >> count: opt!(preceded!(space1, integer))
             >> eof!()
             >> (Command::Disassemble(address, count.unwrap_or(10)))
+    )
+);
+
+named!(
+    command_regdump<&str, Command>,
+    do_parse!(
+        complete!(tag_no_case!("regdump"))
+            >> kind: preceded!(
+                space1,
+                alt!(
+                    flat_map!(complete!(tag_no_case!("gpr")), value!(RegisterKind::Gpr))
+                    | flat_map!(complete!(tag_no_case!("spr")), value!(RegisterKind::Spr))
+                )
+            )
+            >> eof!()
+            >> (Command::RegDump(kind))
     )
 );
 

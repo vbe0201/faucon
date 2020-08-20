@@ -2,7 +2,7 @@
 
 use std::io::{stdin, stdout, Write};
 
-use faucon_asm::read_instruction;
+use faucon_asm::{get_spr_name, read_instruction, RegisterKind};
 use faucon_emu::cpu::Cpu;
 
 use commands::Command;
@@ -66,6 +66,7 @@ impl Debugger {
                 Ok(Command::Repeat) => unreachable!(),
                 Ok(Command::Step(count)) => self.step(count),
                 Ok(Command::Disassemble(address, amount)) => self.disassemble(address, amount),
+                Ok(Command::RegDump(kind)) => self.regdump(kind),
                 Err(ref e) => error!("Failed to parse command:", "{:?}", e),
             }
 
@@ -80,10 +81,14 @@ impl Debugger {
         ok!("(h)elp", "- Shows this message");
         ok!("(e)xit/(q)uit", "- Exits the debugger");
         ok!("(r)epeat", "- Repeats the last command");
-        ok!("(s)tep [count]", "- Steps through [count|1] instructions.");
+        ok!("(s)tep [count]", "- Steps through [count|1] instructions");
         ok!(
-            "(dis)asm [addr] [amount]",
-            "- Disassembles the next [amount|10] instructions starting from virtual address [addr]."
+            "(dis)asm [addr] [10]",
+            "- Disassembles the next [amount|10] instructions starting from virtual address [addr]"
+        );
+        ok!(
+            "regdump [gpr|spr]",
+            "- Dumps all values from a given kind of registers"
         );
     }
 
@@ -115,6 +120,26 @@ impl Debugger {
                     break;
                 }
             };
+        }
+    }
+
+    fn regdump(&self, kind: RegisterKind) {
+        let registers = self.falcon.registers.debug_get(&kind);
+
+        for (i, regs) in registers.chunks(4).enumerate() {
+            for (mut j, reg) in regs.iter().enumerate() {
+                // Fix register indexing to produce correct name.
+                j += i << 2;
+
+                // Pretty-print the register.
+                let name = if kind == RegisterKind::Gpr {
+                    format!("r{}", j)
+                } else {
+                    get_spr_name(j).unwrap_or("unk").to_string()
+                };
+                print!("{:>5}: {:<10}", format!("${}", name), format!("{:#08X}", reg));
+            }
+            println!();
         }
     }
 }

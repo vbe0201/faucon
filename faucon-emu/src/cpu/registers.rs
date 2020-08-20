@@ -123,6 +123,13 @@ impl CpuRegisters {
     pub fn get_flag(&self, flag: CpuFlag) -> bool {
         (self[FLAGS] & flag as u32) != 0
     }
+
+    pub fn debug_get(&self, kind: &RegisterKind) -> &[u32] {
+        match kind {
+            RegisterKind::Gpr => &self.gpr,
+            RegisterKind::Spr => &self.spr,
+        }
+    }
 }
 
 impl Index<Register> for CpuRegisters {
