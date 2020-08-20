@@ -2,7 +2,7 @@
 
 [![Cargo Test](https://github.com/vbe0201/faucon/workflows/Cargo%20Test/badge.svg)](https://github.com/vbe0201/faucon)
 [![Cargo D0c](https://github.com/vbe0201/faucon/workflows/Cargo%20Doc/badge.svg)](https://github.com/vbe0201/faucon)
-[![Discord](https://img.shields.io/discord/439418034130780182?color=blue)](https://discord.gg/MZJbNZY)
+[![Discord](https://img.shields.io/discord/269333940928512010?color=blue)](https://discord.gg/ZdqEhed)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](./README.md#license)
 
 faucon aims to provide a comprehensive tooling suite for the Falcon microprocessors, including
@@ -28,13 +28,13 @@ Coming soon.
 
 ## Contributing
 
-The project is in a very early state and heavily WIP and contributors are welcome.
+The project is in a very early state and WIP. Contributions are welcome.
 
 Contributions to code and documentation are heavily appreciated, may it be a bug fix,
 a new feature, or improvement of the code or wiki documentation.
 
-Feel free to join the [Megaton Hammer Discord server](https://discord.gg/MZJbNZY) and
-reach out to `Vale#5252` in #mirage.
+Feel free to join the [ReSwitched Discord server](https://discord.gg/ZdqEhed) and
+reach out to `Vale#5252` in either #faucon or #switch-hacking-meta.
 
 ## Credits
 
@@ -46,6 +46,8 @@ project and the [Falcon LLVM backend insight](https://0x04.net/%7Emwk/Falcon.htm
 
 - [Thog](https://github.com/Thog) and [hthh](https://github.com/hthh) for the
 [ghidra-falcon](https://github.com/Thog/ghidra_falcon) project
+
+
 
 ## License
 
