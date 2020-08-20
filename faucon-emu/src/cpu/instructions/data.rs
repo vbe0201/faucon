@@ -1,8 +1,8 @@
 //! Instructions related to interfacing with the Falcon data segment.
 
-use faucon_asm::Instruction;
+use faucon_asm::{Instruction, Operand, Register, RegisterKind};
 
-use super::{utils, Cpu};
+use super::{branch::ret, utils, Cpu, SP};
 
 /// Loads a value from data segment to a register.
 pub fn ld(cpu: &mut Cpu, insn: &Instruction) -> usize {
@@ -64,4 +64,79 @@ pub fn pop(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.increment_pc = true;
 
     1
+}
+
+/// Pushes a specified range of registers onto the stack.
+pub fn mpush(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    // Extract the instruction operand (a single register).
+    if let Operand::Register(reg) = insn.operands()[0] {
+        // Push the described range of registers onto the stack.
+        for i in 0..reg.1 {
+            let fake_reg = Register(RegisterKind::Gpr, i);
+            cpu.stack_push(cpu.registers[fake_reg]);
+        }
+    } else {
+        unreachable!();
+    }
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1 // TODO: Is this really one cycle?
+}
+
+/// Pops a specified range of registers off the stack.
+pub fn mpop(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    // Extract the instruction operand (a single register).
+    if let Operand::Register(reg) = insn.operands()[0] {
+        // Pop the described range of registers off the stack.
+        for i in 0..reg.1 {
+            let fake_reg = Register(RegisterKind::Gpr, i);
+            cpu.registers[fake_reg] = cpu.stack_pop();
+        }
+    } else {
+        unreachable!();
+    }
+
+    // Signal regular PC increment to the CPU.
+    cpu.increment_pc = true;
+
+    1 // TODO: Is this really one cycle?
+}
+
+/// Pops a specified range of registers off the stack and adds an immediate to $sp.
+pub fn mpopadd(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    // Execute the mpop instruction using the first operand (a register).
+    mpop(cpu, insn);
+
+    // Add the second operand (an immediate) to the $sp register.
+    if let Operand::I32(imm) = insn.operands()[1] {
+        cpu.registers[SP] = cpu.registers[SP].wrapping_add(imm);
+    } else {
+        unreachable!();
+    }
+
+    2
+}
+
+/// Pops a specified range of registers off the stack and returns.
+pub fn mpopret(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    // Execute the mpop instruction using the first operand (a register).
+    mpop(cpu, insn);
+
+    // Execute the ret instruction.
+    ret(cpu, insn);
+
+    2
+}
+
+/// Pops a specified range of registers off the stack, adds an immediate to $sp and returns.
+pub fn mpopaddret(cpu: &mut Cpu, insn: &Instruction) -> usize {
+    // Execute the mpopadd instruction using the instruction operands.
+    mpopadd(cpu, insn);
+
+    // Execute the ret instruction.
+    ret(cpu, insn);
+
+    2
 }

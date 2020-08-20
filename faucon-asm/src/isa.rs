@@ -391,6 +391,51 @@ pub enum InstructionKind {
     #[insn(opcode = 0xFC, subopcode = 0x00, operands(R2))]
     POP,
 
+    /// The MPUSH instruction.
+    ///
+    /// Pushes all registers in the range from $r0 to $rX (the supplied operand)
+    /// onto the stack.
+    #[insn(opcode = 0xF9, subopcode = 0x02, operands(R2))]
+    MPUSH,
+
+    /// The MPOP instruction.
+    ///
+    /// Pops as many values off the stack as there are registers in the range from
+    /// $r0 to $rX (the supplied operand).
+    #[insn(opcode = 0xFB, subopcode = 0x00, operands(R2))]
+    MPOP,
+
+    /// The MPOPADD instruction.
+    ///
+    /// This instruction essentially executes a [`InstructionKind::MPOP`] and finally
+    /// adds the supplied immediate value to the $sp register.
+    ///
+    /// [`InstructionKind::MPOP`]: enum.InstructionKind.html#variant.MPOP
+    #[insn(opcode = 0xFB, subopcode = 0x02, operands(R2, I16SX32))]
+    #[insn(opcode = 0xFB, subopcode = 0x04, operands(R2, I8SX32))]
+    MPOPADD,
+
+    /// The MPOPRET instruction.
+    ///
+    /// This instruction essentially executes a [`InstructionKind::MPOP`] followed by
+    /// a [`InstructionKind::RET`].
+    ///
+    /// [`InstructionKind::MPOP`]: enum.InstructionKind.html#variant.MPOP
+    /// [`InstructionKind::RET`]: enum.InstructionKind.html#variant.RET
+    #[insn(opcode = 0xFB, subopcode = 0x01, operands(R2))]
+    MPOPRET,
+
+    /// The MPOPADDRET instruction.
+    ///
+    /// This instruction essentially executes a [`InstructionKind::MPOPADD`] followed
+    /// by a [`InstructionKind::RET`].
+    ///
+    /// [`InstructionKind::MPOPADD`]: enum.InstructionKind.html#variant.MPOPADD
+    /// [`InstructionKind::RET`]: enum.InstructionKind.html#variant.RET
+    #[insn(opcode = 0xFB, subopcode = 0x03, operands(R2, I16SX32))]
+    #[insn(opcode = 0xFB, subopcode = 0x05, operands(R2, I8SX32))]
+    MPOPADDRET,
+
     /// The CALL instruction.
     ///
     /// Performs an unconditional branch to an absolute address, pushing
@@ -565,6 +610,11 @@ impl fmt::Display for InstructionKind {
             InstructionKind::ST => "st",
             InstructionKind::PUSH => "push",
             InstructionKind::POP => "pop",
+            InstructionKind::MPUSH => "mpush",
+            InstructionKind::MPOP => "mpop",
+            InstructionKind::MPOPADD => "mpopadd",
+            InstructionKind::MPOPRET => "mpopret",
+            InstructionKind::MPOPADDRET => "mpopaddret",
             InstructionKind::CALL => "call",
             InstructionKind::LCALL => "lcall",
             InstructionKind::LJMP => "ljmp",
