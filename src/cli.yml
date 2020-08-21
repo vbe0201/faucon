@@ -1,0 +1,36 @@
+# Definition of the faucon command-line interface that the user interacts with.
+
+name: faucon
+version: "0.1"
+about: A comprehensive tooling suite for NVIDIA Falcon microprocessors
+author: Valentin B. <valentin.be@protonmail.com>
+
+# If no arguments were supplied, the help command should be invoked
+# to inform the user about how to use the CLI tool.
+settings:
+  - ArgRequiredElseHelp
+
+# Breakdown of the CLI arguments that the application takes.
+args:
+  - config:
+      short: c
+      long: config
+      value_name: FILE
+      help: Sets a configuration file for the faucon tools
+      takes_value: true
+
+# Breakdown of the subcommands for invoking individual faucon tools.
+subcommands:
+  # A subcommand for telling faucon to invoke the emulator on the supplied
+  # binary and start the interactive debugger REPL for dynamic analysis.
+  - emu:
+      about: Starts the dynamic faucon emulator for binary analysis
+      version: "0.1"
+      author: Valentin B. <valentin.be@protonmail.com>
+      args:
+        - binary:
+            short: bin
+            long: binary
+            value_name: FILE
+            help: The Falcon binary to load in for analysis
+            takes_value: true

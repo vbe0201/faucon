@@ -137,7 +137,11 @@ impl Debugger {
                 } else {
                     get_spr_name(j).unwrap_or("unk").to_string()
                 };
-                print!("{:>5}: {:<10}", format!("${}", name), format!("{:#08X}", reg));
+                print!(
+                    "{:>5}: {:<10}",
+                    format!("${}", name),
+                    format!("{:#08X}", reg)
+                );
             }
             println!();
         }
