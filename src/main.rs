@@ -11,6 +11,7 @@ use faucon_emu::cpu::Cpu;
 #[macro_use]
 mod macros;
 mod code;
+mod config;
 mod debugger;
 
 fn main() {
