@@ -112,3 +112,83 @@ point in the future. The frequency should be specified in MHz as a floating-poin
 ```toml
 watchdog_freq = 772.081543
 ```
+
+### [scp]
+
+Configuration options related to the Security Co-Processor of the Falcon.
+
+**NOTE:** Many Falcon engines don't have the SCP hardware for cryptographic operations and thus the
+entire group of configuration entries is optional and can be left away.
+
+#### secrets
+
+The Falcon has access to 64 128-bit AES keys which are burned into silicon at factory. These keys are the
+basis for most cryptographic operations done by the hardware. faucon allows for loading in arbitrary secrets
+for debugging purposes. Missing keys will be compensated by using sequences of zeroes instead.
+
+Some of the secrets can be obtained in a chain of exploits on the Falcon processor itself or microcode for it
+that is authenticated into Heavy Secure Mode. Others are unobtainble other than through hardware glitching
+attacks.
+
+```toml
+secrets = [
+    { index = 0x00, key = "00000000000000000000000000000000" },
+    { index = 0x3F, key = "0123456789ABCDEF0123456789ABCDEF" },
+]
+```
+
+### [scp.auth]
+
+Configuration options related to the Heavy Secure Mode authenticating process that cryptographically
+signed microcode can go through.
+
+#### bypass
+
+Controls whether the Heavy Secure Mode authentication should be bypassed entirely. This allows for arbitrary,
+unsigned microcode to be granted HS privileges.
+
+Defaults to `false`. Although this option bypasses signing restrictions, encrypted blobs will still be loaded
+as garbage data, likely to crash the emulator. This option is mostly meant for debugging custom code.
+
+```toml
+bypass = true
+```
+
+#### signing_key
+
+The signing key that should be used to verify code before granting Heavy Secure Mode privileges.
+
+The algorithm that is used by real Falcon engines to derive this key is
+`aes_encrypt(csecret(0x1), "00000000000000000000000000000000")`. Due to ACL protections on the Falcon
+keys however, secret 0x1 is unobtainium except with a cumbersome hardware glitching process.
+
+In regards to the fake-signing vulnerability on the Falcon, which allows for `aes_encrypt(csecret(0x1), $c7)`
+with an arbitrary seed in $c7, allowing users to abuse the `csigenc` instruction to craft a signing key with
+secret 0x1 and the auth signature of the currently running secure payload as the seed for $c7, this option
+fulfils a similar purpose.
+
+This can also be used to specify the real signing key (obtainable via a certain undisclosed bootrom vulnerability)
+used by NVIDIA, if lacking the plaintext of secret 0x1.
+
+**NOTE:** As stated at the beginning, the official algorithm relies on secret 0x1. This configuration key is
+entirely optional, as the algorithm doesn't rely on it. In such a case, the 0x1 secret is mandatory.
+
+```toml
+signing_key = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+```
+
+#### encryption_secret
+
+Bit 17 in the `$sec` register decides whether the Falcon should decrypt the supplied code blob first before doing
+Heavy Secure Mode authentication. Real hardware utilizes secret 0x6 for this process.
+
+The same issue as for the signing_key problem is given here, secret 0x6 is unobtainium except with glitching.
+Thus, users can control which secret to use for the crypto. Keep in mind that encrypted microcode by NVIDIA cannot
+be emulated in this case.
+
+**NOTE:** The official algorithm relies on secret 0x6. This configuration key is entirely optional, as the algorithm
+doesn't rely on it. In such a case, the 0x6 secret is mandatory.
+
+```toml
+encryption_secret = 0x6
+```
