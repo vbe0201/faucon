@@ -68,7 +68,11 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    color_eyre::install()?;
+    color_eyre::config::HookBuilder::default()
+        .panic_note(
+            "Consider reporting the bug on github (https://github.com/vbe0201/faucon/issues)",
+        )
+        .install()?;
 
     // Build the CLI.
     let cli = load_yaml!("cli.yml");

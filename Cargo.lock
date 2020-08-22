@@ -95,7 +95,7 @@ dependencies = [
 [[package]]
 name = "color-eyre"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/Stupremee/color-eyre#36f3cf19a3941e718be7e82288e1eaad02154f0c"
 dependencies = [
  "ansi_term 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.3.50 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -126,7 +126,7 @@ name = "faucon"
 version = "0.1.0"
 dependencies = [
  "clap 2.33.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "color-eyre 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "color-eyre 0.5.1 (git+https://github.com/Stupremee/color-eyre)",
  "faucon-asm 0.1.0",
  "faucon-emu 0.1.0",
  "nom 5.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -422,7 +422,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum byteorder 1.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
 "checksum cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 "checksum clap 2.33.3 (registry+https://github.com/rust-lang/crates.io-index)" = "37e58ac78573c40708d45522f0d80fa2f01cc4f9b4e2bf749807255454312002"
-"checksum color-eyre 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "028eb0f4472a78c8f7b82751eedb5326dcb2a00c8ba89454e2d0df819d856e2c"
+"checksum color-eyre 0.5.1 (git+https://github.com/Stupremee/color-eyre)" = "<none>"
 "checksum enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "be4551092f4d519593039259a9ed8daedf0da12e5109c5280338073eaeb81180"
 "checksum eyre 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b0f9683839e579a53258d377fcc0073ca0bf2042ac5e6c60a598069e64403a6d"
 "checksum gimli 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aaf91faf136cb47367fa430cd46e37a788775e7fa104f8b4bcb3861dc389b724"
