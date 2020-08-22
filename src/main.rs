@@ -24,6 +24,8 @@ use config::Config;
 use debugger::Debugger;
 use faucon_emu::cpu::Cpu;
 
+const CONFIG_ENV: &str = "FAUCON_CONFIG";
+
 fn read_config<P: AsRef<Path>>(config: Option<P>) -> Result<Config> {
     // Check for the config CLI argument.
     if let Some(path) = config {
@@ -31,12 +33,16 @@ fn read_config<P: AsRef<Path>>(config: Option<P>) -> Result<Config> {
     }
 
     // Check for the FAUCON_CONFIG environment variable.
-    if let Ok(path) = env::var("FAUCON_CONFIG") {
+    if let Ok(path) = env::var(CONFIG_ENV) {
         return Ok(Config::load(&path)?);
     }
 
-    Err(eyre!("no config provided"))
-        .suggestion("provide a config via the -c flag or the FAUCON_CONFIG environment variable")
+    Err(eyre!("no config provided")).with_suggestion(|| {
+        format!(
+            "provide a config via the -c flag or the {} environment variable",
+            CONFIG_ENV
+        )
+    })
 }
 
 fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
@@ -76,7 +82,7 @@ fn main() -> Result<()> {
             run_emulator(bin, config)?;
         } else {
             return Err(eyre!("no binary file to run provided"))
-                .suggestion("provide a binary file using the -bin argument");
+                .suggestion("provide a binary file using the -b argument");
         }
     } else {
         unreachable!()

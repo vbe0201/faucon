@@ -9,8 +9,8 @@ clock_freq = 700.123456
 
 [falcon.dma]
 ports = [
-    { index = 0, start_address = 0xDEADBEEF, size = 0x10 },
-    { index = 7, start_address = 0xF00DBABE, size = 0x50 },
+    { index = 0, start_addr = 0xDEADBEEF, size = 0x10 },
+    { index = 7, start_addr = 0xF00DBABE, size = 0x50 },
 ]
 
 [ptimer]

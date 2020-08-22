@@ -80,6 +80,7 @@ pub struct Port {
     #[serde(deserialize_with = "deserialize_port")]
     pub index: usize,
     /// The start address of the corresponding memory region.
+    #[serde(rename = "start_addr")]
     pub start_address: u32,
     /// The size of the corresponding memory region.
     pub size: u32,
