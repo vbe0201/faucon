@@ -6,9 +6,9 @@ be loaded from an arbitrary path supplied by the user.
 
 There are two ways to specify the faucon configuration location:
 
-* 1. An environment variable `FAUCON_CONFIG`, specifying the path to the file
+* An environment variable `FAUCON_CONFIG`, specifying the path to the file
 
-* 2. As an argument to faucon via the `--config` flag
+* As an argument to faucon via the `--config` flag
 
 ```sh
 # Set the environment variable for the faucon configuration.
