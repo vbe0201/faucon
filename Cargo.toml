@@ -17,6 +17,7 @@ faucon-emu = { path = "faucon-emu" }
 nom = "5.1.2"
 termcolor = "1.1"
 toml = "0.5"
+color-eyre = { version = "0.5.1", default-features = false }
 
 [dependencies.clap]
 version = "2.33"
@@ -25,3 +26,7 @@ features = ["yaml"]
 [dependencies.serde]
 version = "1.0"
 features = ["derive"]
+
+# Faster backtraces on debug profile
+[profile.dev.package.backtrace]
+opt-level = 3

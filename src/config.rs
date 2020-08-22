@@ -20,10 +20,10 @@ impl Config {
     /// into a [`Config`] instance.
     ///
     /// [`Config`]: struct.Config.html
-    pub fn load<P: AsRef<Path>>(path: &P) -> Self {
-        let config = fs::read_to_string(path).expect("The supplied path does not exist");
+    pub fn load<P: AsRef<Path>>(path: &P) -> color_eyre::Result<Self> {
+        let config = fs::read_to_string(path)?;
 
-        toml::from_str(&config).unwrap()
+        Ok(toml::from_str(&config)?)
     }
 }
 
@@ -105,15 +105,12 @@ where
     let value = toml::Value::deserialize(deserializer)?;
 
     match usize::deserialize(value) {
-        Ok(version) => {
-            if version != 5 {
-                panic!("For the time being, only fuc5 emulation is supported");
-            }
-
-            Ok(version)
-        }
+        Ok(5) => Ok(5),
+        Ok(_) => Err(de::Error::custom(
+            "for the time being, only fuc5 emulation is supported",
+        )),
         Err(_) => Err(de::Error::custom(
-            "Invalid value for 'version' key in [falcon] config",
+            "invalid value for 'version' key in [falcon] config",
         )),
     }
 }
@@ -127,7 +124,7 @@ where
     match f32::deserialize(value) {
         Ok(clock_freq) => Ok(clock_freq * 10f32.powf(6.0)),
         Err(_) => Err(de::Error::custom(
-            "Invalid value for 'clock_freq' key in [falcon] config",
+            "invalid value for 'clock_freq' key in [falcon] config",
         )),
     }
 }
@@ -139,15 +136,12 @@ where
     let value = toml::Value::deserialize(deserializer)?;
 
     match usize::deserialize(value) {
-        Ok(port) => {
-            if port > 7 {
-                panic!("Only DMA ports from 0 through 7 are supported");
-            }
-
-            Ok(port)
-        }
+        Ok(port @ 0..=7) => Ok(port),
+        Ok(_) => Err(de::Error::custom(
+            "only DMA ports from 0 through 7 are supported",
+        )),
         Err(_) => Err(de::Error::custom(
-            "Invalid value for 'index' field in port object",
+            "invalid value for 'index' field in port object",
         )),
     }
 }
