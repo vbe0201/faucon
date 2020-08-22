@@ -15,54 +15,82 @@ use std::env;
 use std::path::Path;
 
 use clap::App;
+use color_eyre::{
+    eyre::{eyre, WrapErr},
+    Result, Section,
+};
 
 use config::Config;
 use debugger::Debugger;
 use faucon_emu::cpu::Cpu;
 
-fn read_config<P: AsRef<Path>>(config: Option<P>) -> Option<Config> {
+const CONFIG_ENV: &str = "FAUCON_CONFIG";
+
+fn read_config<P: AsRef<Path>>(config: Option<P>) -> Result<Config> {
     // Check for the config CLI argument.
     if let Some(path) = config {
-        return Some(Config::load(&path));
+        return Ok(Config::load(&path)?);
     }
 
     // Check for the FAUCON_CONFIG environment variable.
-    if let Ok(path) = env::var("FAUCON_CONFIG") {
-        return Some(Config::load(&path));
+    if let Ok(path) = env::var(CONFIG_ENV) {
+        return Ok(Config::load(&path)?);
     }
 
-    None
+    Err(eyre!("no config provided")).with_suggestion(|| {
+        format!(
+            "provide a config via the -c flag or the {} environment variable",
+            CONFIG_ENV
+        )
+    })
 }
 
-fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) {
+fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
     // Prepare the CPU and load the supplied binary into IMEM.
     let mut cpu = Cpu::new();
     if let Err(()) = code::upload_to_imem(&mut cpu, 0, 0, &code::read_falcon_binary(bin)) {
-        error!("Failed to upload code:", "The binary is too large!");
-        return;
+        return Err(eyre!("the binary file is too large"))
+            .wrap_err("failed to upload code")
+            .with_suggestion(|| {
+                format!(
+                    "load a binary that is smaller than {} bytes \
+                    or increase the IMEM size in the config",
+                    config.falcon.get_imem_size()
+                )
+            });
     }
 
     // Create the debugger and run the REPL until the user exits.
     let mut debugger = Debugger::new(cpu);
     debugger.run();
+
+    Ok(())
 }
 
-fn main() {
+fn main() -> Result<()> {
+    color_eyre::config::HookBuilder::default()
+        .panic_note(
+            "Consider reporting the bug on github (https://github.com/vbe0201/faucon/issues)",
+        )
+        .install()?;
+
     // Build the CLI.
     let cli = load_yaml!("cli.yml");
     let matches = App::from_yaml(cli).get_matches();
 
     // Read the configuration file.
-    let config = read_config(matches.value_of("config"))
-        .expect("Please supply a value to the -c option or set the FAUCON_CONFIG env variable");
+    let config = read_config(matches.value_of("config")).wrap_err("failed to load config")?;
 
     if let Some(matches) = matches.subcommand_matches("emu") {
         if let Some(bin) = matches.value_of("binary") {
-            run_emulator(bin, config);
+            run_emulator(bin, config)?;
         } else {
-            panic!("Please provide a binary that should be loaded into the emulator")
+            return Err(eyre!("no binary file to run provided"))
+                .suggestion("provide a binary file using the -b argument");
         }
     } else {
-        panic!("Please use a subcommand to invoke a tool. See `faucon help` for details");
+        unreachable!()
     }
+
+    Ok(())
 }
