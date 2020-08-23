@@ -12,7 +12,7 @@ mod commands;
 mod helper;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const PROMPT: &str = "faucon>";
+const PROMPT: &str = "faucon> ";
 
 /// The debugger used by the faucon emulator.
 ///

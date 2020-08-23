@@ -56,7 +56,7 @@ impl Completer for Helper {
             .map(|x| CompletionCandidate { display: x })
             .collect::<Vec<_>>();
 
-        Ok((idx + 1, commands))
+        Ok((idx, commands))
     }
 }
 
@@ -74,25 +74,7 @@ impl Highlighter for Helper {
         let hint = Style::new().dimmed().paint(hint);
         Cow::Owned(hint.to_string())
     }
-
-    fn highlight_candidate<'c>(
-        &self,
-        candidate: &'c str,
-        completion: rustyline::CompletionType,
-    ) -> Cow<'c, str> {
-        let candidate = Style::new().dimmed().paint(candidate);
-        Cow::Owned(candidate.to_string())
-    }
 }
 
-impl Hinter for Helper {
-    fn hint(&self, line: &str, pos: usize, ctx: &rustyline::Context<'_>) -> Option<String> {
-        let start = &line[..pos];
-        self.commands
-            .iter()
-            .find(|cmd| cmd.starts_with(start))
-            .map(|hint| String::from(&hint[start.len()..]))
-    }
-}
-
+impl Hinter for Helper {}
 impl Validator for Helper {}

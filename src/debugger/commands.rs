@@ -18,9 +18,11 @@ macro_rules! enum_variants {
             ),+
         }
 
-        impl $e {
-            pub const fn variants() -> &'static [&'static str] {
-                &[$(stringify!($v)),+]
+        paste::paste! {
+            impl $e {
+                pub const fn variants() -> &'static [&'static str] {
+                    &[$(stringify!([<$v:lower>])),+]
+                }
             }
         }
     };
