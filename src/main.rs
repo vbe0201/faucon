@@ -45,10 +45,10 @@ fn read_config<P: AsRef<Path>>(config: Option<P>) -> Result<Config> {
     })
 }
 
-fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
+fn run_emulator<P: AsRef<Path>>(bin: P, config: Config, vi_mode: bool) -> Result<()> {
     // Prepare the CPU and load the supplied binary into IMEM.
     let mut cpu = Cpu::new();
-    if let Err(()) = code::upload_to_imem(&mut cpu, 0, 0, &code::read_falcon_binary(bin)) {
+    if let Err(()) = code::upload_to_imem(&mut cpu, 0, 0, &code::read_falcon_binary(bin)?) {
         return Err(eyre!("the binary file is too large"))
             .wrap_err("failed to upload code")
             .with_suggestion(|| {
@@ -61,7 +61,7 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
     }
 
     // Create the debugger and run the REPL until the user exits.
-    let mut debugger = Debugger::new(cpu);
+    let mut debugger = Debugger::new(cpu, vi_mode);
     debugger.run().wrap_err("error in debugger repl occurred")?;
 
     Ok(())
@@ -83,7 +83,7 @@ fn main() -> Result<()> {
 
     if let Some(matches) = matches.subcommand_matches("emu") {
         if let Some(bin) = matches.value_of("binary") {
-            run_emulator(bin, config)?;
+            run_emulator(bin, config, matches.is_present("vi-mode"))?;
         } else {
             return Err(eyre!("no binary file to run provided"))
                 .suggestion("provide a binary file using the -b argument");
