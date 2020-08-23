@@ -96,7 +96,7 @@ impl Debugger {
             Ok(Command::Step(count)) => self.step(count),
             Ok(Command::Disassemble(address, amount)) => self.disassemble(address, amount),
             Ok(Command::RegDump(kind)) => self.regdump(kind),
-            Err(ref e) => error!("Failed to parse command:", "{:?}", e),
+            Err(ref e) => error!("Failed to parse command:", "{}", e),
         }
 
         // Store the command so the repeat command can find it.

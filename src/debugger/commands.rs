@@ -2,7 +2,10 @@ use std::borrow::Cow;
 use std::str::FromStr;
 
 use faucon_asm::RegisterKind;
-use nom::character::complete::{digit1, hex_digit1, space1};
+use nom::{
+    character::complete::{digit1, hex_digit1, space1},
+    error::VerboseError,
+};
 
 /// Helper macro that will generate a `variants` method on an enum
 /// and is used so that we don't have to write out the list ourselfs.
@@ -59,13 +62,16 @@ impl FromStr for Command {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match command(s) {
             Ok((_, c)) => Ok(c),
-            e => Err(format!("{:?}", e).into()),
+            Err(nom::Err::Failure(err)) | Err(nom::Err::Error(err)) => {
+                Err(format!("\n{}", nom::error::convert_error(s, err)).into())
+            }
+            Err(e) => Err(format!("{}", s).into()),
         }
     }
 }
 
 named!(
-    command<&str, Command>,
+    command<&str, Command, VerboseError<&str>>,
     alt!(
         command_help
         | command_exit
@@ -77,7 +83,7 @@ named!(
 );
 
 named!(
-    command_help<&str, Command>,
+    command_help<&str, Command, VerboseError<&str>>,
     do_parse!(
         alt!(complete!(tag_no_case!("help")) | complete!(tag_no_case!("h")))
             >> eof!()
@@ -86,7 +92,7 @@ named!(
 );
 
 named!(
-    command_exit<&str, Command>,
+    command_exit<&str, Command, VerboseError<&str>>,
     do_parse!(
         alt!(
             complete!(tag_no_case!("exit"))
@@ -100,7 +106,7 @@ named!(
 );
 
 named!(
-    command_repeat<&str, Command>,
+    command_repeat<&str, Command, VerboseError<&str>>,
     do_parse!(
         alt!(complete!(tag_no_case!("repeat")) | complete!(tag_no_case!("r")))
             >> eof!()
@@ -109,7 +115,7 @@ named!(
 );
 
 named!(
-    command_step<&str, Command>,
+    command_step<&str, Command, VerboseError<&str>>,
     do_parse!(
         alt!(complete!(tag_no_case!("step")) | complete!(tag_no_case!("s")))
             >> count: opt!(preceded!(space1, integer))
@@ -119,7 +125,7 @@ named!(
 );
 
 named!(
-    command_disassemble<&str, Command>,
+    command_disassemble<&str, Command, VerboseError<&str>>,
     do_parse!(
         alt!(complete!(tag_no_case!("disasm")) | complete!(tag_no_case!("dis")))
             >> address: preceded!(space1, integer)
@@ -130,7 +136,7 @@ named!(
 );
 
 named!(
-    command_regdump<&str, Command>,
+    command_regdump<&str, Command, VerboseError<&str>>,
     do_parse!(
         complete!(tag_no_case!("regdump"))
             >> kind: preceded!(
@@ -146,7 +152,7 @@ named!(
 );
 
 named!(
-    integer<&str, u32>,
+    integer<&str, u32, VerboseError<&str>>,
     alt!(
         preceded!(
             complete!(tag!("0x")),
