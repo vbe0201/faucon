@@ -1,11 +1,11 @@
 use std::error::Error;
 use std::io::Write;
 
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
+use ansi_term::Color;
 
 macro_rules! ok {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print($title, $msg, termcolor::Color::Green).unwrap();
+        $crate::macros::print($title, $msg, ansi_term::Color::Green);
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -15,7 +15,7 @@ macro_rules! ok {
 
 macro_rules! info {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print($title, $msg, termcolor::Color::Cyan).unwrap();
+        $crate::macros::print($title, $msg, ansi_term::Color::Cyan);
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -25,7 +25,7 @@ macro_rules! info {
 
 macro_rules! error {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print($title, $msg, termcolor::Color::Red).unwrap();
+        $crate::macros::print($title, $msg, ansi_term::Color::Red);
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -33,17 +33,7 @@ macro_rules! error {
     };
 }
 
-pub(super) fn print(title: &str, msg: &str, color: Color) -> Result<(), Box<dyn Error>> {
-    let stdout = StandardStream::stdout(ColorChoice::Always);
-    let mut stdout = stdout.lock();
-
-    stdout.set_color(ColorSpec::new().set_bold(true).set_fg(Some(color)))?;
-
-    write!(stdout, "{:<15}", title)?;
-
-    stdout.reset()?;
-    writeln!(stdout, " {}", msg)?;
-    stdout.flush()?;
-
-    Ok(())
+pub(super) fn print(title: &str, msg: &str, color: Color) {
+    print!("{:<15}", color.paint(title));
+    println!(" {}", msg);
 }
