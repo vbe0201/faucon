@@ -4,10 +4,15 @@ use std::io::{stdin, stdout, Write};
 
 use faucon_asm::{get_spr_name, read_instruction, RegisterKind};
 use faucon_emu::cpu::Cpu;
+use rustyline::{error::ReadlineError, Cmd, Config, Editor, KeyPress};
 
 use commands::Command;
 
 mod commands;
+mod helper;
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const PROMPT: &str = "faucon>";
 
 /// The debugger used by the faucon emulator.
 ///
@@ -21,6 +26,8 @@ pub struct Debugger {
     falcon: Cpu,
     /// The last command that was processed.
     last_command: Option<Command>,
+    /// The `Editor` that is used for the `rustyline` integration.
+    editor: Editor<helper::Helper>,
 }
 
 impl Debugger {
@@ -29,9 +36,24 @@ impl Debugger {
     ///
     /// [`Cpu`]: ../cpu/struct.Cpu.html
     pub fn new(falcon: Cpu) -> Self {
+        let config = Config::builder()
+            .history_ignore_space(false)
+            .completion_type(rustyline::CompletionType::List)
+            // TODO: Allow starting in vim mode
+            .edit_mode(rustyline::EditMode::Emacs)
+            .max_history_size(1000)
+            .build();
+        let mut editor = Editor::with_config(config);
+        editor.set_helper(Some(helper::Helper::default()));
+
+        editor.bind_sequence(KeyPress::Up, Cmd::LineUpOrPreviousHistory(1));
+        editor.bind_sequence(KeyPress::Down, Cmd::LineDownOrNextHistory(1));
+        editor.bind_sequence(KeyPress::Tab, Cmd::Complete);
+
         Debugger {
             falcon,
             last_command: None,
+            editor,
         }
     }
 
@@ -40,39 +62,45 @@ impl Debugger {
     /// The debugger reads and processes input in an infinite loop,
     /// executing a given set of helpful commands for examining the
     /// emulated binary.
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> rustyline::Result<()> {
+        // TODO: store and load history on disk
+        println!("Faucon {}", VERSION);
+        println!("Type 'help' for more information");
+
         loop {
-            // Print the debugger cursor.
-            print!("faucon> ");
-            stdout().flush().unwrap();
-
-            // Read input and continue if no command was supplied.
-            let input = read_input();
-            if input.is_empty() {
-                continue;
+            let line = self.editor.readline(PROMPT);
+            match line {
+                Ok(line) => self.execute_line(line),
+                // Ctrl + c will abort the current line.
+                Err(ReadlineError::Interrupted) => continue,
+                // Ctrl + d will exit the repl.
+                Err(ReadlineError::Eof) => return Ok(()),
+                Err(err) => return Err(err),
             }
-
-            // Parse and execute the command.
-            let command = match (input.parse(), self.last_command) {
-                (Ok(Command::Repeat), Some(command)) => Ok(command),
-                (Ok(Command::Repeat), None) => Err("No last command available".into()),
-                (Ok(command), _) => Ok(command),
-                (Err(e), _) => Err(e),
-            };
-
-            match command {
-                Ok(Command::Help) => self.show_help(),
-                Ok(Command::Exit) => break,
-                Ok(Command::Repeat) => unreachable!(),
-                Ok(Command::Step(count)) => self.step(count),
-                Ok(Command::Disassemble(address, amount)) => self.disassemble(address, amount),
-                Ok(Command::RegDump(kind)) => self.regdump(kind),
-                Err(ref e) => error!("Failed to parse command:", "{:?}", e),
-            }
-
-            // Store the command so the repeat command can find it.
-            self.last_command = command.ok();
         }
+    }
+
+    fn execute_line(&mut self, input: String) {
+        // Parse and execute the command.
+        let command = match (input.parse(), self.last_command) {
+            (Ok(Command::Repeat), Some(command)) => Ok(command),
+            (Ok(Command::Repeat), None) => Err("No last command available".into()),
+            (Ok(command), _) => Ok(command),
+            (Err(e), _) => Err(e),
+        };
+
+        match command {
+            Ok(Command::Help) => self.show_help(),
+            Ok(Command::Exit) => std::process::exit(0),
+            Ok(Command::Repeat) => unreachable!(),
+            Ok(Command::Step(count)) => self.step(count),
+            Ok(Command::Disassemble(address, amount)) => self.disassemble(address, amount),
+            Ok(Command::RegDump(kind)) => self.regdump(kind),
+            Err(ref e) => error!("Failed to parse command:", "{:?}", e),
+        }
+
+        // Store the command so the repeat command can find it.
+        self.last_command = command.ok();
     }
 
     /// Shows help details for the debugger.

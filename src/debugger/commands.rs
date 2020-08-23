@@ -4,6 +4,30 @@ use std::str::FromStr;
 use faucon_asm::RegisterKind;
 use nom::character::complete::{digit1, hex_digit1, space1};
 
+/// Helper macro that will generate a `variants` method on an enum
+/// and is used so that we don't have to write out the list ourselfs.
+///
+/// Currently it doesn't support struct enum variants.
+macro_rules! enum_variants {
+    ($(#[$($m:meta),+])+ pub enum $e:ident { $($(#[$vm:meta])+ $v:ident$(($($ty:path),+))?),+$(,)? }) => {
+        $(#[$($m),+])+
+        pub enum $e {
+            $(
+            $(#[$vm])+
+            $v$(($($ty),+))?
+            ),+
+        }
+
+        impl $e {
+            pub const fn variants() -> &'static [&'static str] {
+                &[$(stringify!($v)),+]
+            }
+        }
+    };
+}
+
+enum_variants! {
+
 /// Commands that can be executed by the Falcon debugger.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Command {
@@ -23,6 +47,8 @@ pub enum Command {
     ///
     /// [`RegisterKind`]: /faucon-asm/operands/enum.RegisterKind.html
     RegDump(RegisterKind),
+}
+
 }
 
 impl FromStr for Command {

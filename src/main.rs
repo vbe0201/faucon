@@ -62,7 +62,7 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
 
     // Create the debugger and run the REPL until the user exits.
     let mut debugger = Debugger::new(cpu);
-    debugger.run();
+    debugger.run().wrap_err("error in debugger repl occurred")?;
 
     Ok(())
 }
