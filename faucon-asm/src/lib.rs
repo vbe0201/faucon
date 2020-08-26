@@ -161,6 +161,12 @@ impl Instruction {
         }
     }
 
+    /// Returns a reference to the raw byte representation of
+    /// this `Instruction`.
+    pub fn raw_bytes(&self) -> &[u8] {
+        self.bytes.as_slice()
+    }
+
     /// Checks whether this instruction is valid.
     ///
     /// This is the case when the instruction is described by [`InstructionKind::XXX`].

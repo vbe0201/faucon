@@ -12,6 +12,8 @@ mod config;
 mod debugger;
 
 use std::env;
+use std::fs::File;
+use std::io::{self, BufRead, BufReader};
 use std::path::Path;
 
 use clap::App;
@@ -67,6 +69,39 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config, vi_mode: bool) -> Result
     Ok(())
 }
 
+fn disassemble_file<P: AsRef<Path>>(bin: P) -> Result<()> {
+    let file = File::open(bin)?;
+    let mut reader = BufReader::new(file);
+    let insns = std::iter::from_fn(|| {
+        use faucon_asm::Error;
+
+        let insn = faucon_asm::read_instruction(&mut reader);
+        match insn {
+            Ok(insn) => Some(Ok(insn)),
+            Err(Error::UnknownInstruction(op)) => {
+                Some(Err(eyre!("encountered unknown instruction {:x}", op)))
+            }
+            Err(Error::IoError) => Some(Err(eyre!("unknown i/o error occurred"))),
+            Err(Error::Eof) => None,
+        }
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+    faucon_asm::pretty_print(insns.as_ref(), false)?;
+    Ok(())
+}
+
+fn get_binary_file<'matches>(
+    matches: &'matches clap::ArgMatches<'matches>,
+) -> Result<&'matches str> {
+    if let Some(bin) = matches.value_of("binary") {
+        Ok(bin)
+    } else {
+        return Err(eyre!("no binary file to run provided"))
+            .suggestion("provide a binary file using the -b argument");
+    }
+}
+
 fn main() -> Result<()> {
     color_eyre::config::HookBuilder::default()
         .panic_note(
@@ -82,15 +117,14 @@ fn main() -> Result<()> {
     let config = read_config(matches.value_of("config")).wrap_err("failed to load config")?;
 
     if let Some(matches) = matches.subcommand_matches("emu") {
-        if let Some(bin) = matches.value_of("binary") {
-            run_emulator(bin, config, matches.is_present("vi-mode"))?;
-        } else {
-            return Err(eyre!("no binary file to run provided"))
-                .suggestion("provide a binary file using the -b argument");
-        }
+        run_emulator(
+            get_binary_file(matches)?,
+            config,
+            matches.is_present("vi-mode"),
+        )
+    } else if let Some(matches) = matches.subcommand_matches("dis") {
+        disassemble_file(get_binary_file(matches)?)
     } else {
         unreachable!()
     }
-
-    Ok(())
 }
