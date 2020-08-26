@@ -49,3 +49,8 @@ subcommands:
             value_name: FILE
             help: The Falcon binary to disassemble
             takes_value: true
+        - base:
+            long: base-address
+            value_name: ADDRESS
+            help: The base address of the disassembled code
+            takes_value: true

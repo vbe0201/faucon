@@ -69,7 +69,7 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config, vi_mode: bool) -> Result
     Ok(())
 }
 
-fn disassemble_file<P: AsRef<Path>>(bin: P) -> Result<()> {
+fn disassemble_file<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> Result<()> {
     let file = File::open(bin)?;
     let mut reader = BufReader::new(file);
     let insns = std::iter::from_fn(|| {
@@ -87,7 +87,17 @@ fn disassemble_file<P: AsRef<Path>>(bin: P) -> Result<()> {
     })
     .collect::<Result<Vec<_>>>()?;
 
-    faucon_asm::pretty_print(insns.as_ref())?;
+    let base = if let Some(num) = matches.value_of("base") {
+        let num = if num.starts_with("0x") {
+            usize::from_str_radix(&num[2..], 16)?
+        } else {
+            num.parse()?
+        };
+        Some(num as usize)
+    } else {
+        None
+    };
+    faucon_asm::pretty_print(insns.as_ref(), base)?;
     Ok(())
 }
 
@@ -123,7 +133,7 @@ fn main() -> Result<()> {
             matches.is_present("vi-mode"),
         )
     } else if let Some(matches) = matches.subcommand_matches("dis") {
-        disassemble_file(get_binary_file(matches)?)
+        disassemble_file(get_binary_file(matches)?, matches)
     } else {
         unreachable!()
     }
