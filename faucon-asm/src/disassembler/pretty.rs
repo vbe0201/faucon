@@ -5,20 +5,16 @@ use crate::Instruction;
 use std::io::{self, Write};
 
 /// Writes a formatted version of the disassembled instructions to stdout.
-pub fn pretty_print(insns: &[Instruction], colored: bool) -> io::Result<()> {
+pub fn pretty_print(insns: &[Instruction]) -> io::Result<()> {
     let stdout = io::stdout();
     let mut handle = stdout.lock();
-    pretty_write(&mut handle, insns, colored)
+    pretty_write(&mut handle, insns)
 }
 
 /// Writes a formatted version of the disassembled instructions to the given output.
 ///
 /// If `colored` is true then the output will be colored using simple syntax highlighting.
-pub fn pretty_write<W: Write>(
-    out: &mut W,
-    insns: &[Instruction],
-    _colored: bool,
-) -> io::Result<()> {
+pub fn pretty_write<W: Write>(out: &mut W, insns: &[Instruction]) -> io::Result<()> {
     let first = insns.first().map(|insn| (0usize, insn));
     let mut rest = insns.iter().skip(1);
 

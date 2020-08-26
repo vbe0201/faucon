@@ -87,7 +87,7 @@ fn disassemble_file<P: AsRef<Path>>(bin: P) -> Result<()> {
     })
     .collect::<Result<Vec<_>>>()?;
 
-    faucon_asm::pretty_print(insns.as_ref(), false)?;
+    faucon_asm::pretty_print(insns.as_ref())?;
     Ok(())
 }
 
