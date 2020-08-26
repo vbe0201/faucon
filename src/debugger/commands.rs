@@ -152,7 +152,7 @@ named!(
 );
 
 named!(
-    pub integer<&str, u32, VerboseError<&str>>,
+    integer<&str, u32, VerboseError<&str>>,
     alt!(
         preceded!(
             complete!(tag!("0x")),
