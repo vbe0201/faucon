@@ -24,6 +24,7 @@ use color_eyre::{
 
 use config::Config;
 use debugger::Debugger;
+use faucon_asm::Disassembler;
 use faucon_emu::cpu::Cpu;
 
 const CONFIG_ENV: &str = "FAUCON_CONFIG";
@@ -72,20 +73,6 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config, vi_mode: bool) -> Result
 fn disassemble_file<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> Result<()> {
     let file = File::open(bin)?;
     let mut reader = BufReader::new(file);
-    let insns = std::iter::from_fn(|| {
-        use faucon_asm::Error;
-
-        let insn = faucon_asm::read_instruction(&mut reader);
-        match insn {
-            Ok(insn) => Some(Ok(insn)),
-            Err(Error::UnknownInstruction(op)) => {
-                Some(Err(eyre!("encountered unknown instruction {:x}", op)))
-            }
-            Err(Error::IoError) => Some(Err(eyre!("unknown i/o error occurred"))),
-            Err(Error::Eof) => None,
-        }
-    })
-    .collect::<Result<Vec<_>>>()?;
 
     let base = if let Some(num) = matches.value_of("base") {
         let num = if num.starts_with("0x") {
@@ -98,10 +85,8 @@ fn disassemble_file<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> R
         None
     };
 
-    let stdout = io::stdout();
-    let mut disassembler =
-        faucon_asm::Disassembler::new(stdout.lock()).with_base(base.unwrap_or(0));
-    disassembler.disassemble(insns.into_iter())?;
+    let mut disassembler = Disassembler::stdout();
+    disassembler.disassemble_stream(&mut reader)?;
     Ok(())
 }
 
@@ -118,7 +103,7 @@ fn get_binary_file<'matches>(
 
 fn main() -> Result<()> {
     color_eyre::config::HookBuilder::default()
-        .panic_note(
+        .panic_section(
             "Consider reporting the bug on github (https://github.com/vbe0201/faucon/issues)",
         )
         .install()?;
