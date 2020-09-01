@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use color_eyre::eyre::WrapErr;
 use faucon_emu::cpu::Cpu;
 
 const CODE_ALIGN_BITS: usize = 8;
@@ -21,13 +22,13 @@ fn align_up(value: usize, align: usize) -> usize {
     }
 }
 
-fn read_file<P: AsRef<Path>>(path: P) -> Vec<u8> {
-    let mut file = File::open(path).expect("Failed to open the binary file");
+fn read_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, color_eyre::Report> {
+    let mut file = File::open(path)?;
     let mut contents = Vec::new();
 
     file.read_to_end(&mut contents).unwrap();
 
-    contents
+    Ok(contents)
 }
 
 /// Reads a binary at the given path and pads it out to 0x100 byte alignment, if
@@ -36,8 +37,8 @@ fn read_file<P: AsRef<Path>>(path: P) -> Vec<u8> {
 /// This function guarantees that the received slice of bytes can be mapped
 /// into the Falcon IMem correctly. Thus, any code to be uploaded to the Falcon
 /// should always be passed through this function.
-pub fn read_falcon_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
-    let mut binary = read_file(path);
+pub fn read_falcon_binary<P: AsRef<Path>>(path: P) -> Result<Box<[u8]>, color_eyre::Report> {
+    let mut binary = read_file(path).wrap_err("failed to read binary file")?;
 
     // Falcon code segment can only be modified in 0x100 byte pages.
     // If the binary doesn't have correct alignment, pad it out so
@@ -47,7 +48,7 @@ pub fn read_falcon_binary<P: AsRef<Path>>(path: P) -> Box<[u8]> {
         binary.push(0);
     }
 
-    binary.into_boxed_slice()
+    Ok(binary.into_boxed_slice())
 }
 
 /// Uploads a Falcon binary that was obtained from [`read_falcon_binary`] into the
