@@ -12,6 +12,8 @@ mod config;
 mod debugger;
 
 use std::env;
+use std::fs::File;
+use std::io::{self, BufRead, BufReader};
 use std::path::Path;
 
 use clap::App;
@@ -67,6 +69,53 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config, vi_mode: bool) -> Result
     Ok(())
 }
 
+fn disassemble_file<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> Result<()> {
+    let file = File::open(bin)?;
+    let mut reader = BufReader::new(file);
+    let insns = std::iter::from_fn(|| {
+        use faucon_asm::Error;
+
+        let insn = faucon_asm::read_instruction(&mut reader);
+        match insn {
+            Ok(insn) => Some(Ok(insn)),
+            Err(Error::UnknownInstruction(op)) => {
+                Some(Err(eyre!("encountered unknown instruction {:x}", op)))
+            }
+            Err(Error::IoError) => Some(Err(eyre!("unknown i/o error occurred"))),
+            Err(Error::Eof) => None,
+        }
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+    let base = if let Some(num) = matches.value_of("base") {
+        let num = if num.starts_with("0x") {
+            usize::from_str_radix(&num[2..], 16)?
+        } else {
+            num.parse()?
+        };
+        Some(num as usize)
+    } else {
+        None
+    };
+
+    let stdout = io::stdout();
+    let mut disassembler =
+        faucon_asm::Disassembler::new(stdout.lock()).with_base(base.unwrap_or(0));
+    disassembler.disassemble(insns.into_iter())?;
+    Ok(())
+}
+
+fn get_binary_file<'matches>(
+    matches: &'matches clap::ArgMatches<'matches>,
+) -> Result<&'matches str> {
+    if let Some(bin) = matches.value_of("binary") {
+        Ok(bin)
+    } else {
+        return Err(eyre!("no binary file to run provided"))
+            .suggestion("provide a binary file using the -b argument");
+    }
+}
+
 fn main() -> Result<()> {
     color_eyre::config::HookBuilder::default()
         .panic_note(
@@ -82,15 +131,14 @@ fn main() -> Result<()> {
     let config = read_config(matches.value_of("config")).wrap_err("failed to load config")?;
 
     if let Some(matches) = matches.subcommand_matches("emu") {
-        if let Some(bin) = matches.value_of("binary") {
-            run_emulator(bin, config, matches.is_present("vi-mode"))?;
-        } else {
-            return Err(eyre!("no binary file to run provided"))
-                .suggestion("provide a binary file using the -b argument");
-        }
+        run_emulator(
+            get_binary_file(matches)?,
+            config,
+            matches.is_present("vi-mode"),
+        )
+    } else if let Some(matches) = matches.subcommand_matches("dis") {
+        disassemble_file(get_binary_file(matches)?, matches)
     } else {
         unreachable!()
     }
-
-    Ok(())
 }
