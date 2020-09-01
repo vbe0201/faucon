@@ -4,42 +4,56 @@
 use crate::Instruction;
 use std::io::{self, Write};
 
-/// Writes a formatted version of the disassembled instructions to stdout.
-pub fn pretty_print(insns: &[Instruction], base: Option<usize>) -> io::Result<()> {
-    let stdout = io::stdout();
-    let mut handle = stdout.lock();
-    pretty_write(&mut handle, insns, base)
+/// The disassembler is responsible for printing
+/// out instructions using a simple but powerful
+/// format.
+pub struct Disassembler<W> {
+    pc: usize,
+    output: TrackWrite<W>,
 }
 
-/// Writes a formatted version of the disassembled instructions to the given output.
-///
-/// The `base` addresse will be the first address in the disassembled dump.
-pub fn pretty_write<W: Write>(
-    out: &mut W,
-    insns: &[Instruction],
-    base: Option<usize>,
-) -> io::Result<()> {
-    let first = insns.first().map(|insn| (base.unwrap_or(0), insn));
-    let mut rest = insns.iter().skip(1);
-
-    let insns = std::iter::successors(first, |(addr, insn)| {
-        Some((addr + insn.len(), rest.next()?))
-    });
-
-    let out = &mut TrackWrite::new(out);
-    for (addr, insn) in insns {
-        out.reset();
-        write!(out, "{:08x}: ", addr)?;
-
-        insn.raw_bytes()
-            .iter()
-            .try_for_each(|byte| write!(out, "{:02x} ", byte))?;
-        align_to(out, out.count, 32)?;
-
-        writeln!(out, "{}", insn)?;
+impl<W> Disassembler<W> {
+    /// Creates a new `Disassembler` that will write the disassembled code
+    /// to the given output.
+    pub fn new(output: W) -> Self {
+        Self {
+            pc: 0,
+            output: TrackWrite::new(output),
+        }
     }
 
-    Ok(())
+    /// Sets the starting point of this `Disassembler` to the given base.
+    ///
+    /// The `Disassembler` will then start the disassembled instructions
+    /// at the given base address.
+    pub fn with_base(mut self, base: usize) -> Self {
+        self.pc = base;
+        self
+    }
+}
+
+impl<W: Write> Disassembler<W> {
+    /// Disassembles a list of instructions and writes them to the output of this `Disassembler`.
+    ///
+    /// This method will not reset the inner pc, so if you call it multiple times,
+    /// the addresses will still increase.
+    pub fn disassemble(&mut self, insns: impl Iterator<Item = Instruction>) -> io::Result<()> {
+        let out = &mut self.output;
+        for insn in insns {
+            out.reset();
+            write!(out, "{:08x} ", self.pc)?;
+
+            insn.raw_bytes()
+                .iter()
+                .try_for_each(|byte| write!(out, "{:02x} ", byte))?;
+            align_to(out, out.count, 32)?;
+            writeln!(out, "{}", insn)?;
+
+            self.pc += insn.len();
+        }
+
+        Ok(())
+    }
 }
 
 fn align_to<W: Write>(out: &mut W, current: usize, width: usize) -> io::Result<()> {

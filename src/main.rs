@@ -97,7 +97,11 @@ fn disassemble_file<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> R
     } else {
         None
     };
-    faucon_asm::pretty_print(insns.as_ref(), base)?;
+
+    let stdout = io::stdout();
+    let mut disassembler =
+        faucon_asm::Disassembler::new(stdout.lock()).with_base(base.unwrap_or(0));
+    disassembler.disassemble(insns.into_iter())?;
     Ok(())
 }
 
