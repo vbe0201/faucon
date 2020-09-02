@@ -156,6 +156,11 @@ impl Instruction {
         }
     }
 
+    /// Returns a reference to the raw byte representation of this instruction.
+    pub fn raw_bytes(&self) -> &[u8] {
+        self.bytes.as_slice()
+    }
+
     /// Gets the [`InstructionKind`] that is represented by this instruction variant.
     ///
     /// [`InstructionKind`]: ./isa/enum.InstructionKind.html

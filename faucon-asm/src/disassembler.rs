@@ -7,6 +7,9 @@ use crate::isa::*;
 use crate::opcode;
 use crate::{Error, Instruction, Result};
 
+mod pretty;
+pub use pretty::Disassembler;
+
 /// Reads an instruction from a given [`Read`]er and attempts to parse it into an
 /// [`Instruction`] object.
 ///

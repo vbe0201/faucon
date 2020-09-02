@@ -38,3 +38,19 @@ subcommands:
             long: vi-mode
             help: Enable vi like keybinds in the debugger
             takes_value: false
+  # A subcommand for telling faucon to invoke the disassembler
+  # on the supplied binary and print the output to stdout
+  - dis:
+      about: Disassembles the given input file
+      args:
+        - binary:
+            short: bin
+            long: binary
+            value_name: FILE
+            help: The Falcon binary to disassemble
+            takes_value: true
+        - base:
+            long: base-address
+            value_name: ADDRESS
+            help: The base address of the disassembled code
+            takes_value: true
