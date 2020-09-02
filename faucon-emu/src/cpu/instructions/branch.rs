@@ -13,7 +13,7 @@ pub fn call(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.stack_push(cpu.registers[PC] + insn.len() as u32);
 
     // Branch to the absolute address.
-    cpu.registers[PC] = utils::get_value(cpu, insn.operand_size, target);
+    cpu.registers[PC] = utils::get_value(cpu, insn.operand_size(), target);
 
     // Signal irregular PC increment to the CPU.
     cpu.increment_pc = false;
@@ -27,7 +27,7 @@ pub fn jmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let target = insn.operands()[0];
 
     // Branch to the absolute address.
-    cpu.registers[PC] = utils::get_value(cpu, insn.operand_size, target);
+    cpu.registers[PC] = utils::get_value(cpu, insn.operand_size(), target);
 
     // Signal irregular PC increment to the CPU.
     cpu.increment_pc = false;

@@ -30,8 +30,13 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     let subopcode = subopcode_location.parse(&insn);
 
     // Now do the actual instruction lookup and read the remaining bytes.
-    let mut instruction_meta = lookup_instruction(operand_size.sized(), a, b, subopcode)
-        .ok_or(Error::UnknownInstruction(insn[0]))?;
+    let mut instruction_meta = InstructionKind::lookup_meta(
+        operand_size.sized(),
+        a as usize,
+        b as usize,
+        subopcode as usize,
+    )
+    .ok_or(Error::UnknownInstruction(insn[0]))?;
     read_operands(
         &mut insn,
         reader,
@@ -40,22 +45,6 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     )?;
 
     Ok(Instruction::new(insn, operand_size, instruction_meta))
-}
-
-fn lookup_instruction(sized: bool, a: u8, b: u8, subopcode: u8) -> Option<InstructionMeta> {
-    if sized {
-        if a == 3 {
-            InstructionKind::parse_sized_form_2(b, subopcode)
-        } else {
-            InstructionKind::parse_sized_form_1(a, b, subopcode)
-        }
-    } else {
-        if a == 3 {
-            InstructionKind::parse_unsized_form_2(b, subopcode)
-        } else {
-            InstructionKind::parse_unsized_form_1(a, b)
-        }
-    }
 }
 
 fn read_operands<R: Read>(

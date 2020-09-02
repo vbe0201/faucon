@@ -40,7 +40,7 @@ pub fn mov(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let source = operands[1];
 
     // Copy the source value to the destination.
-    utils::write_reg(cpu, insn.operand_size, destination, source);
+    utils::write_reg(cpu, insn.operand_size(), destination, source);
 
     // Signal regular PC increment to the CPU.
     cpu.increment_pc = true;
