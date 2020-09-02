@@ -567,9 +567,6 @@ pub enum InstructionKind {
     #[insn(opcode = 0xCF, subopcode = 0x0F, operands(R1, IORI))]
     #[insn(opcode = 0xFF, subopcode = 0x0F, operands(R3, IORR))]
     IORD,
-
-    /// An invalid or unknown instruction.
-    XXX,
 }
 
 impl fmt::Display for InstructionKind {
@@ -634,7 +631,6 @@ impl fmt::Display for InstructionKind {
             InstructionKind::IOWR => "iowr",
             InstructionKind::IOWRS => "iowrs",
             InstructionKind::IORD => "iord",
-            InstructionKind::XXX => "???",
         };
 
         write!(f, "{}", mnemonic)

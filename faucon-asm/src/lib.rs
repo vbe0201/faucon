@@ -83,8 +83,7 @@
 //! repeatedly on a buffer of code until an error or [`Error::Eof`] occurs.
 //!
 //! It is within the user's responsibility to ensure that all possible exceptions
-//! are handled correctly. The validity of an [`Instruction`] can be ensured through
-//! [`Instruction::is_valid`].
+//! are handled correctly.
 //!
 //! [`Instruction`]: struct.Instruction.html
 //! [`read_instruction`]: fn.read_instruction.html
@@ -95,7 +94,6 @@
 //! [`InstructionKind`]: ./isa/enum.InstructionKind.html
 //! [envytools]: https://github.com/envytools/envytools
 //! [`Error::Eof`]: enum.Error.html#variant.Eof
-//! [`Instruction::is_valid`]: struct.Instruction.html#method.is_valid
 
 use std::fmt;
 
@@ -136,16 +134,13 @@ pub enum Error {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
     bytes: Vec<u8>,
-    /// The operand size of the instruction.
-    pub operand_size: OperandSize,
+    operand_size: OperandSize,
     meta: isa::InstructionMeta,
 }
 
 impl Instruction {
     /// Constructs a new instruction from its byte representation and metadata.
     pub fn new(bytes: Vec<u8>, mut operand_size: OperandSize, meta: isa::InstructionMeta) -> Self {
-        // TODO: InstructionKind::XXX?
-
         // Certain Falcon weirdos encode their subopcode in the high size bits and thus
         // making the instruction per se unsized. We need to make sure to not use a false
         // positive operand size.
@@ -159,24 +154,6 @@ impl Instruction {
             operand_size,
             meta,
         }
-    }
-
-    /// Checks whether this instruction is valid.
-    ///
-    /// This is the case when the instruction is described by [`InstructionKind::XXX`].
-    ///
-    /// [`InstructionKind::XXX`]: ./isa/enum.InstructionKind.html#variant.XXX
-    pub fn is_valid(&self) -> bool {
-        !self.is_invalid()
-    }
-
-    /// Checks whether this instruction is invalid.
-    ///
-    /// This is the case when the instruction is described by [`InstructionKind::XXX`].
-    ///
-    /// [`InstructionKind::XXX`]: ./isa/enum.InstructionKind.html#variant.XXX
-    pub fn is_invalid(&self) -> bool {
-        self.kind().invalid()
     }
 
     /// Gets the [`InstructionKind`] that is represented by this instruction variant.
@@ -209,6 +186,17 @@ impl Instruction {
     /// whenever needed.
     pub fn subopcode(&self) -> u8 {
         self.meta.subopcode
+    }
+
+    /// Gets the [`OperandSize`] of the instruction.
+    ///
+    /// The operand size determines which quantity of size in the operands is modified
+    /// by the instruction. Sized instructions may choose between 8-bit, 16-bit and 32-bit
+    /// variants, whereas unsized instructions always operate on the full 32 bits.
+    ///
+    /// [`OperandSize`]: ./opcode/enum.OperandSize.html
+    pub fn operand_size(&self) -> OperandSize {
+        self.operand_size
     }
 
     /// A vector of instruction [`Operand`]s.
