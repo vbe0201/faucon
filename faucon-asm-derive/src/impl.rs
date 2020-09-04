@@ -329,7 +329,13 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
         ];
 
         impl #name {
-            pub fn lookup_meta(sized: bool, a: u8, b: u8, subopcode: u8, cryptop: Option<u8>) -> Option<InstructionMeta> {
+            pub fn lookup_meta(
+                sized: bool,
+                a: u8,
+                b: u8,
+                subopcode: u8,
+                cryptop: Option<u8>,
+            ) -> Option<InstructionMeta> {
                 let b = b as usize;
                 let subopcode = subopcode as usize;
 
