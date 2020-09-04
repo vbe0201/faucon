@@ -312,7 +312,15 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
         ];
 
         impl #name {
-            pub fn lookup_meta(sized: bool, a: usize, b: usize, subopcode: usize) -> Option<InstructionMeta> {
+            pub fn lookup_meta(
+                sized: bool,
+                a: u8,
+                b: u8,
+                subopcode: u8
+            ) -> Option<InstructionMeta> {
+                let b = b as usize;
+                let subopcode = subopcode as usize;
+
                 match (sized, a, b) {
                     (true, 0x0, _) => FORM_WI[subopcode].clone(),
                     (true, 0x1, _) => FORM_SRWI8[b].clone(),
