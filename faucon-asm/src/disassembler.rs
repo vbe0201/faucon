@@ -29,14 +29,16 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     read_bytes(&mut insn, reader, subopcode_location.get())?;
     let subopcode = subopcode_location.parse(&insn);
 
+    let cryptop = if opcode::is_crypto_command(&operand_size, a, b, subopcode) {
+        Some(extract_crypto_opcode(&mut insn, reader)?)
+    } else {
+        None
+    };
+
     // Now do the actual instruction lookup and read the remaining bytes.
-    let mut instruction_meta = InstructionKind::lookup_meta(
-        operand_size.sized(),
-        a as usize,
-        b as usize,
-        subopcode as usize,
-    )
-    .ok_or(Error::UnknownInstruction(insn[0]))?;
+    let mut instruction_meta =
+        InstructionKind::lookup_meta(operand_size.sized(), a, b, subopcode, cryptop)
+            .ok_or(Error::UnknownInstruction(insn[0]))?;
     read_operands(
         &mut insn,
         reader,
@@ -45,6 +47,16 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     )?;
 
     Ok(Instruction::new(insn, operand_size, instruction_meta))
+}
+
+fn extract_crypto_opcode<R: Read>(buffer: &mut Vec<u8>, reader: &mut R) -> Result<u8> {
+    // Each crypto command is an instruction of four bytes with no exceptions.
+    // The first two bytes have already been read to obtain opcode and subopcode.
+    // Read the final two bytes as they contain the details about the crypto command.
+    read_bytes(buffer, reader, 2)?;
+
+    // Extract the crypto opcode that identifies the crypto command and return it.
+    Ok(buffer[3] >> 0x2 & 0x1F)
 }
 
 fn read_operands<R: Read>(

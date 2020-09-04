@@ -74,6 +74,7 @@ impl InstructionMeta {
 /// generating opcode lookup tables that can be used to identify instructions
 /// and their variants.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Instruction)]
+#[rustfmt::skip]
 pub enum InstructionKind {
     /// The CMPU instruction.
     ///
@@ -567,6 +568,16 @@ pub enum InstructionKind {
     #[insn(opcode = 0xCF, subopcode = 0x0F, operands(R1, IORI))]
     #[insn(opcode = 0xFF, subopcode = 0x0F, operands(R3, IORR))]
     IORD,
+
+    // The following instructions are actually a single instruction which carries a
+    // crypto opcode to invoke a certain cryptographic operation on the SCP.
+    // However, it is easier for the disassembler to treat them as separate instructions.
+
+    /// The CNOP crypto command.
+    ///
+    /// Does nothing, surprisingly.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(), cryptop = 0x00)]
+    CNOP,
 }
 
 impl fmt::Display for InstructionKind {
@@ -631,6 +642,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::IOWR => "iowr",
             InstructionKind::IOWRS => "iowrs",
             InstructionKind::IORD => "iord",
+            InstructionKind::CNOP => "cnop",
         };
 
         write!(f, "{}", mnemonic)

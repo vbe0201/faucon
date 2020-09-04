@@ -156,6 +156,23 @@ impl Instruction {
         }
     }
 
+    /// Checks whether the instruction is a crypto command.
+    ///
+    /// Although crypto commands are actually a single instruction which encodes
+    /// different crypto opcodes and crypto operands, each crypto command is treated
+    /// as a separate instruction by the disassembler to simplify the implementation.
+    ///
+    /// This method returns `true` when this [`Instruction`] object wraps any valid
+    /// crypto command.
+    ///
+    /// [`Instruction`]: struct.Instruction.html
+    pub fn is_crypto(&self) -> bool {
+        match self.kind() {
+            InstructionKind::CNOP => true,
+            _ => false,
+        }
+    }
+
     /// Returns a reference to the raw byte representation of this instruction.
     pub fn raw_bytes(&self) -> &[u8] {
         self.bytes.as_slice()

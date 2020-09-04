@@ -8,6 +8,8 @@ use crate::parser;
 /// The name of the attribute that is supported by the proc-macro.
 pub const ATTR: &str = "insn";
 
+pub const CRYPT_SUBOPCODE: usize = 0x3C;
+
 /// Generates the AST that the `Instruction` derive macro will expand to.
 ///
 /// The macro is used for conveniently adding support for new instructions
@@ -56,6 +58,7 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
     let mut r1 = vec![quote! { None }; 0x10];
     let mut i16z = vec![quote! { None }; 0x10];
     let mut i8z = vec![quote! { None }; 0x40];
+    let mut crypt = vec![quote! { None }; 0x19];
     let mut i16s = vec![quote! { None }; 0x40];
     let mut rri1 = vec![quote! { None }; 0x10];
     let mut rri2 = vec![quote! { None }; 0x10];
@@ -71,68 +74,77 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
     // Given an opcode and a subopcode, this closure determines the appropriate opcode
     // table from the above vectors and inserts an InstructionMeta table at the index
     // of the subopcode to enhance instruction lookup speed through array indexing.
-    let mut fill_table =
-        |vname: &Ident, opcode: u8, subopcode: u8, operands: &mut Vec<TokenStream>| {
-            let (size, a, b) = (
-                (opcode >> 6) as usize,
-                (opcode >> 4 & 0x3) as usize,
-                (opcode & 0xF) as usize,
-            );
-            let subopcode = subopcode as usize;
+    let mut fill_table = |vname: &Ident,
+                          opcode: u8,
+                          subopcode: u8,
+                          cryptop: Option<u8>,
+                          operands: &mut Vec<TokenStream>| {
+        let (size, a, b) = (
+            (opcode >> 6) as usize,
+            (opcode >> 4 & 0x3) as usize,
+            (opcode & 0xF) as usize,
+        );
+        let subopcode = subopcode as usize;
 
-            // faucon-asm stores the operands of each instruction in `[Argument; 3]` arrays.
-            // For instructions that have less than 3 real operands, the remaining space in
-            // the array is being filled out with `NOP` as a placeholder/padding.
-            while operands.len() < 3 {
-                operands.push(quote! { NOP });
-            }
+        // faucon-asm stores the operands of each instruction in `[Argument; 3]` arrays.
+        // For instructions that have less than 3 real operands, the remaining space in
+        // the array is being filled out with `NOP` as a placeholder/padding.
+        while operands.len() < 3 {
+            operands.push(quote! { NOP });
+        }
 
-            let instruction_meta = quote! {
-                Some(instruction_meta!(#vname, #opcode, #subopcode, [#(#operands),*]))
-            };
-
-            match (size, a, b) {
-                (0x0..=0x2, 0x0, _) => wi[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x1, _) => srwi8[b] = instruction_meta,
-                (0x0..=0x2, 0x2, _) => srwi16[b] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x0) => sri8[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x1) => sri16[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x2) => srr[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x3) => sunk[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x4) => swi8[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x5) => srri8[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x6) => smi8[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x7) => smi16[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x8) => srri16[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x9) => srw[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xA) => swrr[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xB) => smr[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xC) => srrw[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xD) => sm[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xE) => i24[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xF) => swr[subopcode] = instruction_meta,
-                (0x3, 0x0, _) => rwi8[b] = instruction_meta,
-                (0x3, 0x1, _) => wi32[0] = instruction_meta,
-                (0x3, 0x2, _) => rwi16[b] = instruction_meta,
-                (0x3, 0x3, 0x0) => mi8[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x1) => mi16[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x2) => r1[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x3) => i16z[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x4) => i8z[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x5) => i16s[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x6) => rri1[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x7) => rri2[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x8) => n[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x9) => r2[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xA) => rr[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xB) => ri[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xC) => w[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xD) => rm[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xE) => rw[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xF) => rrw[subopcode] = instruction_meta,
-                _ => unreachable!(),
-            }
+        let instruction_meta = quote! {
+            Some(instruction_meta!(#vname, #opcode, #subopcode, [#(#operands),*]))
         };
+
+        match (size, a, b) {
+            (0x0..=0x2, 0x0, _) => wi[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x1, _) => srwi8[b] = instruction_meta,
+            (0x0..=0x2, 0x2, _) => srwi16[b] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x0) => sri8[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x1) => sri16[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x2) => srr[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x3) => sunk[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x4) => swi8[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x5) => srri8[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x6) => smi8[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x7) => smi16[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x8) => srri16[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x9) => srw[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xA) => swrr[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xB) => smr[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xC) => srrw[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xD) => sm[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xE) => i24[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xF) => swr[subopcode] = instruction_meta,
+            (0x3, 0x0, _) => rwi8[b] = instruction_meta,
+            (0x3, 0x1, _) => wi32[0] = instruction_meta,
+            (0x3, 0x2, _) => rwi16[b] = instruction_meta,
+            (0x3, 0x3, 0x0) => mi8[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x1) => mi16[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x2) => r1[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x3) => i16z[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x4) => i8z[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x5) => {
+                if subopcode == CRYPT_SUBOPCODE && cryptop.is_some() {
+                    crypt[cryptop.unwrap() as usize] = instruction_meta;
+                } else {
+                    i16s[subopcode] = instruction_meta;
+                }
+            }
+            (0x3, 0x3, 0x6) => rri1[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x7) => rri2[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x8) => n[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x9) => r2[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xA) => rr[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xB) => ri[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xC) => w[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xD) => rm[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xE) => rw[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xF) => rrw[subopcode] = instruction_meta,
+            _ => unreachable!(),
+        }
+    };
 
     // Iterate through all the variants of the enum that derives from the `Instruction` macro
     // and parse the attribute decorators to insert the instructions into the lookup tables.
@@ -152,9 +164,10 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
             opcode,
             subopcode,
             operands,
+            crypto_opcode,
         } in insn_attributes.iter_mut()
         {
-            fill_table(vname, *opcode, *subopcode, operands);
+            fill_table(vname, *opcode, *subopcode, *crypto_opcode, operands);
         }
     }
 
@@ -271,6 +284,10 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
             #(#i16s),*
         ];
 
+        const FORM_CRYPT: [Option<InstructionMeta>; 0x19] = [
+            #(#crypt),*
+        ];
+
         const FORM_RRI1: [Option<InstructionMeta>; 0x10] = [
             #(#rri1),*
         ];
@@ -312,7 +329,10 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
         ];
 
         impl #name {
-            pub fn lookup_meta(sized: bool, a: usize, b: usize, subopcode: usize) -> Option<InstructionMeta> {
+            pub fn lookup_meta(sized: bool, a: u8, b: u8, subopcode: u8, cryptop: Option<u8>) -> Option<InstructionMeta> {
+                let b = b as usize;
+                let subopcode = subopcode as usize;
+
                 match (sized, a, b) {
                     (true, 0x0, _) => FORM_WI[subopcode].clone(),
                     (true, 0x1, _) => FORM_SRWI8[b].clone(),
@@ -341,7 +361,11 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
                     (false, 0x3, 0x2) => FORM_R1[subopcode].clone(),
                     (false, 0x3, 0x3) => FORM_I16Z[subopcode].clone(),
                     (false, 0x3, 0x4) => FORM_I8Z[subopcode].clone(),
-                    (false, 0x3, 0x5) => FORM_I16S[subopcode].clone(),
+                    (false, 0x3, 0x5) => if subopcode == 0x3C && cryptop.is_some() {
+                        FORM_CRYPT[cryptop.unwrap() as usize].clone()
+                    } else {
+                        FORM_I16S[subopcode].clone()
+                    }
                     (false, 0x3, 0x6) => FORM_RRI1[subopcode].clone(),
                     (false, 0x3, 0x7) => FORM_RRI2[subopcode].clone(),
                     (false, 0x3, 0x8) => FORM_N[subopcode].clone(),
@@ -364,6 +388,7 @@ struct Attributes {
     opcode: u8,
     subopcode: u8,
     operands: Vec<TokenStream>,
+    crypto_opcode: Option<u8>,
 }
 
 impl TryFrom<&syn::Attribute> for Attributes {
@@ -385,6 +410,11 @@ impl TryFrom<&syn::Attribute> for Attributes {
             opcode: parser::parse_int_meta("opcode", &properties[0])?,
             subopcode: parser::parse_int_meta("subopcode", &properties[1])?,
             operands: parser::parse_list_meta("operands", &properties[2])?,
+            crypto_opcode: if let Some(element) = properties.get(3) {
+                Some(parser::parse_int_meta("cryptop", element)?)
+            } else {
+                None
+            },
         })
     }
 }

@@ -4,7 +4,8 @@ use std::fs;
 use std::path::Path;
 
 use faucon_emu::memory::PAGE_SIZE;
-use serde::{de, Deserialize, Deserializer};
+use serde::de::Error;
+use serde::{Deserialize, Deserializer};
 
 /// A wrapper around the faucon tool suite configuration file.
 #[derive(Clone, Debug, Deserialize)]
@@ -107,10 +108,10 @@ where
 
     match usize::deserialize(value) {
         Ok(5) => Ok(5),
-        Ok(_) => Err(de::Error::custom(
+        Ok(_) => Err(Error::custom(
             "for the time being, only fuc5 emulation is supported",
         )),
-        Err(_) => Err(de::Error::custom(
+        Err(_) => Err(Error::custom(
             "invalid value for 'version' key in [falcon] config",
         )),
     }
@@ -124,7 +125,7 @@ where
 
     match f32::deserialize(value) {
         Ok(clock_freq) => Ok(clock_freq * 10f32.powf(6.0)),
-        Err(_) => Err(de::Error::custom(
+        Err(_) => Err(Error::custom(
             "invalid value for 'clock_freq' key in [falcon] config",
         )),
     }
@@ -138,10 +139,10 @@ where
 
     match usize::deserialize(value) {
         Ok(port @ 0..=7) => Ok(port),
-        Ok(_) => Err(de::Error::custom(
+        Ok(_) => Err(Error::custom(
             "only DMA ports from 0 through 7 are supported",
         )),
-        Err(_) => Err(de::Error::custom(
+        Err(_) => Err(Error::custom(
             "invalid value for 'index' field in port object",
         )),
     }
