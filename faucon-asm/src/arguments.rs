@@ -277,6 +277,12 @@ pub const SR1: Argument = register!(Spr, 1, true);
 /// instruction byte.
 pub const SR2: Argument = register!(Spr, 1, false);
 
+/// A Falcon crypto register, encoded in the high 4 bits of the third instruction byte.
+pub const CR1: Argument = register!(Crypto, 2, true);
+
+/// A Falcon crypto register, encoded in the low 4 bits of the third instruction byte.
+pub const CR2: Argument = register!(Crypto, 2, false);
+
 /// A memory access to an 8-bit value in Falcon DMem. The address is stored in a single
 /// register.
 pub const MEMR8: Argument = memory!(DMem, R2);
@@ -551,23 +557,29 @@ impl<T: PrimInt + NumCast> Immediate<T> {
             }
             2 => {
                 if self.sign {
-                    cast(LittleEndian::read_i16(&insn[self.position..]) & self.mask() as i16).unwrap()
+                    cast(LittleEndian::read_i16(&insn[self.position..]) & self.mask() as i16)
+                        .unwrap()
                 } else {
-                    cast(LittleEndian::read_u16(&insn[self.position..]) & self.mask() as u16).unwrap()
+                    cast(LittleEndian::read_u16(&insn[self.position..]) & self.mask() as u16)
+                        .unwrap()
                 }
             }
             3 => {
                 if self.sign {
-                    cast(LittleEndian::read_i24(&insn[self.position..]) & self.mask() as i32).unwrap()
+                    cast(LittleEndian::read_i24(&insn[self.position..]) & self.mask() as i32)
+                        .unwrap()
                 } else {
-                    cast(LittleEndian::read_u24(&insn[self.position..]) & self.mask() as u32).unwrap()
+                    cast(LittleEndian::read_u24(&insn[self.position..]) & self.mask() as u32)
+                        .unwrap()
                 }
             }
             4 => {
                 if self.sign {
-                    cast(LittleEndian::read_i32(&insn[self.position..]) & self.mask() as i32).unwrap()
+                    cast(LittleEndian::read_i32(&insn[self.position..]) & self.mask() as i32)
+                        .unwrap()
                 } else {
-                    cast(LittleEndian::read_u32(&insn[self.position..]) & self.mask() as u32).unwrap()
+                    cast(LittleEndian::read_u32(&insn[self.position..]) & self.mask() as u32)
+                        .unwrap()
                 }
             }
             _ => unreachable!(),

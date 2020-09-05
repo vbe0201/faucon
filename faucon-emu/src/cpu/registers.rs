@@ -98,6 +98,8 @@ pub struct CpuRegisters {
     gpr: [u32; 0x10],
     /// The special-purpose CPU registers of the Falcon.
     spr: [u32; 0x10],
+    /// The crypto registers of the Falcon.
+    cr: [u32; 0x8],
 }
 
 impl CpuRegisters {
@@ -107,6 +109,7 @@ impl CpuRegisters {
         CpuRegisters {
             gpr: [0; 0x10],
             spr: [0; 0x10],
+            cr: [0; 0x8],
         }
     }
 
@@ -135,6 +138,7 @@ impl CpuRegisters {
         match kind {
             RegisterKind::Gpr => &self.gpr,
             RegisterKind::Spr => &self.spr,
+            RegisterKind::Crypto => &self.cr,
         }
     }
 }
@@ -146,6 +150,7 @@ impl Index<Register> for CpuRegisters {
         match reg.0 {
             RegisterKind::Gpr => &self.gpr[reg.1],
             RegisterKind::Spr => &self.spr[reg.1],
+            RegisterKind::Crypto => &self.cr[reg.1],
         }
     }
 }
@@ -155,6 +160,7 @@ impl IndexMut<Register> for CpuRegisters {
         match reg.0 {
             RegisterKind::Gpr => &mut self.gpr[reg.1],
             RegisterKind::Spr => &mut self.spr[reg.1],
+            RegisterKind::Crypto => &mut self.cr[reg.1],
         }
     }
 }

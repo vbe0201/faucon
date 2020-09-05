@@ -578,6 +578,12 @@ pub enum InstructionKind {
     /// Does nothing, surprisingly.
     #[insn(opcode = 0xF5, subopcode = 0x3C, operands(), cryptop = 0x00)]
     CNOP,
+
+    /// The CMOV crypto command.
+    ///
+    /// Moves the contents of crypto registers into other crypto registers.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x01)]
+    CMOV,
 }
 
 impl fmt::Display for InstructionKind {
@@ -643,6 +649,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::IOWRS => "iowrs",
             InstructionKind::IORD => "iord",
             InstructionKind::CNOP => "cnop",
+            InstructionKind::CMOV => "cmov",
         };
 
         write!(f, "{}", mnemonic)
