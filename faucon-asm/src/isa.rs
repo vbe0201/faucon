@@ -604,12 +604,56 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2), cryptop = 0x04)]
     CRND,
 
+    /// The CS0BEGIN crypto command.
+    ///
+    /// Records a sequence of instructions as a macro and stores them in a special
+    /// slot for later retrieval and execution.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CIMM), cryptop = 0x05)]
+    CS0BEGIN,
+
+    /// The CS0EXEC crypto command.
+    ///
+    /// Executes the macro that was previously recorded with [`InstructionKind::CS0BEGIN`]
+    /// for a given amount of times.
+    ///
+    /// [`InstructionKind::CS0BEGIN`]: enum.InstructionKind.html#variant.CS0BEGIN
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CIMM), cryptop = 0x06)]
+    CS0EXEC,
+
+    /// The CS1BEGIN crypto command.
+    ///
+    /// Records a sequence of instructions as a macro and stores them in a special
+    /// slot for later retrieval and execution.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CIMM), cryptop = 0x07)]
+    CS1BEGIN,
+
+    /// The CS1EXEC crypto command.
+    ///
+    /// Executes the macro that was previously recorded with [`InstructionKind::CS1BEGIN`]
+    /// for a given amount of times.
+    ///
+    /// [`InstructionKind::CS1BEGIN`]: enum.InstructionKind.html#variant.CS1BEGIN
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CIMM), cryptop = 0x08)]
+    CS1EXEC,
+
+    /// The CCHMOD crypto command.
+    ///
+    /// Modifies the ACL value that guards the given crypto register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CIMM), cryptop = 0x0A)]
+    CCHMOD,
+
     /// The CXOR crypto command.
     ///
     /// Performs an XOR operation on the contents of two crypto registers and stores
     /// the result.
     #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x0B)]
     CXOR,
+
+    /// The CADD crypto command.
+    ///
+    /// Adds the given immediate to the value stored within the crypto register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CIMM), cryptop = 0x0C)]
+    CADD,
 
     /// The CAND crypto command.
     ///
@@ -630,6 +674,20 @@ pub enum InstructionKind {
     /// set, XORs the new value with `0x87` and stores the result.
     #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x0F)]
     CGFMUL,
+
+    /// The CSECRET crypto command.
+    ///
+    /// Loads the hardware secret at the given index into the given register and
+    /// sets its ACL value unconditionally.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CIMM), cryptop = 0x10)]
+    CSECRET,
+
+    /// The CKEYREG crypto command.
+    ///
+    /// Sets the globally active key slot for encryption/decryption operands to the
+    /// given crypto register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2), cryptop = 0x11)]
+    CKEYREG,
 
     /// The CKEXP crypto command.
     ///
@@ -681,7 +739,7 @@ pub enum InstructionKind {
     /// The CSIGCLR crypto command.
     ///
     /// Clears the HS auth signature of the running code from the key slot in SCP SRAM.
-    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x18)]
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(), cryptop = 0x18)]
     CSIGCLR,
 }
 
@@ -752,10 +810,18 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CXSIN => "cxsin",
             InstructionKind::CXSOUT => "cxsout",
             InstructionKind::CRND => "crnd",
+            InstructionKind::CS0BEGIN => "cs0begin",
+            InstructionKind::CS0EXEC => "cs0exec",
+            InstructionKind::CS1BEGIN => "cs1begin",
+            InstructionKind::CS1EXEC => "cs1exec",
+            InstructionKind::CCHMOD => "cchmod",
             InstructionKind::CXOR => "cxor",
+            InstructionKind::CADD => "cadd",
             InstructionKind::CAND => "cand",
             InstructionKind::CREV => "crev",
             InstructionKind::CGFMUL => "cgfmul",
+            InstructionKind::CSECRET => "csecret",
+            InstructionKind::CKEYREG => "ckeyreg",
             InstructionKind::CKEXP => "ckexp",
             InstructionKind::CKREXP => "ckrexp",
             InstructionKind::CENC => "cenc",

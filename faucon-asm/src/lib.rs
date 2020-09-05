@@ -173,10 +173,18 @@ impl Instruction {
             | InstructionKind::CXSIN
             | InstructionKind::CXSOUT
             | InstructionKind::CRND
+            | InstructionKind::CS0BEGIN
+            | InstructionKind::CS0EXEC
+            | InstructionKind::CS1BEGIN
+            | InstructionKind::CS1EXEC
+            | InstructionKind::CCHMOD
             | InstructionKind::CXOR
+            | InstructionKind::CADD
             | InstructionKind::CAND
             | InstructionKind::CREV
             | InstructionKind::CGFMUL
+            | InstructionKind::CSECRET
+            | InstructionKind::CKEYREG
             | InstructionKind::CKEXP
             | InstructionKind::CKREXP
             | InstructionKind::CENC
