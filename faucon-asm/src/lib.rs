@@ -168,7 +168,22 @@ impl Instruction {
     /// [`Instruction`]: struct.Instruction.html
     pub fn is_crypto(&self) -> bool {
         match self.kind() {
-            InstructionKind::CNOP => true,
+            InstructionKind::CNOP
+            | InstructionKind::CMOV
+            | InstructionKind::CXSIN
+            | InstructionKind::CXSOUT
+            | InstructionKind::CRND
+            | InstructionKind::CXOR
+            | InstructionKind::CAND
+            | InstructionKind::CREV
+            | InstructionKind::CGFMUL
+            | InstructionKind::CKEXP
+            | InstructionKind::CKREXP
+            | InstructionKind::CENC
+            | InstructionKind::CDEC
+            | InstructionKind::CSIGCMP
+            | InstructionKind::CSIGENC
+            | InstructionKind::CSIGCLR => true,
             _ => false,
         }
     }
