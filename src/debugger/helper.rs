@@ -1,6 +1,6 @@
 //! Rustyline helper that will manage highlighting and command completion.
 
-use ansi_term::Style;
+use owo_colors::OwoColorize;
 use rustyline::{
     completion::{extract_word, Candidate, Completer},
     highlight::Highlighter,
@@ -66,13 +66,11 @@ impl Highlighter for Helper {
         prompt: &'p str,
         default: bool,
     ) -> Cow<'b, str> {
-        let prompt = Style::new().bold().paint(prompt);
-        Cow::Owned(prompt.to_string())
+        Cow::Owned(prompt.dimmed().to_string())
     }
 
     fn highlight_hint<'h>(&self, hint: &'h str) -> Cow<'h, str> {
-        let hint = Style::new().dimmed().paint(hint);
-        Cow::Owned(hint.to_string())
+        Cow::Owned(hint.dimmed().to_string())
     }
 }
 

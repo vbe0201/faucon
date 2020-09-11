@@ -25,15 +25,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ansi_term"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d52a9bb7ec0cf484c551830a7ce27bd20d67eac647e1befb56b0be4ee39a55d2"
-dependencies = [
- "winapi",
-]
-
-[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -123,7 +114,7 @@ version = "2.33.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37e58ac78573c40708d45522f0d80fa2f01cc4f9b4e2bf749807255454312002"
 dependencies = [
- "ansi_term 0.11.0",
+ "ansi_term",
  "atty",
  "bitflags",
  "strsim",
@@ -154,7 +145,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a99aa4aa18448eef4c7d3f86d2720d2d8cad5c860fe9ff9b279293efdc8f5be"
 dependencies = [
- "ansi_term 0.11.0",
+ "ansi_term",
  "tracing-core",
  "tracing-error",
 ]
@@ -220,13 +211,13 @@ dependencies = [
 name = "faucon"
 version = "0.1.0"
 dependencies = [
- "ansi_term 0.12.1",
  "clap",
  "color-eyre",
  "faucon-asm",
  "faucon-emu",
  "nom",
- "paste 1.0.0",
+ "owo-colors",
+ "paste",
  "rustyline",
  "rustyline-derive",
  "serde",
@@ -258,7 +249,7 @@ dependencies = [
  "byteorder",
  "enum_primitive",
  "faucon-asm",
- "paste 0.1.17",
+ "paste",
 ]
 
 [[package]]
@@ -404,34 +395,9 @@ checksum = "7a1250cdd103eef6bd542b5ae82989f931fc00a41a27f60377338241594410f3"
 
 [[package]]
 name = "paste"
-version = "0.1.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "026c63fe245362be0322bfec5a9656d458d13f9cfb1785d1b38458b9968e8080"
-dependencies = [
- "paste-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "paste"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6ddc8e145de01d9180ac7b78b9676f95a9c2447f6a88b2c2a04702211bc5d71"
-
-[[package]]
-name = "paste-impl"
-version = "0.1.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b9281a268ec213237dcd2aa3c3d0f46681b04ced37c1616fd36567a9e6954b0"
-dependencies = [
- "proc-macro-hack",
-]
-
-[[package]]
-name = "proc-macro-hack"
-version = "0.5.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e0456befd48169b9f13ef0f0ad46d492cf9d2dbb918bcf38e01eed4ce3ec5e4"
 
 [[package]]
 name = "proc-macro2"

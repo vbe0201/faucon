@@ -1,11 +1,10 @@
+use owo_colors::{Color, OwoColorize};
 use std::error::Error;
 use std::io::Write;
 
-use ansi_term::Color;
-
 macro_rules! ok {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print($title, $msg, ansi_term::Color::Green);
+        $crate::macros::print::<owo_colors::colors::Green>($title, $msg);
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -15,7 +14,7 @@ macro_rules! ok {
 
 macro_rules! info {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print($title, $msg, ansi_term::Color::Cyan);
+        $crate::macros::print::<owo_colors::colors::Cyan>($title, $msg);
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -25,7 +24,7 @@ macro_rules! info {
 
 macro_rules! error {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print($title, $msg, ansi_term::Color::Red);
+        $crate::macros::print::<owo_colors::colors::Red>($title, $msg);
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -33,7 +32,7 @@ macro_rules! error {
     };
 }
 
-pub(super) fn print(title: &str, msg: &str, color: Color) {
-    print!("{:<15}", color.paint(title));
+pub(super) fn print<C: Color>(title: &str, msg: &str) {
+    print!("{:<15}", msg.fg::<C>());
     println!(" {}", msg);
 }

@@ -35,15 +35,11 @@ impl Debugger {
     /// emulation.
     ///
     /// [`Cpu`]: ../cpu/struct.Cpu.html
-    pub fn new(falcon: Cpu, vi_mode: bool) -> Self {
+    pub fn new(falcon: Cpu) -> Self {
         let config = Config::builder()
             .history_ignore_space(false)
             .completion_type(rustyline::CompletionType::List)
-            .edit_mode(if vi_mode {
-                rustyline::EditMode::Vi
-            } else {
-                rustyline::EditMode::Emacs
-            })
+            .edit_mode(rustyline::EditMode::Emacs)
             .max_history_size(1000)
             .build();
         let mut editor = Editor::with_config(config);
