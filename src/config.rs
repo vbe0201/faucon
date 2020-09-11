@@ -4,8 +4,13 @@ use std::fs;
 use std::path::Path;
 
 use faucon_emu::memory::PAGE_SIZE;
+use hex::FromHex;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
+
+/// Represents a cryptographic key for the AES-128-ECB functionality that the
+/// SCP provides.
+pub type Key = [u8; 0x10];
 
 /// A wrapper around the faucon tool suite configuration file.
 #[derive(Clone, Debug, Deserialize)]
@@ -14,6 +19,8 @@ pub struct Config {
     pub falcon: Falcon,
     /// Configuration of the PTIMER engine, if available.
     pub ptimer: Option<Ptimer>,
+    /// Configuration of the Falcon Secure Co-Processor, if available.
+    pub scp: Option<Scp>,
 }
 
 impl Config {
@@ -100,9 +107,55 @@ pub struct Ptimer {
     pub watchdog_frequency: f32,
 }
 
-fn deserialize_version<'a, D>(deserializer: D) -> Result<usize, D::Error>
+/// Falcon Secure Co-Processor configuration.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Scp {
+    /// A list of available hardware secrets for cryptographic operations.
+    pub secrets: Vec<Secret>,
+    /// Customization options for the Heavy Secure Mode authenticating mechanism.
+    pub auth: AuthenticationSettings,
+}
+
+/// Representation of a Falcon hardware secret.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Secret {
+    /// The index of the hardware secret.
+    pub index: u8,
+    /// The cryptographic 128-bit AES key provided by the secret.
+    #[serde(deserialize_with = "deserialize_aes_key")]
+    pub key: Key,
+}
+
+/// Settings for customizing the Falcon Heavy Secure Mode authentication mechanism.
+#[derive(Clone, Debug, Deserialize)]
+pub struct AuthenticationSettings {
+    /// Whether the Heavy Secure Mode authentication should be bypassed entirely.
+    ///
+    /// This is mainly meant for code debugging purposes, but won't work on
+    /// hardware without a proper authorization flow. Defaults to `false`.
+    #[serde(default = "default_auth_bypass_setting")]
+    pub bypass: bool,
+    /// An alternative signing key to use over `aes_encrypt(secret(0x1), $c7)`.
+    ///
+    /// This can be supplied optionally for taking advantage of a similar
+    /// behavior as the fake-signing vulnerability on hardware, without having
+    /// to obtain plaintext secret 0x1.
+    #[serde(default, deserialize_with = "deserialize_optional_aes_key")]
+    pub signing_key: Option<Key>,
+    /// The hardware secret to use for decrypting code during the Heavy Secure
+    /// mode authentication process.
+    ///
+    /// Defaults to `0x6`, however if a user doesn't have the plaintext of this
+    /// secret, an alternative one can be used for debugging purposes. However,
+    /// the behavior can't be replicated on hardware without properly encrypting
+    /// the code with real secret 0x6.
+    #[serde(default = "default_encryption_secret_setting")]
+    pub encryption_secret: u8,
+}
+
+fn deserialize_version<'de, D>(deserializer: D) -> Result<usize, D::Error>
 where
-    D: Deserializer<'a>,
+    D: Deserializer<'de>,
 {
     let value = toml::Value::deserialize(deserializer)?;
 
@@ -117,9 +170,9 @@ where
     }
 }
 
-fn deserialize_clock_freq<'a, D>(deserializer: D) -> Result<f32, D::Error>
+fn deserialize_clock_freq<'de, D>(deserializer: D) -> Result<f32, D::Error>
 where
-    D: Deserializer<'a>,
+    D: Deserializer<'de>,
 {
     let value = toml::Value::deserialize(deserializer)?;
 
@@ -131,9 +184,9 @@ where
     }
 }
 
-fn deserialize_port<'a, D>(deserializer: D) -> Result<usize, D::Error>
+fn deserialize_port<'de, D>(deserializer: D) -> Result<usize, D::Error>
 where
-    D: Deserializer<'a>,
+    D: Deserializer<'de>,
 {
     let value = toml::Value::deserialize(deserializer)?;
 
@@ -146,4 +199,44 @@ where
             "invalid value for 'index' field in port object",
         )),
     }
+}
+
+fn deserialize_aes_key<'de, D>(deserializer: D) -> Result<Key, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = toml::Value::deserialize(deserializer)?;
+
+    match String::deserialize(value) {
+        Ok(key) => {
+            Ok(<Key>::from_hex(key).expect("cannot decode the string into an 128-bit AES key"))
+        }
+        Err(_) => Err(Error::custom(
+            "invalid value for the field that is supposed to be an 128-bit AES key",
+        )),
+    }
+}
+
+fn deserialize_optional_aes_key<'de, D>(deserializer: D) -> Result<Option<Key>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+
+    match value {
+        Some(key) => Ok(Some(
+            <Key>::from_hex(key).expect("cannot decode the string into an 128-bit AES key"),
+        )),
+        None => Err(Error::custom(
+            "invalid value for the field that is supposed to be an 128-bit AES key",
+        )),
+    }
+}
+
+const fn default_auth_bypass_setting() -> bool {
+    false
+}
+
+const fn default_encryption_secret_setting() -> u8 {
+    0x6
 }
