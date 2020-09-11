@@ -22,11 +22,25 @@ fn align_up(value: usize, align: usize) -> usize {
     }
 }
 
+/// Pads a given Falcon binary with null bytes to a boundary of 0x100 bytes to fit
+/// whole pages in the IMEM segment.
+///
+/// This is important for binaries because hardware in the real world, outside of
+/// the faucon emulator, is not obliged to align binaries correctly during code
+/// upload. As a rule per thumb, production code should always be padded correctly
+/// by the author of it.
+pub fn pad_binary(binary: &mut Vec<u8>) {
+    let aligned_size = align_up(binary.len(), CODE_ALIGNMENT);
+    while binary.len() < aligned_size {
+        binary.push(0);
+    }
+}
+
 fn read_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, color_eyre::Report> {
     let mut file = File::open(path)?;
     let mut contents = Vec::new();
 
-    file.read_to_end(&mut contents).unwrap();
+    file.read_to_end(&mut contents)?;
 
     Ok(contents)
 }
@@ -43,10 +57,7 @@ pub fn read_falcon_binary<P: AsRef<Path>>(path: P) -> Result<Box<[u8]>, color_ey
     // Falcon code segment can only be modified in 0x100 byte pages.
     // If the binary doesn't have correct alignment, pad it out so
     // the page can be mapped correctly.
-    let aligned_len = align_up(binary.len(), CODE_ALIGNMENT);
-    while binary.len() < aligned_len {
-        binary.push(0);
-    }
+    pad_binary(&mut binary);
 
     Ok(binary.into_boxed_slice())
 }

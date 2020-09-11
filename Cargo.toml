@@ -6,6 +6,7 @@ description = "A comprehensive tooling suite for the NVIDIA Falcon microprocesso
 license = "Apache-2.0/MIT"
 readme = "README.md"
 homepage = "https://github.com/vbe0201/faucon"
+repository = "https://github.com/vbe0201/faucon"
 edition = "2018"
 
 [workspace]
