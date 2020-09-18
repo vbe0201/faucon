@@ -563,10 +563,16 @@ pub enum InstructionKind {
 
     /// The IORD instruction.
     ///
-    /// Reads a word from the I/O space of the processor.
+    /// Asynchronously reads a word from the I/O space of the microprocessor.
     #[insn(opcode = 0xCF, subopcode = 0x0F, operands(R1, IORI))]
     #[insn(opcode = 0xFF, subopcode = 0x0F, operands(R3, IORR))]
     IORD,
+
+    /// The IORDS instruction.
+    ///
+    /// Synchronously reads a word from the I/O space of the microprocessor.
+    #[insn(opcode = 0xFF, subopcode = 0x0E, operands(R3, IORR))]
+    IORDS,
 
     /// An invalid or unknown instruction.
     XXX,
@@ -634,6 +640,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::IOWR => "iowr",
             InstructionKind::IOWRS => "iowrs",
             InstructionKind::IORD => "iord",
+            InstructionKind::IORDS => "iords",
             InstructionKind::XXX => "???",
         };
 
