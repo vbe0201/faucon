@@ -48,7 +48,7 @@ fn read_config<P: AsRef<Path>>(config: Option<P>) -> Result<Config> {
     })
 }
 
-fn run_emulator<P: AsRef<Path>>(bin: P, config: Config, vi_mode: bool) -> Result<()> {
+fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
     // Prepare the CPU and load the supplied binary into IMEM.
     let mut cpu = Cpu::new();
     if let Err(()) = code::upload_to_imem(&mut cpu, 0, 0, &code::read_falcon_binary(bin)?) {
@@ -64,8 +64,8 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config, vi_mode: bool) -> Result
     }
 
     // Create the debugger and run the REPL until the user exits.
-    let mut debugger = Debugger::new(cpu, vi_mode);
-    debugger.run().wrap_err("error in debugger REPL occurred")?;
+    let mut debugger = Debugger::new(cpu);
+    debugger.run().wrap_err("error in debugger repl occurred")?;
 
     Ok(())
 }
@@ -127,11 +127,7 @@ fn get_binary_file<'matches>(
 
 fn parse_subcommands(matches: ArgMatches, config: Config) -> Result<()> {
     if let Some(matches) = matches.subcommand_matches("emu") {
-        run_emulator(
-            get_binary_file(matches)?,
-            config,
-            matches.is_present("vi-mode"),
-        )
+        run_emulator(get_binary_file(matches)?, config)
     } else if let Some(matches) = matches.subcommand_matches("dis") {
         disassemble_file(get_binary_file(matches)?, matches)
     } else if let Some(matches) = matches.subcommand_matches("pad") {
