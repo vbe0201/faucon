@@ -8,27 +8,36 @@
 
 use rand::Rng;
 
+/// A block to be processed by the AES algorithm.
+pub type Block = [u8; 0x10];
+
+/// The AES Cipher Key to be used for cryptographic operations.
+pub type Key = [u8; 0x10];
+
+/// A Round Key for a specific round that can be obtained by expanding the Cipher Key.
+pub type RoundKey = [u8; 0x10];
+
 /// Generates a block of random data from a strong RNG source.
-pub fn crnd() -> [u8; 0x10] {
+pub fn crnd() -> Block {
     rand::thread_rng().gen()
 }
 
 /// Overwrites the contents of the `a` block by XORing the contents of `b` into it.
-pub fn cxor(a: &mut [u8; 0x10], b: &[u8; 0x10]) {
+pub fn cxor(a: &mut Block, b: &Block) {
     for (x, y) in a.iter_mut().zip(b.iter().cycle()) {
         *x ^= y;
     }
 }
 
 /// Overwrites the contents of the `a` block by ANDing the contents of `b` into it.
-pub fn cand(a: &mut [u8; 0x10], b: &[u8; 0x10]) {
+pub fn cand(a: &mut Block, b: &Block) {
     for (x, y) in a.iter_mut().zip(b.iter().cycle()) {
         *x &= y;
     }
 }
 
 /// Creates a new block and fills it with the endian-swapped/reversed input block.
-pub fn crev(a: &[u8; 0x10]) -> [u8; 0x10] {
+pub fn crev(a: &Block) -> Block {
     let mut b = a.clone();
     b.reverse();
 
@@ -39,7 +48,7 @@ pub fn crev(a: &[u8; 0x10]) -> [u8; 0x10] {
 /// defined by the polynomial `x^8 + x^4 + x^3 + x + 1 = 0`.
 ///
 /// [GF(2^8) finite field]: https://en.wikipedia.org/wiki/Finite_field_arithmetic
-pub fn cgfmul(a: &[u8; 0x10]) -> [u8; 0x10] {
+pub fn cgfmul(a: &Block) -> Block {
     let block = u128::from_le_bytes(*a);
     let mut result = block << 1;
     if block & 0x80000000000000000000000000000000 != 0 {
