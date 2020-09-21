@@ -12,3 +12,10 @@ use rand::Rng;
 pub fn crnd() -> [u8; 0x10] {
     rand::thread_rng().gen()
 }
+
+/// Overwrites the contents of the `a` block by XORing the contents of `b` into it.
+pub fn cxor(a: &mut [u8; 0x10], b: &[u8; 0x10]) {
+    for (x, y) in a.iter_mut().zip(b.iter().cycle()) {
+        *x ^= y;
+    }
+}
