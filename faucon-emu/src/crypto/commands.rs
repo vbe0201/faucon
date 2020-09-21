@@ -26,3 +26,11 @@ pub fn cand(a: &mut [u8; 0x10], b: &[u8; 0x10]) {
         *x &= y;
     }
 }
+
+/// Creates a new block and fills it with the endian-swapped/reversed input block.
+pub fn crev(a: &[u8; 0x10]) -> [u8; 0x10] {
+    let mut b = a.clone();
+    b.reverse();
+
+    b
+}
