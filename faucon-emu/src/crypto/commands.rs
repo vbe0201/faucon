@@ -19,3 +19,10 @@ pub fn cxor(a: &mut [u8; 0x10], b: &[u8; 0x10]) {
         *x ^= y;
     }
 }
+
+/// Overwrites the contents of the `a` block by ANDing the contents of `b` into it.
+pub fn cand(a: &mut [u8; 0x10], b: &[u8; 0x10]) {
+    for (x, y) in a.iter_mut().zip(b.iter().cycle()) {
+        *x &= y;
+    }
+}
