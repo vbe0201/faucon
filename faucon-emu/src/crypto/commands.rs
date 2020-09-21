@@ -34,3 +34,17 @@ pub fn crev(a: &[u8; 0x10]) -> [u8; 0x10] {
 
     b
 }
+
+/// Performs a multiplication of `a` interpreted as a `u128` by 2 in the [GF(2^8) finite field]
+/// defined by the polynomial `x^8 + x^4 + x^3 + x + 1 = 0`.
+///
+/// [GF(2^8) finite field]: https://en.wikipedia.org/wiki/Finite_field_arithmetic
+pub fn cgfmul(a: &[u8; 0x10]) -> [u8; 0x10] {
+    let block = u128::from_le_bytes(*a);
+    let mut result = block << 1;
+    if block & 0x80000000000000000000000000000000 != 0 {
+        result ^= 0x1B;
+    }
+
+    result.to_le_bytes()
+}

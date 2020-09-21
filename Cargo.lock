@@ -260,7 +260,6 @@ dependencies = [
  "byteorder",
  "enum_primitive",
  "faucon-asm",
- "num-traits 0.2.12",
  "rand",
 ]
 
