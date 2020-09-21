@@ -37,7 +37,7 @@ const SBOX: [u8; 256] = [
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
 ];
 
-fn key_schedule_round(key: &Key, rcon: u8) -> RoundKey {
+fn key_schedule_round(key: &RoundKey, rcon: u8) -> RoundKey {
     let mut round_key = [0; 0x10];
     round_key.copy_from_slice(key);
 
@@ -57,11 +57,39 @@ fn key_schedule_round(key: &Key, rcon: u8) -> RoundKey {
     round_key
 }
 
-fn gfmul(a: u8) -> u8 {
+fn invert_key_schedule_round(key: &RoundKey, rcon: u8) -> RoundKey {
+    let mut round_key = [0; 0x10];
+    round_key.copy_from_slice(key);
+
+    for round in (1..4).rev() {
+        // XOR in the previous word.
+        for i in 0..4 {
+            round_key[4 * round + i] ^= round_key[4 * (round - 1) + i];
+        }
+    }
+
+    // Rotate the previous word and apply S-box. Also XOR RCON for the first byte.
+    round_key[0] ^= SBOX[round_key[13] as usize] ^ rcon;
+    round_key[1] ^= SBOX[round_key[14] as usize];
+    round_key[2] ^= SBOX[round_key[15] as usize];
+    round_key[3] ^= SBOX[round_key[12] as usize];
+
+    round_key
+}
+
+fn gfmul2(a: u8) -> u8 {
     if a & 0x80 != 0 {
         (a << 1) ^ 0x1B
     } else {
         a << 1
+    }
+}
+
+fn gfdiv2(a: u8) -> u8 {
+    if a & 1 != 0 {
+        (a >> 1) ^ 141
+    } else {
+        a >> 1
     }
 }
 
@@ -118,8 +146,26 @@ pub fn ckexp(key: &Key) -> RoundKey {
         // Go through the Key Schedule to get the next key.
         round_key = key_schedule_round(&round_key, rcon);
 
-        rcon = gfmul(rcon);
+        rcon = gfmul2(rcon);
     }
 
     round_key
+}
+
+/// Reverts the key schedule from the given last Round Key into the Cipher Key.
+pub fn ckrexp(round_key: &RoundKey) -> Key {
+    let mut rcon = 0x36;
+
+    // The first (last) Round Key is the given 16 bytes key.
+    let mut key = [0; 0x10];
+    key.copy_from_slice(round_key);
+
+    for _ in (0..10).rev() {
+        // Go through the Key Schedule to get the previous key.
+        key = invert_key_schedule_round(&key, rcon);
+
+        rcon = gfdiv2(rcon);
+    }
+
+    key
 }
