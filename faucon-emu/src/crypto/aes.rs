@@ -152,8 +152,11 @@ pub fn invert_key_schedule_round(round_key: &mut RoundKey, rcon: u8) {
 
 #[inline(always)]
 fn add_round_key(state: &mut Block, key: &RoundKey) {
-    for (dst, src) in state.iter_mut().zip(key.iter().cycle()) {
-        *dst ^= src;
+    for i in 0..4 {
+        state[i + 0 * 4] ^= key[4 * i + 0];
+        state[i + 1 * 4] ^= key[4 * i + 1];
+        state[i + 2 * 4] ^= key[4 * i + 2];
+        state[i + 3 * 4] ^= key[4 * i + 3];
     }
 }
 
@@ -255,11 +258,19 @@ fn invert_mix_columns(state: &mut Block) {
     }
 }
 
-/// Encrypts a block of data using the supplied key.
+/// Encrypts a block of data with AES-ECB using the supplied key.
 pub fn encrypt(key: &Key, block: &Block) -> Block {
-    let mut state = block.clone();
     let mut round_key = key.clone();
     let mut rcon = 1;
+
+    // Initialize the State with the columns of the block.
+    let mut state = [0; 16];
+    for i in 0..4 {
+        state[4 * i + 0] = block[i + 0 * 4];
+        state[4 * i + 1] = block[i + 1 * 4];
+        state[4 * i + 2] = block[i + 2 * 4];
+        state[4 * i + 3] = block[i + 3 * 4];
+    }
 
     // Add the Round Key to the State in the initial round.
     add_round_key(&mut state, &round_key);
@@ -281,10 +292,19 @@ pub fn encrypt(key: &Key, block: &Block) -> Block {
     key_schedule_round(&mut round_key, rcon);
     add_round_key(&mut state, &round_key);
 
-    state
+    // Copy the ciphertext back from the State.
+    let mut ciphertext = [0; 16];
+    for i in 0..4 {
+        ciphertext[i + 0 * 4] = state[4 * i + 0];
+        ciphertext[i + 1 * 4] = state[4 * i + 1];
+        ciphertext[i + 2 * 4] = state[4 * i + 2];
+        ciphertext[i + 3 * 4] = state[4 * i + 3];
+    }
+
+    ciphertext
 }
 
-/// Decrypts a block of data with the supplied key.
+/// Decrypts a block of data with AES-ECB using the supplied key.
 ///
 /// NOTE: Unlike [`encrypt`], this function does not take the Cipher Key as an argument
 /// because decryption really starts with the last Round Key and walks up the Key Schedule
@@ -293,9 +313,17 @@ pub fn encrypt(key: &Key, block: &Block) -> Block {
 ///
 /// [`encrypt`]: fn.encrypt.html
 pub fn decrypt(last_round_key: &RoundKey, block: &Block) -> Block {
-    let mut state = block.clone();
     let mut round_key = last_round_key.clone();
     let mut rcon = 0x36;
+
+    // Initialize the State with the columns of the block.
+    let mut state = [0; 16];
+    for i in 0..4 {
+        state[i + 0 * 4] = block[4 * i + 0];
+        state[i + 1 * 4] = block[4 * i + 1];
+        state[i + 2 * 4] = block[4 * i + 2];
+        state[i + 3 * 4] = block[4 * i + 3];
+    }
 
     // Process the first round.
     add_round_key(&mut state, &round_key);
@@ -317,5 +345,14 @@ pub fn decrypt(last_round_key: &RoundKey, block: &Block) -> Block {
     // Add the Cipher Key to the state in the last round.
     add_round_key(&mut state, &round_key);
 
-    state
+    // Copy the plaintext back from the State.
+    let mut plaintext = [0; 16];
+    for i in 0..4 {
+        plaintext[4 * i + 0] = state[i + 0 * 4];
+        plaintext[4 * i + 1] = state[i + 1 * 4];
+        plaintext[4 * i + 2] = state[i + 2 * 4];
+        plaintext[4 * i + 3] = state[i + 3 * 4];
+    }
+
+    plaintext
 }
