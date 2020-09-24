@@ -60,6 +60,8 @@ pub fn kexp(key: &aes::Key) -> aes::RoundKey {
     round_key
 }
 
+/// Walks up the AES Key Schedule to condense the given last Round Key back into
+/// the Cipher Key.
 pub fn krexp(round_key: &aes::RoundKey) -> aes::Key {
     let mut key = round_key.clone();
     let mut rcon = 0x36;
