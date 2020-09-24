@@ -1,5 +1,6 @@
 //! Implementation of the Falcon Security Co-Processor and related crypto functionality.
 
+mod acl;
 mod aes;
 
 use rand::Rng;
