@@ -11,7 +11,7 @@ pub enum PageFlag {
 /// Potential TLB lookup errors.
 ///
 /// These may occur when doing virtual <-> physical page translations.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LookupError {
     /// A page fault that occurs when no TLB entries could be matched for a
     /// physical page.

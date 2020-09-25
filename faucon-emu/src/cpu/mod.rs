@@ -1,9 +1,8 @@
 //! Falcon microprocessor abstractions.
 
 mod instructions;
+mod pipeline;
 mod registers;
-
-use faucon_asm::{disassembler, Instruction};
 
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
@@ -174,64 +173,40 @@ impl Cpu {
         }
     }
 
-    fn fetch_insn(&mut self, address: u32) -> Option<Instruction> {
-        // Look up the TLB to get the physical code page.
-        let result = match self.memory.tlb.lookup(address) {
-            Ok((page, tlb)) => Some((page, tlb)),
-            Err(LookupError::NoPageHits) => {
-                self.trigger_trap(Trap::VmNoHit);
-
-                None
-            }
-            Err(LookupError::MultiplePageHits) => {
-                self.trigger_trap(Trap::VmMultiHit);
-
-                None
-            }
-        };
-
-        if let Some((page_index, tlb)) = result {
-            // Build the physical code address to read from.
-            let page_offset = (address & 0xFF) as u16;
-            let code_address = ((page_index as u16) << 8) | page_offset;
-
-            // If the page is marked usable, complete the access using the physical page.
-            if tlb.get_flag(PageFlag::Usable) {
-                let mut code = &self.memory.code[code_address as usize..];
-                match disassembler::read_instruction(&mut code) {
-                    Ok(insn) => Some(insn),
-                    Err(faucon_asm::Error::UnknownInstruction(_)) => {
-                        self.trigger_trap(Trap::InvalidOpcode);
-
-                        None
-                    }
-                    Err(faucon_asm::Error::IoError) => panic!("Rust exploded"),
-                    Err(faucon_asm::Error::Eof) => None,
-                }
-            } else if tlb.get_flag(PageFlag::Busy) {
-                // The page is marked busy, the access must be completed when possible.
-                todo!("Wait for the page to be marked as usable");
-            } else {
-                unreachable!()
-            }
-        } else {
-            None
-        }
-    }
-
     /// Executes the next instruction at the address held by the PC register.
     pub fn step(&mut self) {
-        match self.fetch_insn(self.registers[PC]) {
-            Some(insn) => {
-                process_instruction(self, &insn);
+        let insn = match pipeline::fetch_and_decode(self, self.registers[PC]) {
+            Ok(insn) => insn,
+            Err(e) => match e {
+                pipeline::PipelineError::FetchingFailed(lookup_error) => {
+                    self.trigger_trap(if lookup_error == LookupError::NoPageHits {
+                        Trap::VmNoHit
+                    } else {
+                        Trap::VmMultiHit
+                    });
 
-                // Check if it is necessary to increment the PC.
-                // If not, this has already been done by the instruction itself.
-                if self.increment_pc {
-                    self.registers[PC] += insn.len() as u32;
+                    return;
                 }
-            }
-            None => return,
+                pipeline::PipelineError::DecodingFailed(decoding_error) => match decoding_error {
+                    faucon_asm::Error::UnknownInstruction(_) => {
+                        self.trigger_trap(Trap::InvalidOpcode);
+
+                        return;
+                    }
+                    faucon_asm::Error::IoError => panic!("You should hopefully never see this."),
+                    faucon_asm::Error::Eof => return,
+                },
+            },
+        };
+
+        // TODO: Sleep for the returned amount of cycles for more accuracy.
+        let _ = process_instruction(self, &insn);
+
+        // Increment the Program Counter to the next instruction, if requested.
+        // If not requested, it is safe to assume that the instruction modified
+        // the PC register to a desired value itself.
+        if self.increment_pc {
+            self.registers[PC] += insn.len() as u32;
         }
     }
 }
