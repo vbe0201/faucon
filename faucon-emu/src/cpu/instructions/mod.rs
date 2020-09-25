@@ -1,7 +1,3 @@
-use faucon_asm::{Instruction, InstructionKind};
-
-use super::*;
-
 mod alu;
 mod branch;
 mod control;
@@ -9,6 +5,10 @@ mod data;
 mod intr;
 mod utils;
 mod vm;
+
+use faucon_asm::{Instruction, InstructionKind};
+
+use super::*;
 
 /// Processes the given instruction on the microprocessor and returns the amount
 /// of CPU cycles the operation took.

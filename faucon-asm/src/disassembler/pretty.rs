@@ -1,20 +1,19 @@
-//! Implementation of a pretty disassembler
-//! that will print a formatted disassembled version of the instructions.
+//! Implementation of a disassembler that will pretty-print disassembled instructions.
 
-use crate::Instruction;
 use std::io::{self, Read, Write};
 
-/// The disassembler is responsible for printing
-/// out instructions using a simple but powerful
-/// format.
+use crate::Instruction;
+
+/// The disassembler that is responsible for pretty-printing Falcon binaries in a
+/// human-readable format.
 pub struct Disassembler<W> {
     pc: usize,
     output: TrackWrite<W>,
 }
 
 impl<W> Disassembler<W> {
-    /// Creates a new `Disassembler` that will write the disassembled code
-    /// to the given output.
+    /// Creates a new disassembler that will write the disassembled code to the given
+    /// output sink.
     pub fn new(output: W) -> Self {
         Self {
             pc: 0,
@@ -66,10 +65,11 @@ impl<W: Write> Disassembler<W> {
         self.disassemble(insns)
     }
 
-    /// Disassembles a list of instructions and writes them to the output of this `Disassembler`.
+    /// Disassembles a list of instructions and writes them to the output sink of the
+    /// disassembler.
     ///
-    /// This method will not reset the inner pc, so if you call it multiple times,
-    /// the addresses will still increase.
+    /// This method will not reset the inner Program Counter, so if one calls it multiple
+    /// times, the value will still increase.
     pub fn disassemble(&mut self, insns: impl IntoIterator<Item = Instruction>) -> io::Result<()> {
         let out = &mut self.output;
         for insn in insns {

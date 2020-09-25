@@ -95,6 +95,12 @@
 //! [envytools]: https://github.com/envytools/envytools
 //! [`Error::Eof`]: enum.Error.html#variant.Eof
 
+mod arguments;
+pub mod disassembler;
+pub mod isa;
+pub mod opcode;
+pub mod operands;
+
 use std::fmt;
 
 pub use disassembler::*;
@@ -104,12 +110,6 @@ pub use operands::*;
 
 use arguments::Argument;
 use opcode::*;
-
-mod arguments;
-pub mod disassembler;
-pub mod isa;
-pub mod opcode;
-pub mod operands;
 
 /// A result that is returned by the functions in this crate.
 pub type Result<T, E = Error> = std::result::Result<T, E>;

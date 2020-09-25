@@ -1,10 +1,10 @@
 //! Implementation of Falcon code and data memory in SRAM.
 
+mod tlb;
+
 use byteorder::{ByteOrder, LittleEndian};
 
 pub use tlb::*;
-
-mod tlb;
 
 /// The size of a physical memory page in Falcon code space.
 pub const PAGE_SIZE: usize = 0x100;

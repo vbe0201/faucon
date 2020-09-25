@@ -1,5 +1,8 @@
 //! Implementation of a CLI debugger for driving the emulator.
 
+mod commands;
+mod helper;
+
 use std::io::{stdin, stdout, Write};
 
 use faucon_asm::{get_spr_name, read_instruction, RegisterKind};
@@ -7,9 +10,6 @@ use faucon_emu::cpu::Cpu;
 use rustyline::{error::ReadlineError, Cmd, Config, Editor, KeyPress};
 
 use commands::Command;
-
-mod commands;
-mod helper;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PROMPT: &str = "faucon> ";

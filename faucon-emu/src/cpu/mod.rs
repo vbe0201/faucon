@@ -1,15 +1,14 @@
 //! Falcon microprocessor abstractions.
 
+mod instructions;
+mod registers;
+
 use faucon_asm::{disassembler, Instruction};
 
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
-
 use instructions::process_instruction;
 pub use registers::*;
-
-mod instructions;
-mod registers;
 
 /// Representation of the Falcon processor.
 pub struct Cpu {
