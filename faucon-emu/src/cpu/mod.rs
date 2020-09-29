@@ -4,6 +4,7 @@ mod instructions;
 mod pipeline;
 mod registers;
 
+use crate::crypto::Scp;
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
 use instructions::process_instruction;
@@ -20,6 +21,8 @@ pub struct Cpu {
     /// The current execution state of the processor that controls the way
     /// the CPU executes code.
     state: ExecutionState,
+    /// The Secure Co-Processor responsible for cryptographic operations.
+    scp: Scp,
     /// A boolean that is used to determine whether the PC should be
     /// incremented after an instruction.
     ///
@@ -88,6 +91,7 @@ impl Cpu {
             memory: Memory::new(),
             dma_engine: dma::Engine::new(),
             state: ExecutionState::Stopped,
+            scp: Scp::new(),
             increment_pc: false,
         }
     }

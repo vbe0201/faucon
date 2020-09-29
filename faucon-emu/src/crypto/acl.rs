@@ -1,5 +1,7 @@
 //! Implementation of the Access Control List system that guards Falcon crypto registers.
 
+use std::ops::{Deref, DerefMut};
+
 /// Marks a crypto register as 'secure key'. Once cleared, this bit cannot be set again
 /// and means that the register contains a "confidential" key, such as a hardware secret.
 pub const SECURE_KEY: u8 = 1 << 0;
@@ -29,7 +31,7 @@ pub const INSECURE_OVERWRITABLE: u8 = 1 << 4;
 
 /// A wrapper around a crypto register that enforces the Access Control List of the
 /// Secure Co-Processor to guard the register from unauthorized or unsupported access.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AclCell<T: Copy> {
     inner: T,
     value: u8,
@@ -49,8 +51,27 @@ impl<T: Copy> AclCell<T> {
         }
     }
 
+    /// Sets a new value for the encapsulated object.
+    pub fn set_value(&mut self, value: T) {
+        self.inner = value;
+    }
+
     /// Unconditionally sets an arbitrary ACL value on the cell and overwrites the old one.
     pub fn set_unconditional_acl(&mut self, acl: u8) {
         self.value = acl & 0x1F;
+    }
+}
+
+impl<T: Copy> Deref for AclCell<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T: Copy> DerefMut for AclCell<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }

@@ -5,6 +5,109 @@ mod aes;
 
 use rand::Rng;
 
+use acl::AclCell;
+
+/// Representation of the Secure Co-Processor of the Falcon.
+///
+/// It provides support for hardware-accelerated cryptographic tasks on top of AES-ECB.
+#[derive(Debug)]
+pub struct Scp {
+    registers: [AclCell<aes::Block>; 0x8],
+    key_register: Option<usize>,
+}
+
+// TODO: Properly handle ACL values and conditions.
+
+impl Scp {
+    /// Creates a new instance of the Secure Co-Processor as an extension to the core
+    /// Falcon circuity.
+    pub fn new() -> Self {
+        Scp {
+            registers: [AclCell::new(aes::Block::default()); 0x8],
+            key_register: None,
+        }
+    }
+
+    /// Moves the block in the source register into the destination register.
+    pub fn mov(&mut self, destination: usize, source: usize) {
+        self.registers[destination].set_value(**&self.registers[source]);
+    }
+
+    /// Generates a block of random data and stores it in the destination register.
+    pub fn rnd(&mut self, destination: usize) {
+        self.registers[destination].set_value(rnd());
+    }
+
+    /// XORs every byte of the block in the destination register with every byte of the block
+    /// in the source register.
+    pub fn xor(&mut self, destination: usize, source: usize) {
+        let source = &self.registers[source].clone();
+        xor(&mut self.registers[destination], &source);
+    }
+
+    /// Adds an immediate to the block in the destination register.
+    pub fn add(&mut self, destination: usize, source: u8) {
+        self.registers[destination].set_value(add(&self.registers[destination], source as u128));
+    }
+
+    /// Applies a binary AND to every byte of the block in the destination register with
+    /// every byte of the block in the source register.
+    pub fn and(&mut self, destination: usize, source: usize) {
+        let source = &self.registers[source].clone();
+        xor(&mut self.registers[destination], &source);
+    }
+
+    /// Reverses the block in the source register and stores the result in the destination
+    /// register.
+    pub fn rev(&mut self, destination: usize, source: usize) {
+        self.registers[destination].set_value(rev(&self.registers[source]));
+    }
+
+    /// Performs a Galois field multiplication of the block in the source register and
+    /// stores the result in the destination register.
+    pub fn gfmul(&mut self, destination: usize, source: usize) {
+        self.registers[destination].set_value(gfmul(&self.registers[source]));
+    }
+
+    /// Configures a register which should be used to fetch the key for cryptographic
+    /// operations.
+    pub fn keyreg(&mut self, register: usize) {
+        self.key_register = Some(register);
+    }
+
+    /// Goes through the AES Key Schedule to generate the last Round Key into the destination
+    /// register using the Cipher Key in the source register.
+    pub fn kexp(&mut self, destination: usize, source: usize) {
+        self.registers[destination].set_value(kexp(&self.registers[source]));
+    }
+
+    /// Reverses the AES Key Schedule to generate the Cipher Key into the destination register
+    /// using the last Round Key in the source register.
+    pub fn krexp(&mut self, destination: usize, source: usize) {
+        self.registers[destination].set_value(krexp(&self.registers[source]));
+    }
+
+    /// Encrypts the contents of a given source register with the key in the key register and
+    /// stores the result to the destination register.
+    pub fn enc(&mut self, destination: usize, source: usize) {
+        let keyreg = self
+            .key_register
+            .expect("cannot encrypt a message without a key register");
+        self.registers[destination]
+            .set_value(enc(&self.registers[keyreg], &self.registers[source]));
+    }
+
+    /// Decrypts the contents of a given source register with the key in the key register and
+    /// stores the result to the destination register.
+    pub fn dec(&mut self, destination: usize, source: usize) {
+        let keyreg = self
+            .key_register
+            .expect("cannot decrypt a message without a key register");
+        self.registers[destination]
+            .set_value(dec(&self.registers[keyreg], &self.registers[source]));
+    }
+}
+
 /// Generates a block of random data using a strong RNG source.
 pub fn rnd() -> aes::Block {
     rand::thread_rng().gen()
@@ -15,6 +118,12 @@ pub fn xor(a: &mut aes::Block, b: &aes::Block) {
     for (x, y) in a.iter_mut().zip(b.iter().cycle()) {
         *x ^= y;
     }
+}
+
+/// Adds an immediate to the given block and returns a new block containing the result.
+pub fn add(a: &aes::Block, b: u128) -> aes::Block {
+    let result = u128::from_le_bytes(*a) + b;
+    result.to_le_bytes()
 }
 
 /// Overwrites the contents of the `a` block by ANDing the contents of `b` into it.
