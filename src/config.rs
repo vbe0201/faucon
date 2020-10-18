@@ -2,6 +2,7 @@
 
 use std::fs;
 use std::path::Path;
+use std::time::Duration;
 
 use faucon_emu::memory::PAGE_SIZE;
 use hex::FromHex;
@@ -68,8 +69,8 @@ impl Falcon {
     }
 
     /// Gets the duration of a single clock cycle of the CPU.
-    pub fn cycle_duration(&self) -> f32 {
-        1.0 / self.clock_freq
+    pub fn cycle_duration(&self) -> Duration {
+        Duration::from_secs_f32(1.0 / self.clock_freq)
     }
 }
 

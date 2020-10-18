@@ -4,18 +4,25 @@ mod instructions;
 mod pipeline;
 mod registers;
 
+use std::thread::sleep;
+use std::time::Duration;
+
+use crate::cpu::instructions::process_instruction;
+pub use crate::cpu::registers::*;
 use crate::crypto::Scp;
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
-use instructions::process_instruction;
-pub use registers::*;
 
 /// Representation of the Falcon processor.
 pub struct Cpu {
+    /// The Falcon revision to emulate.
+    version: usize,
     /// The Falcon CPU registers.
     pub registers: CpuRegisters,
     /// The Falcon SRAM for code and data.
     pub memory: Memory,
+    /// The clock period it takes the Falcon to walk through a single CPU cycle.
+    clock_period: Duration,
     /// The Falcon DMA engine.
     dma_engine: dma::Engine,
     /// The current execution state of the processor that controls the way
@@ -85,15 +92,22 @@ enum_from_primitive! {
 
 impl Cpu {
     /// Creates a new instance of the CPU.
-    pub fn new() -> Self {
+    pub fn new(version: usize, imem_size: u32, dmem_size: u32, clock_period: Duration) -> Self {
         Cpu {
+            version,
             registers: CpuRegisters::new(),
-            memory: Memory::new(),
+            memory: Memory::new(imem_size, dmem_size),
+            clock_period,
             dma_engine: dma::Engine::new(),
             state: ExecutionState::Stopped,
             scp: Scp::new(),
             increment_pc: false,
         }
+    }
+
+    /// Returns the Falcon CPU revision that is being emulated.
+    pub fn get_version(&self) -> usize {
+        self.version
     }
 
     /// Returns the length of the Falcon code segment.
@@ -203,8 +217,9 @@ impl Cpu {
             },
         };
 
-        // TODO: Sleep for the returned amount of cycles for more accuracy.
-        let _ = process_instruction(self, &insn);
+        // Process the instruction and sleep for the consumed amount of cycles.
+        let cycles = process_instruction(self, &insn);
+        sleep(self.clock_period * cycles as u32);
 
         // Increment the Program Counter to the next instruction, if requested.
         // If not requested, it is safe to assume that the instruction modified

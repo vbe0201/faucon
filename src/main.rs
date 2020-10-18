@@ -49,8 +49,14 @@ fn read_config<P: AsRef<Path>>(config: Option<P>) -> Result<Config> {
 }
 
 fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
-    // Prepare the CPU and load the supplied binary into IMEM.
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(
+        config.falcon.version,
+        config.falcon.get_imem_size(),
+        config.falcon.dmem_size,
+        config.falcon.cycle_duration(),
+    );
+
+    // Upload the supplied binary into the Falcon code segment.
     if let Err(()) = code::upload_to_imem(&mut cpu, 0, 0, &code::read_falcon_binary(bin)?) {
         return Err(eyre!("the binary file is too large"))
             .wrap_err("failed to upload code")

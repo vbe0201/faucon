@@ -38,11 +38,10 @@ pub struct Memory {
 impl Memory {
     /// Creates a new instance of the memory, initialized to all zeroes by
     /// default.
-    pub fn new() -> Self {
-        // TODO: Compute these values through UC_CAPS MMIO.
+    pub fn new(imem_size: u32, dmem_size: u32) -> Self {
         Memory {
-            data: vec![0; 0x4000],
-            code: vec![0; PAGE_SIZE * 0x80],
+            data: vec![0; dmem_size as usize],
+            code: vec![0; imem_size as usize],
             tlb: Tlb::new(),
         }
     }
