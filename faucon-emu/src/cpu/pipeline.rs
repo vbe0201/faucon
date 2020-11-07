@@ -18,11 +18,16 @@ pub enum PipelineError {
 
 /// Fetches the next instruction from the given virtual address, if possible.
 ///
-/// The Falcon pipeline simplified consists of three main stages:
+/// The Falcon pipeline simplified consists of six stages:
+/// Fetch -> Decode -> Calculate Operands -> Fetch Operands -> Execute -> Write Operands
+///
+/// However, for emulation in faucon, it essentially lowers down to three main stages:
 /// Fetch -> Decode -> Execute
 ///
 /// This function carries out the first two of those stages and returns either
 /// the decoded instruction or an error that gives details about what went wrong.
+///
+/// Actual execution of an instruction devolves around handling the other stages fluently.
 pub fn fetch_and_decode(
     cpu: &mut Cpu,
     address: u32,
