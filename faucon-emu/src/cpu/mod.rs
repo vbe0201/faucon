@@ -214,6 +214,7 @@ impl Cpu {
                     faucon_asm::Error::IoError => panic!("You should hopefully never see this."),
                     faucon_asm::Error::Eof => return,
                 },
+                pipeline::PipelineError::CpuHalted => return, // TODO: Handle this more elegantly?
             },
         };
 

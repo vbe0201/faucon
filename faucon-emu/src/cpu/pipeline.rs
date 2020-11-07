@@ -2,7 +2,7 @@
 
 use faucon_asm::read_instruction;
 
-use super::Cpu;
+use super::{Cpu, ExecutionState};
 use crate::memory::{LookupError, PageFlag};
 
 /// Possible errors related to the Falcon execution pipeline
@@ -12,6 +12,8 @@ pub enum PipelineError {
     FetchingFailed(LookupError),
     /// An error related to decoding instruction bytes in memory.
     DecodingFailed(faucon_asm::Error),
+    /// The processor is in a halted state and cannot execute any instructions.
+    CpuHalted,
 }
 
 /// Fetches the next instruction from the given virtual address, if possible.
@@ -25,6 +27,10 @@ pub fn fetch_and_decode(
     cpu: &mut Cpu,
     address: u32,
 ) -> Result<faucon_asm::Instruction, PipelineError> {
+    if cpu.state == ExecutionState::Stopped {
+        return Err(PipelineError::CpuHalted);
+    }
+
     // Translate the virtual address into a physical address to read from.
     let (physical_address, tlb) = match cpu.memory.tlb.lookup(address) {
         Ok((page, tlb)) => {
