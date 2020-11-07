@@ -176,7 +176,7 @@ impl Cpu {
         }
 
         // Write word to the code segment.
-        self.memory.write_code_addr(address, value);
+        self.memory.write_code(address, value);
 
         // If the last word was uploaded, set the Usable flag.
         if (address & 0xFC) == 0xFC {

@@ -105,8 +105,13 @@ impl Memory {
         LittleEndian::write_u32(&mut self.data[address as usize..], value);
     }
 
-    /// Writes a word to a given physical address in code space.
-    pub fn write_code_addr(&mut self, address: u16, value: u32) {
+    /// Reads a code word from a given physical address in code space.
+    pub fn read_code(&self, address: u16) -> u32 {
+        LittleEndian::read_u32(&self.code[address as usize..])
+    }
+
+    /// Writes a code word to a given physical address in code space.
+    pub fn write_code(&mut self, address: u16, value: u32) {
         LittleEndian::write_u32(&mut self.code[address as usize..], value);
     }
 }
