@@ -11,8 +11,8 @@ pub const IV1: Register = Register(RegisterKind::Spr, 1);
 /// A special-purpose register that holds the address for Interrupt Vector 2.
 pub const IV2: Register = Register(RegisterKind::Spr, 2);
 
-/// A special-purpose register that holds the address for the Trap Vector.
-pub const TV: Register = Register(RegisterKind::Spr, 3);
+/// A special-purpose register that holds the address for the Exception Vector.
+pub const EV: Register = Register(RegisterKind::Spr, 3);
 
 /// A special-purpose register that holds the current stack pointer.
 pub const SP: Register = Register(RegisterKind::Spr, 4);
@@ -22,29 +22,38 @@ pub const PC: Register = Register(RegisterKind::Spr, 5);
 
 /// A special-purpose register that holds the external base address for IMEM
 /// transfers.
-pub const XCBASE: Register = Register(RegisterKind::Spr, 6);
+pub const IMB: Register = Register(RegisterKind::Spr, 6);
 
 /// A special-purpose register that holds the external base address for DMEM
 /// transfers.
-pub const XDBASE: Register = Register(RegisterKind::Spr, 7);
+pub const DMB: Register = Register(RegisterKind::Spr, 7);
 
 /// A special-purpose register that holds various CPU flag bits.
-pub const FLAGS: Register = Register(RegisterKind::Spr, 8);
+pub const CSW: Register = Register(RegisterKind::Spr, 8);
 
 /// A special-purpose register that holds the configuration bits for the SCP DMA
-/// functionality.
-pub const CX: Register = Register(RegisterKind::Spr, 9);
+/// override functionality.
+pub const CCR: Register = Register(RegisterKind::Spr, 9);
 
 /// A special-purpose register that holds the configuration bits for the SCP
 /// authentication process.
-pub const CAUTH: Register = Register(RegisterKind::Spr, 10);
+pub const SEC: Register = Register(RegisterKind::Spr, 10);
 
 /// A special-purpose register that holds the configuration bits for the CTXDMA
 /// ports.
-pub const XTARGETS: Register = Register(RegisterKind::Spr, 11);
+pub const CTX: Register = Register(RegisterKind::Spr, 11);
 
-/// A special-purpose register that holds details on triggered traps.
-pub const TSTATUS: Register = Register(RegisterKind::Spr, 12);
+/// A special-purpose register that holds details on raised exceptions.
+pub const EXCI: Register = Register(RegisterKind::Spr, 12);
+
+/// Unknown. Marked as reserved.
+pub const SEC1: Register = Register(RegisterKind::Spr, 13);
+
+/// Unknown. Marked as reserved.
+pub const IMB1: Register = Register(RegisterKind::Spr, 14);
+
+/// Unknown. Marked as reserved.
+pub const DMB1: Register = Register(RegisterKind::Spr, 15);
 
 enum_from_primitive! {
     /// Flag bits for the `flags` special-purpose register.
@@ -98,8 +107,6 @@ pub struct CpuRegisters {
     gpr: [u32; 0x10],
     /// The special-purpose CPU registers of the Falcon.
     spr: [u32; 0x10],
-    /// The crypto registers of the Falcon.
-    cr: [u32; 0x8],
 }
 
 impl CpuRegisters {
@@ -109,22 +116,21 @@ impl CpuRegisters {
         CpuRegisters {
             gpr: [0; 0x10],
             spr: [0; 0x10],
-            cr: [0; 0x8],
         }
     }
 
     /// Sets a given CPU flag bit in the `$flags` register.
     pub fn set_flag(&mut self, flag: CpuFlag, set: bool) {
         if set {
-            self[FLAGS] |= flag as u32;
+            self[CSW] |= flag as u32;
         } else {
-            self[FLAGS] &= !(flag as u32);
+            self[CSW] &= !(flag as u32);
         }
     }
 
     /// Checks if a given CPU flag bit in the `$flags` register is set.
     pub fn get_flag(&self, flag: CpuFlag) -> bool {
-        (self[FLAGS] & flag as u32) != 0
+        (self[CSW] & flag as u32) != 0
     }
 
     /// A debugging method that grants immutable access to the registers of the
@@ -138,7 +144,7 @@ impl CpuRegisters {
         match kind {
             RegisterKind::Gpr => &self.gpr,
             RegisterKind::Spr => &self.spr,
-            RegisterKind::Crypto => &self.cr,
+            RegisterKind::Crypto => panic!("Crypto registers are only accessible through the SCP"),
         }
     }
 }
@@ -150,7 +156,7 @@ impl Index<Register> for CpuRegisters {
         match reg.0 {
             RegisterKind::Gpr => &self.gpr[reg.1],
             RegisterKind::Spr => &self.spr[reg.1],
-            RegisterKind::Crypto => &self.cr[reg.1],
+            RegisterKind::Crypto => panic!("Crypto registers are only accessible through the SCP"),
         }
     }
 }
@@ -160,7 +166,7 @@ impl IndexMut<Register> for CpuRegisters {
         match reg.0 {
             RegisterKind::Gpr => &mut self.gpr[reg.1],
             RegisterKind::Spr => &mut self.spr[reg.1],
-            RegisterKind::Crypto => &mut self.cr[reg.1],
+            RegisterKind::Crypto => panic!("Crypto registers are only accessible through the SCP"),
         }
     }
 }

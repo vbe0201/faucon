@@ -139,10 +139,10 @@ impl Cpu {
     /// [`Trap`]: enum.Trap.html
     pub fn trigger_trap(&mut self, trap: Trap) {
         // Set the Trap Active bit in the flags register.
-        self.registers[FLAGS] |= 1 << 24;
+        self.registers[CSW] |= 1 << 24;
 
         // Store the trap status, composed of the current PC and the trap reason.
-        self.registers[TSTATUS] = self.registers[PC] | ((trap as u8 & 0xF) as u32) << 20;
+        self.registers[EXCI] = self.registers[PC] | ((trap as u8 & 0xF) as u32) << 20;
 
         // Store the interrupt state.
         self.registers
@@ -159,7 +159,7 @@ impl Cpu {
         self.stack_push(self.registers[PC]);
 
         // Jump into the trap vector.
-        self.registers[PC] = self.registers[TV];
+        self.registers[PC] = self.registers[EV];
     }
 
     /// Uploads a code word to IMEM at a given physical and virtual address.
