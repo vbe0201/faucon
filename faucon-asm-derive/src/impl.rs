@@ -88,7 +88,12 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
             }
 
             let instruction_meta = quote! {
-                Some(instruction_meta!(#vname, #opcode, #subopcode, [#(#operands),*]))
+                Some(InstructionMeta::new(
+                    InstructionKind::#vname,
+                    #opcode as u8,
+                    #subopcode as u8,
+                    [#(#operands),*],
+                ))
             };
 
             match (size, a, b) {
