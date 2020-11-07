@@ -12,6 +12,14 @@ pub enum PipelineError {
     FetchingFailed(LookupError),
     /// An error related to decoding instruction bytes in memory.
     DecodingFailed(faucon_asm::Error),
+    /// An error that simulates a secret fault. It occurs when a page with the
+    /// secret bit has been hit without a valid bit. This causes the Falcon
+    /// hardware to jump into its BootROM to check a MAC over the secret pages
+    /// and grant Heavy Secure mode privileges if it matches.
+    ///
+    /// Provides the physical and virtual start addresses of the code page(s)
+    /// in question.
+    SecureFault(u16, u32),
     /// The processor is in a halted state and cannot execute any instructions.
     CpuHalted,
 }
@@ -55,6 +63,10 @@ pub fn fetch_and_decode(
             Ok(insn) => Ok(insn),
             Err(e) => Err(PipelineError::DecodingFailed(e)),
         }
+    } else if tlb.get_flag(PageFlag::Secret) {
+        // A secret page was hit that hasn't been validated yet. Trigger a secure fault
+        // that forces the Falcon to perform Heavy Secure mode authentication.
+        Err(PipelineError::SecureFault(physical_address as u16, address))
     } else {
         // Since faucon does not use any form of parallelism in its tasks, unlike a real
         // Falcon, a state where a page would be queried while being marked as incomplete

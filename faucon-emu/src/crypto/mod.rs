@@ -2,10 +2,12 @@
 
 mod acl;
 mod aes;
+mod mac;
 
 use rand::Rng;
 
 use acl::AclCell;
+pub use mac::*;
 
 /// Representation of the Secure Co-Processor of the Falcon.
 ///

@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use crate::cpu::instructions::process_instruction;
 pub use crate::cpu::registers::*;
-use crate::crypto::Scp;
+use crate::crypto;
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
 
@@ -30,7 +30,7 @@ pub struct Cpu {
     /// the CPU executes code.
     state: ExecutionState,
     /// The Secure Co-Processor responsible for cryptographic operations.
-    scp: Scp,
+    scp: crypto::Scp,
     /// A boolean that is used to determine whether the PC should be
     /// incremented after an instruction.
     ///
@@ -83,6 +83,9 @@ enum_from_primitive! {
         /// A trap that is triggered whenever the processor encounters an unknown
         /// or invalid opcode.
         InvalidOpcode = 0x8,
+        /// A trap that is triggered when the processor fails to authenticate
+        /// code into the Heavy Secure mode.
+        AuthenticationEntry = 0x9,
         /// A trap that is triggered on page faults because of no hits in the TLB.
         VmNoHit = 0xA,
         /// A trap that is triggered on page faults because of multiple hits in the TLB.
@@ -102,7 +105,7 @@ impl Cpu {
             clock_period,
             dma_engine: dma::Engine::new(),
             state: ExecutionState::Stopped,
-            scp: Scp::new(),
+            scp: crypto::Scp::new(),
             increment_pc: false,
         }
     }
@@ -216,6 +219,60 @@ impl Cpu {
                     faucon_asm::Error::IoError => panic!("You should hopefully never see this."),
                     faucon_asm::Error::Eof => return,
                 },
+                pipeline::PipelineError::SecureFault(phys_addr, virt_addr) => {
+                    // At this point, Falcon would jump into its internal BootROM and execute
+                    // a function which grants Heavy Secure Mode, if a MAC hash is valid.
+                    // TODO: Emulate the BootROM properly at some point in the future?
+                    //       Is it even worth it without a dump of it?
+
+                    // Mirror a PC of zero while executing BootROM code.
+                    self.registers[PC] = 0;
+
+                    // Extract the contents of the SEC register.
+                    // TODO: Add support for the remaining configuration bits.
+                    let sec = self.registers[SEC];
+                    let secure_region_start = (sec & 0xFF) << 8;
+                    let secure_region_size = (sec >> 24 & 0xFF) << 8;
+                    let secure_region_end = secure_region_start + secure_region_size;
+
+                    if secure_region_start <= virt_addr && virt_addr <= secure_region_end {
+                        // Compute a Davies Meyer MAC over the specified secure microcode.
+                        let code = &self.memory.code
+                            [phys_addr as usize..phys_addr as usize + secure_region_size as usize];
+                        let mac = crypto::calculate_davies_meyer_mac(code, secure_region_start);
+
+                        // $c3 - signing key (ACL 0x10)
+                        // $c4 - auth hash computed by Falcon (ACL 0x13)
+                        // $c5 - Davies Meyer MAC
+                        // $c6 - auth hash provided by NS code
+                        // $c7 - key derivation seed provided by NS code
+
+                        // csecret $c3 0x1
+                        // ckeyreg $c3
+                        // cenc $c3 $c7
+                        // ckeyreg $c3
+                        // cenc $c4 $c5
+                        // csigcmp $c4 $c6
+                        // TODO: Finish this when CPU configuration is implemented properly.
+
+                        // Set the PC to the specified start of the secure region.
+                        self.registers[PC] = secure_region_start;
+
+                        // Set the valid bit on the TLB entry.
+                        self.memory
+                            .tlb
+                            .get_physical_entry(phys_addr)
+                            .set_flag(PageFlag::Usable, true);
+
+                        // Now re-do the instruction fetch and opt out.
+                        self.step();
+                        return;
+                    } else {
+                        // Invalid data is specified in SEC, trigger an exception.
+                        self.trigger_trap(Trap::AuthenticationEntry);
+                        return;
+                    }
+                }
                 pipeline::PipelineError::CpuHalted => return, // TODO: Handle this more elegantly?
             },
         };
