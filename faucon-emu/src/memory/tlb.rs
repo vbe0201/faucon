@@ -6,6 +6,9 @@ pub enum PageFlag {
     Usable = 1 << 0,
     /// Indicates that the page is mapped but code is still being uploaded.
     Busy = 1 << 1,
+    /// Indicates that the page is mapped secret and thus can only be accessed
+    /// through authenticated microcode.
+    Secret = 1 << 2,
 }
 
 /// Potential TLB lookup errors.
@@ -241,7 +244,9 @@ impl TlbEntry {
     /// NOTE: Pages containing secret code cannot be cleared.
     /// The page has to be re-uploaded with non-secret data first.
     pub fn clear(&mut self) {
-        self.virtual_page_number = 0;
-        self.flags = 0;
+        if !self.get_flag(PageFlag::Secret) {
+            self.virtual_page_number = 0;
+            self.flags = 0;
+        }
     }
 }
