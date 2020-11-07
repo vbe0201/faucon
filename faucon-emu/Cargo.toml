@@ -11,4 +11,4 @@ edition = "2018"
 byteorder = "1.3"
 enum_primitive = "0.1"
 faucon-asm = { path = "../faucon-asm" }
-paste = "1.0"
+rand = "0.7.3"

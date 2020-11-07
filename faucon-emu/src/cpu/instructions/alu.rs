@@ -34,8 +34,8 @@ pub fn cmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();
 
     // Extract the instruction operands (register and register or immediate).
-    let source1 = utils::get_value(cpu, insn.operand_size, operands[0]);
-    let source2 = utils::get_value(cpu, insn.operand_size, operands[1]);
+    let source1 = utils::get_value(cpu, insn.operand_size(), operands[0]);
+    let source2 = utils::get_value(cpu, insn.operand_size(), operands[1]);
 
     // Subtract the operands and set ALU flags based on the result.
     let diff = source1.wrapping_sub(source2);
@@ -45,19 +45,19 @@ pub fn cmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
             cpu.registers.set_flag(
                 CpuFlag::CARRY,
                 overflow(
-                    sign(source1, insn.operand_size),
-                    !sign(source2, insn.operand_size),
-                    sign(diff, insn.operand_size),
-                ) ^ sign(diff, insn.operand_size),
+                    sign(source1, insn.operand_size()),
+                    !sign(source2, insn.operand_size()),
+                    sign(diff, insn.operand_size()),
+                ) ^ sign(diff, insn.operand_size()),
             );
         }
         InstructionKind::CMPU => {
             cpu.registers.set_flag(
                 CpuFlag::CARRY,
                 !carry(
-                    sign(source1, insn.operand_size),
-                    !sign(source2, insn.operand_size),
-                    sign(diff, insn.operand_size),
+                    sign(source1, insn.operand_size()),
+                    !sign(source2, insn.operand_size()),
+                    sign(diff, insn.operand_size()),
                 ),
             );
         }
@@ -65,21 +65,21 @@ pub fn cmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
             cpu.registers.set_flag(
                 CpuFlag::CARRY,
                 !carry(
-                    sign(source1, insn.operand_size),
-                    !sign(source2, insn.operand_size),
-                    sign(diff, insn.operand_size),
+                    sign(source1, insn.operand_size()),
+                    !sign(source2, insn.operand_size()),
+                    sign(diff, insn.operand_size()),
                 ),
             );
             cpu.registers.set_flag(
                 CpuFlag::OVERFLOW,
                 overflow(
-                    sign(source1, insn.operand_size),
-                    !sign(source2, insn.operand_size),
-                    sign(diff, insn.operand_size),
+                    sign(source1, insn.operand_size()),
+                    !sign(source2, insn.operand_size()),
+                    sign(diff, insn.operand_size()),
                 ),
             );
             cpu.registers
-                .set_flag(CpuFlag::NEGATIVE, sign(diff, insn.operand_size));
+                .set_flag(CpuFlag::NEGATIVE, sign(diff, insn.operand_size()));
         }
         _ => unreachable!(),
     };
@@ -96,8 +96,8 @@ pub fn addsub(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Extract the instruction operands (register, register and register or immediate).
     let destination = operands[0];
-    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
-    let source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+    let source1 = utils::get_value(cpu, insn.operand_size(), operands[1]);
+    let source2 = utils::get_value(cpu, insn.operand_size(), operands[2]);
 
     // Perform the operation.
     let c = cpu.registers.get_flag(CpuFlag::CARRY) as u32;
@@ -115,17 +115,17 @@ pub fn addsub(cpu: &mut Cpu, insn: &Instruction) -> usize {
             cpu.registers.set_flag(
                 CpuFlag::CARRY,
                 carry(
-                    sign(source1, insn.operand_size),
-                    sign(source2, insn.operand_size),
-                    sign(res, insn.operand_size),
+                    sign(source1, insn.operand_size()),
+                    sign(source2, insn.operand_size()),
+                    sign(res, insn.operand_size()),
                 ),
             );
             cpu.registers.set_flag(
                 CpuFlag::OVERFLOW,
                 overflow(
-                    sign(source1, insn.operand_size),
-                    sign(source2, insn.operand_size),
-                    sign(res, insn.operand_size),
+                    sign(source1, insn.operand_size()),
+                    sign(source2, insn.operand_size()),
+                    sign(res, insn.operand_size()),
                 ),
             );
         }
@@ -133,17 +133,17 @@ pub fn addsub(cpu: &mut Cpu, insn: &Instruction) -> usize {
             cpu.registers.set_flag(
                 CpuFlag::CARRY,
                 !carry(
-                    sign(source1, insn.operand_size),
-                    !sign(source2, insn.operand_size),
-                    sign(res, insn.operand_size),
+                    sign(source1, insn.operand_size()),
+                    !sign(source2, insn.operand_size()),
+                    sign(res, insn.operand_size()),
                 ),
             );
             cpu.registers.set_flag(
                 CpuFlag::OVERFLOW,
                 overflow(
-                    sign(source1, insn.operand_size),
-                    !sign(source2, insn.operand_size),
-                    sign(res, insn.operand_size),
+                    sign(source1, insn.operand_size()),
+                    !sign(source2, insn.operand_size()),
+                    sign(res, insn.operand_size()),
                 ),
             );
         }
@@ -151,12 +151,12 @@ pub fn addsub(cpu: &mut Cpu, insn: &Instruction) -> usize {
     };
 
     // Store the result value accordingly.
-    utils::write_value_to_reg(cpu, insn.operand_size, destination, res);
+    utils::write_value_to_reg(cpu, insn.operand_size(), destination, res);
 
     // Set the remaining ALU flags.
     cpu.registers.set_flag(
         CpuFlag::NEGATIVE,
-        sign(cpu.registers[destination], insn.operand_size),
+        sign(cpu.registers[destination], insn.operand_size()),
     );
     cpu.registers
         .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
@@ -173,11 +173,11 @@ pub fn shift(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Extract the instruction operands (register, register and register or immediate).
     let destination = operands[0];
-    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
-    let mut source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+    let source1 = utils::get_value(cpu, insn.operand_size(), operands[1]);
+    let mut source2 = utils::get_value(cpu, insn.operand_size(), operands[2]);
 
     // Truncate source2 accordingly, depending on the operand size.
-    match insn.operand_size {
+    match insn.operand_size() {
         OperandSize::EightBit => source2 &= 0x7,
         OperandSize::SixteenBit => source2 &= 0xF,
         OperandSize::ThirtyTwoBit => source2 &= 0x1F,
@@ -198,7 +198,7 @@ pub fn shift(cpu: &mut Cpu, insn: &Instruction) -> usize {
             } else {
                 cpu.registers.set_flag(
                     CpuFlag::CARRY,
-                    (source1 >> (insn.operand_size.value() as u32 - source2) & 1) != 0,
+                    (source1 >> (insn.operand_size().value() as u32 - source2) & 1) != 0,
                 );
             }
 
@@ -209,9 +209,9 @@ pub fn shift(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
             if insn.kind() == InstructionKind::SHRC && source2 != 0 {
                 result |= (cpu.registers.get_flag(CpuFlag::CARRY) as u32)
-                    << (insn.operand_size.value() as u32 - source2);
-            } else if insn.kind() == InstructionKind::SAR && sign(source1, insn.operand_size) {
-                result |= !0 << (insn.operand_size.value() as u32 - source2);
+                    << (insn.operand_size().value() as u32 - source2);
+            } else if insn.kind() == InstructionKind::SAR && sign(source1, insn.operand_size()) {
+                result |= !0 << (insn.operand_size().value() as u32 - source2);
             }
 
             if source2 == 0 {
@@ -227,13 +227,13 @@ pub fn shift(cpu: &mut Cpu, insn: &Instruction) -> usize {
     };
 
     // Store the result value accordingly.
-    utils::write_value_to_reg(cpu, insn.operand_size, destination, res);
+    utils::write_value_to_reg(cpu, insn.operand_size(), destination, res);
 
     // Set the remaining ALU flags.
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers.set_flag(
         CpuFlag::NEGATIVE,
-        sign(cpu.registers[destination], insn.operand_size),
+        sign(cpu.registers[destination], insn.operand_size()),
     );
     cpu.registers
         .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
@@ -247,35 +247,41 @@ pub fn shift(cpu: &mut Cpu, insn: &Instruction) -> usize {
 /// Performs a unary binary operation.
 pub fn unary(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let operands = insn.operands();
-    
+
     // Extract the instruction operands (register and immediate).
     let destination = operands[0];
-    let source = utils::get_value(cpu, insn.operand_size, operands[1]);
-    
+    let source = utils::get_value(cpu, insn.operand_size(), operands[1]);
+
     // Carry out the operation and store the result.
     match insn.kind() {
-
         InstructionKind::NOT => {
             cpu.registers[destination] = !source;
             cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
         }
         InstructionKind::NEG => {
             cpu.registers[destination] = source.wrapping_neg();
-            cpu.registers.set_flag(CpuFlag::OVERFLOW, 
-                                   cpu.registers[destination] == 1 << (insn.operand_size.value() - 1));
+            cpu.registers.set_flag(
+                CpuFlag::OVERFLOW,
+                cpu.registers[destination] == (1 << (insn.operand_size().value() - 1)) as u32,
+            );
         }
         InstructionKind::HSWAP => {
-            cpu.registers[destination] = source >> (insn.operand_size.value() / 2) | source << (insn.operand_size.value() / 2);
-            cpu.registers.set_flag(CpuFlag::OVERFLOW, cpu.registers[destination] == 0);
+            cpu.registers[destination] = source >> (insn.operand_size().value() / 2) as u32
+                | source << (insn.operand_size().value() / 2) as u32;
+            cpu.registers
+                .set_flag(CpuFlag::OVERFLOW, cpu.registers[destination] == 0);
         }
 
         _ => unreachable!(),
-
     };
 
     // Set the remaining ALU flags.
-    cpu.registers.set_flag(CpuFlag::NEGATIVE, sign(cpu.registers[destination], insn.operand_size));
-    cpu.registers.set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
+    cpu.registers.set_flag(
+        CpuFlag::NEGATIVE,
+        sign(cpu.registers[destination], insn.operand_size()),
+    );
+    cpu.registers
+        .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
 
     // Signal regular PC increment to the CPU.
     cpu.increment_pc = true;
@@ -289,7 +295,7 @@ pub fn sethi(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Extract the instruction operands (register and immediate).
     let destination = operands[0];
-    let source = utils::get_value(cpu, insn.operand_size, operands[1]);
+    let source = utils::get_value(cpu, insn.operand_size(), operands[1]);
 
     // Store the source value in the high 16 bits of the destination register.
     cpu.registers[destination] = cpu.registers[destination] & 0xFFFF | source << 0x10;
@@ -320,8 +326,8 @@ pub fn mul(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Extract the instruction operands (register, register and register or immediate).
     let destination = operands[0];
-    let mut source1 = utils::get_value(cpu, insn.operand_size, operands[1]) & 0xFFFF;
-    let mut source2 = utils::get_value(cpu, insn.operand_size, operands[2]) & 0xFFFF;
+    let mut source1 = utils::get_value(cpu, insn.operand_size(), operands[1]) & 0xFFFF;
+    let mut source2 = utils::get_value(cpu, insn.operand_size(), operands[2]) & 0xFFFF;
 
     // If the instruction is MULS, sign-extend the operands properly.
     if insn.kind() == InstructionKind::MULS {
@@ -348,8 +354,8 @@ pub fn sext(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Extract the instruction operands (register, register and register or immediate).
     let destination = operands[0];
-    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
-    let source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+    let source1 = utils::get_value(cpu, insn.operand_size(), operands[1]);
+    let source2 = utils::get_value(cpu, insn.operand_size(), operands[2]);
 
     // Perform the sign-extension and store the result.
     let bit = source2 & 0x1F;
@@ -362,7 +368,7 @@ pub fn sext(cpu: &mut Cpu, insn: &Instruction) -> usize {
     // Store the CPU flags accordingly.
     cpu.registers.set_flag(
         CpuFlag::NEGATIVE,
-        sign(cpu.registers[destination], insn.operand_size),
+        sign(cpu.registers[destination], insn.operand_size()),
     );
     cpu.registers
         .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
@@ -379,8 +385,8 @@ pub fn bitwise(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Extract the instruction operands (register, register and register or immediate).
     let destination = operands[0];
-    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
-    let source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+    let source1 = utils::get_value(cpu, insn.operand_size(), operands[1]);
+    let source2 = utils::get_value(cpu, insn.operand_size(), operands[2]);
 
     // Perform the calculation and store the result.
     match insn.kind() {
@@ -395,7 +401,7 @@ pub fn bitwise(cpu: &mut Cpu, insn: &Instruction) -> usize {
     cpu.registers.set_flag(CpuFlag::OVERFLOW, false);
     cpu.registers.set_flag(
         CpuFlag::NEGATIVE,
-        sign(cpu.registers[destination], insn.operand_size),
+        sign(cpu.registers[destination], insn.operand_size()),
     );
     cpu.registers
         .set_flag(CpuFlag::ZERO, cpu.registers[destination] == 0);
@@ -470,8 +476,8 @@ pub fn divmod(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Extract the instruction operands (register, register and register or immediate).
     let destination = operands[0];
-    let source1 = utils::get_value(cpu, insn.operand_size, operands[1]);
-    let source2 = utils::get_value(cpu, insn.operand_size, operands[2]);
+    let source1 = utils::get_value(cpu, insn.operand_size(), operands[1]);
+    let source2 = utils::get_value(cpu, insn.operand_size(), operands[2]);
 
     // Divide both operands and handle unsupported divisions by zero.
     let div_result = if source2 == 0 {

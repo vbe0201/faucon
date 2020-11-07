@@ -1,13 +1,13 @@
 //! Disassembler for the Falcon ISA.
 
+mod pretty;
+
 use std::io::Read;
 
 use crate::arguments::Argument;
 use crate::isa::*;
 use crate::opcode;
 use crate::{Error, Instruction, Result};
-
-mod pretty;
 pub use pretty::Disassembler;
 
 /// Reads an instruction from a given [`Read`]er and attempts to parse it into an
@@ -29,9 +29,16 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     read_bytes(&mut insn, reader, subopcode_location.get())?;
     let subopcode = subopcode_location.parse(&insn);
 
+    let cryptop = if opcode::is_crypto_command(&operand_size, a, b, subopcode) {
+        Some(extract_crypto_opcode(&mut insn, reader)?)
+    } else {
+        None
+    };
+
     // Now do the actual instruction lookup and read the remaining bytes.
-    let mut instruction_meta = lookup_instruction(operand_size.sized(), a, b, subopcode)
-        .ok_or(Error::UnknownInstruction(insn[0]))?;
+    let mut instruction_meta =
+        InstructionKind::lookup_meta(operand_size.sized(), a, b, subopcode, cryptop)
+            .ok_or(Error::UnknownInstruction(insn[0]))?;
     read_operands(
         &mut insn,
         reader,
@@ -42,20 +49,14 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     Ok(Instruction::new(insn, operand_size, instruction_meta))
 }
 
-fn lookup_instruction(sized: bool, a: u8, b: u8, subopcode: u8) -> Option<InstructionMeta> {
-    if sized {
-        if a == 3 {
-            InstructionKind::parse_sized_form_2(b, subopcode)
-        } else {
-            InstructionKind::parse_sized_form_1(a, b, subopcode)
-        }
-    } else {
-        if a == 3 {
-            InstructionKind::parse_unsized_form_2(b, subopcode)
-        } else {
-            InstructionKind::parse_unsized_form_1(a, b)
-        }
-    }
+fn extract_crypto_opcode<R: Read>(buffer: &mut Vec<u8>, reader: &mut R) -> Result<u8> {
+    // Each crypto command is an instruction of four bytes with no exceptions.
+    // The first two bytes have already been read to obtain opcode and subopcode.
+    // Read the final two bytes as they contain the details about the crypto command.
+    read_bytes(buffer, reader, 2)?;
+
+    // Extract the crypto opcode that identifies the crypto command and return it.
+    Ok(buffer[3] >> 0x2 & 0x1F)
 }
 
 fn read_operands<R: Read>(

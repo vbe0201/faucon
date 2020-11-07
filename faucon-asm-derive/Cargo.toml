@@ -1,8 +1,8 @@
 [package]
 name = "faucon-asm-derive"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Valentin B. <valentin.be@protonmail.com>"]
-description = "Procedural derive macros to be used by faucon-asm."
+description = "Exports a procedural derive macro internally used by faucon-asm."
 license = "Apache-2.0/MIT"
 homepage = "https://github.com/vbe0201/faucon"
 edition = "2018"

@@ -1,9 +1,18 @@
 //! Helpers for frequently used instruction parsing routines to reduce boilerplate.
 
 use enum_primitive::FromPrimitive;
-use faucon_asm::{opcode::OperandSize, MemoryAccess, MemorySpace, Operand};
+use faucon_asm::{opcode::OperandSize, MemoryAccess, MemorySpace, Operand, Register};
 
 use super::{Cpu, CpuFlag};
+
+/// Gets the register value contained in an operand.
+pub fn get_register_value(reg: Operand) -> Option<Register> {
+    if let Operand::Register(reg) = reg {
+        Some(reg)
+    } else {
+        None
+    }
+}
 
 /// Parses a [`MemoryAccess`] descriptor by composing the memory address in question and
 /// extracting the corresponding [`MemorySpace`].

@@ -35,7 +35,7 @@ subcommands:
             help: The Falcon binary to load in for analysis
             takes_value: true
   # A subcommand for telling faucon to invoke the disassembler
-  # on the supplied binary and print the output to stdout
+  # on the supplied binary and print the output to stdout.
   - dis:
       about: Disassembles the given input file
       args:
@@ -50,3 +50,21 @@ subcommands:
             value_name: ADDRESS
             help: The base address of the disassembled code
             takes_value: true
+  # A subcommand for telling faucon to pad the supplied binary to
+  # a 0x100 bytes boundary to fit whole pages in the IMEM segment.
+  - pad:
+      about: Pads the given binary to an alignment of whole pages
+      args:
+          - binary:
+              short: bin
+              long: binary
+              value_name: FILE
+              help: The Falcon binary to pad
+              takes_value: true
+          - output:
+              short: out
+              long: output
+              value_name: FILE
+              help: The output file for the padded binary.
+              takes_value: true
+              required: false

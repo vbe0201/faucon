@@ -1,27 +1,36 @@
 //! Falcon microprocessor abstractions.
 
-use faucon_asm::{disassembler, Instruction};
+mod instructions;
+mod pipeline;
+mod registers;
 
+use std::thread::sleep;
+use std::time::Duration;
+
+use crate::cpu::instructions::process_instruction;
+pub use crate::cpu::registers::*;
+use crate::crypto;
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
 
-use instructions::process_instruction;
-pub use registers::*;
-
-mod instructions;
-mod registers;
-
 /// Representation of the Falcon processor.
+#[derive(Debug)]
 pub struct Cpu {
+    /// The Falcon revision to emulate.
+    version: usize,
     /// The Falcon CPU registers.
     pub registers: CpuRegisters,
     /// The Falcon SRAM for code and data.
     pub memory: Memory,
+    /// The clock period it takes the Falcon to walk through a single CPU cycle.
+    clock_period: Duration,
     /// The Falcon DMA engine.
     dma_engine: dma::Engine,
     /// The current execution state of the processor that controls the way
     /// the CPU executes code.
     state: ExecutionState,
+    /// The Secure Co-Processor responsible for cryptographic operations.
+    scp: crypto::Scp,
     /// A boolean that is used to determine whether the PC should be
     /// incremented after an instruction.
     ///
@@ -39,6 +48,7 @@ pub struct Cpu {
 /// The execution states influence code execution and how interrupts are
 /// being handled. There are different ways to change the processor state,
 /// including resets, instructions, interrupts, and host interaction.
+#[derive(Debug, PartialEq)]
 pub enum ExecutionState {
     /// The processor is actively running and executes instructions.
     Running,
@@ -73,6 +83,9 @@ enum_from_primitive! {
         /// A trap that is triggered whenever the processor encounters an unknown
         /// or invalid opcode.
         InvalidOpcode = 0x8,
+        /// A trap that is triggered when the processor fails to authenticate
+        /// code into the Heavy Secure mode.
+        AuthenticationEntry = 0x9,
         /// A trap that is triggered on page faults because of no hits in the TLB.
         VmNoHit = 0xA,
         /// A trap that is triggered on page faults because of multiple hits in the TLB.
@@ -84,14 +97,22 @@ enum_from_primitive! {
 
 impl Cpu {
     /// Creates a new instance of the CPU.
-    pub fn new() -> Self {
+    pub fn new(version: usize, imem_size: u32, dmem_size: u32, clock_period: Duration) -> Self {
         Cpu {
+            version,
             registers: CpuRegisters::new(),
-            memory: Memory::new(),
+            memory: Memory::new(imem_size, dmem_size),
+            clock_period,
             dma_engine: dma::Engine::new(),
             state: ExecutionState::Stopped,
+            scp: crypto::Scp::new(),
             increment_pc: false,
         }
+    }
+
+    /// Returns the Falcon CPU revision that is being emulated.
+    pub fn get_version(&self) -> usize {
+        self.version
     }
 
     /// Returns the length of the Falcon code segment.
@@ -123,10 +144,10 @@ impl Cpu {
     /// [`Trap`]: enum.Trap.html
     pub fn trigger_trap(&mut self, trap: Trap) {
         // Set the Trap Active bit in the flags register.
-        self.registers[FLAGS] |= 1 << 24;
+        self.registers[CSW] |= 1 << 24;
 
         // Store the trap status, composed of the current PC and the trap reason.
-        self.registers[TSTATUS] = self.registers[PC] | ((trap as u8 & 0xF) as u32) << 20;
+        self.registers[EXCI] = self.registers[PC] | ((trap as u8 & 0xF) as u32) << 20;
 
         // Store the interrupt state.
         self.registers
@@ -143,7 +164,7 @@ impl Cpu {
         self.stack_push(self.registers[PC]);
 
         // Jump into the trap vector.
-        self.registers[PC] = self.registers[TV];
+        self.registers[PC] = self.registers[EV];
     }
 
     /// Uploads a code word to IMEM at a given physical and virtual address.
@@ -160,7 +181,7 @@ impl Cpu {
         }
 
         // Write word to the code segment.
-        self.memory.write_code_addr(address, value);
+        self.memory.write_code(address, value);
 
         // If the last word was uploaded, set the Usable flag.
         if (address & 0xFC) == 0xFC {
@@ -175,64 +196,96 @@ impl Cpu {
         }
     }
 
-    fn fetch_insn(&mut self, address: u32) -> Option<Instruction> {
-        // Look up the TLB to get the physical code page.
-        let result = match self.memory.tlb.lookup(address) {
-            Ok((page, tlb)) => Some((page, tlb)),
-            Err(LookupError::NoPageHits) => {
-                self.trigger_trap(Trap::VmNoHit);
-
-                None
-            }
-            Err(LookupError::MultiplePageHits) => {
-                self.trigger_trap(Trap::VmMultiHit);
-
-                None
-            }
-        };
-
-        if let Some((page_index, tlb)) = result {
-            // Build the physical code address to read from.
-            let page_offset = (address & 0xFF) as u16;
-            let code_address = ((page_index as u16) << 8) | page_offset;
-
-            // If the page is marked usable, complete the access using the physical page.
-            if tlb.get_flag(PageFlag::Usable) {
-                let mut code = &self.memory.code[code_address as usize..];
-                match disassembler::read_instruction(&mut code) {
-                    Ok(insn) => Some(insn),
-                    Err(faucon_asm::Error::UnknownInstruction(_)) => {
-                        self.trigger_trap(Trap::InvalidOpcode);
-
-                        None
-                    }
-                    Err(faucon_asm::Error::IoError) => panic!("Rust exploded"),
-                    Err(faucon_asm::Error::Eof) => None,
-                }
-            } else if tlb.get_flag(PageFlag::Busy) {
-                // The page is marked busy, the access must be completed when possible.
-                todo!("Wait for the page to be marked as usable");
-            } else {
-                unreachable!()
-            }
-        } else {
-            None
-        }
-    }
-
     /// Executes the next instruction at the address held by the PC register.
     pub fn step(&mut self) {
-        match self.fetch_insn(self.registers[PC]) {
-            Some(insn) => {
-                process_instruction(self, &insn);
+        let insn = match pipeline::fetch_and_decode(self, self.registers[PC]) {
+            Ok(insn) => insn,
+            Err(e) => match e {
+                pipeline::PipelineError::FetchingFailed(lookup_error) => {
+                    self.trigger_trap(if lookup_error == LookupError::NoPageHits {
+                        Trap::VmNoHit
+                    } else {
+                        Trap::VmMultiHit
+                    });
 
-                // Check if it is necessary to increment the PC.
-                // If not, this has already been done by the instruction itself.
-                if self.increment_pc {
-                    self.registers[PC] += insn.len() as u32;
+                    return;
                 }
-            }
-            None => return,
+                pipeline::PipelineError::DecodingFailed(decoding_error) => match decoding_error {
+                    faucon_asm::Error::UnknownInstruction(_) => {
+                        self.trigger_trap(Trap::InvalidOpcode);
+
+                        return;
+                    }
+                    faucon_asm::Error::IoError => panic!("You should hopefully never see this."),
+                    faucon_asm::Error::Eof => return,
+                },
+                pipeline::PipelineError::SecureFault(phys_addr, virt_addr) => {
+                    // At this point, Falcon would jump into its internal BootROM and execute
+                    // a function which grants Heavy Secure Mode, if a MAC hash is valid.
+                    // TODO: Emulate the BootROM properly at some point in the future?
+                    //       Is it even worth it without a dump of it?
+
+                    // Mirror a PC of zero while executing BootROM code.
+                    self.registers[PC] = 0;
+
+                    // Extract the contents of the SEC register.
+                    // TODO: Add support for the remaining configuration bits.
+                    let sec = self.registers[SEC];
+                    let secure_region_start = (sec & 0xFF) << 8;
+                    let secure_region_size = (sec >> 24 & 0xFF) << 8;
+                    let secure_region_end = secure_region_start + secure_region_size;
+
+                    if secure_region_start <= virt_addr && virt_addr <= secure_region_end {
+                        // Compute a Davies Meyer MAC over the specified secure microcode.
+                        let code = &self.memory.code
+                            [phys_addr as usize..phys_addr as usize + secure_region_size as usize];
+                        let mac = crypto::calculate_davies_meyer_mac(code, secure_region_start);
+
+                        // $c3 - signing key (ACL 0x10)
+                        // $c4 - auth hash computed by Falcon (ACL 0x13)
+                        // $c5 - Davies Meyer MAC
+                        // $c6 - auth hash provided by NS code
+                        // $c7 - key derivation seed provided by NS code
+
+                        // csecret $c3 0x1
+                        // ckeyreg $c3
+                        // cenc $c3 $c7
+                        // ckeyreg $c3
+                        // cenc $c4 $c5
+                        // csigcmp $c4 $c6
+                        // TODO: Finish this when CPU configuration is implemented properly.
+
+                        // Set the PC to the specified start of the secure region.
+                        self.registers[PC] = secure_region_start;
+
+                        // Set the valid bit on the TLB entry.
+                        self.memory
+                            .tlb
+                            .get_physical_entry(phys_addr)
+                            .set_flag(PageFlag::Usable, true);
+
+                        // Now re-do the instruction fetch and opt out.
+                        self.step();
+                        return;
+                    } else {
+                        // Invalid data is specified in SEC, trigger an exception.
+                        self.trigger_trap(Trap::AuthenticationEntry);
+                        return;
+                    }
+                }
+                pipeline::PipelineError::CpuHalted => return, // TODO: Handle this more elegantly?
+            },
+        };
+
+        // Process the instruction and sleep for the consumed amount of cycles.
+        let cycles = process_instruction(self, &insn);
+        sleep(self.clock_period * cycles as u32);
+
+        // Increment the Program Counter to the next instruction, if requested.
+        // If not requested, it is safe to assume that the instruction modified
+        // the PC register to a desired value itself.
+        if self.increment_pc {
+            self.registers[PC] += insn.len() as u32;
         }
     }
 }

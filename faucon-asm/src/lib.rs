@@ -83,8 +83,7 @@
 //! repeatedly on a buffer of code until an error or [`Error::Eof`] occurs.
 //!
 //! It is within the user's responsibility to ensure that all possible exceptions
-//! are handled correctly. The validity of an [`Instruction`] can be ensured through
-//! [`Instruction::is_valid`].
+//! are handled correctly.
 //!
 //! [`Instruction`]: struct.Instruction.html
 //! [`read_instruction`]: fn.read_instruction.html
@@ -95,7 +94,12 @@
 //! [`InstructionKind`]: ./isa/enum.InstructionKind.html
 //! [envytools]: https://github.com/envytools/envytools
 //! [`Error::Eof`]: enum.Error.html#variant.Eof
-//! [`Instruction::is_valid`]: struct.Instruction.html#method.is_valid
+
+mod arguments;
+pub mod disassembler;
+pub mod isa;
+pub mod opcode;
+pub mod operands;
 
 use std::fmt;
 
@@ -106,12 +110,6 @@ pub use operands::*;
 
 use arguments::Argument;
 use opcode::*;
-
-mod arguments;
-pub mod disassembler;
-pub mod isa;
-pub mod opcode;
-pub mod operands;
 
 /// A result that is returned by the functions in this crate.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -136,16 +134,13 @@ pub enum Error {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
     bytes: Vec<u8>,
-    /// The operand size of the instruction.
-    pub operand_size: OperandSize,
+    operand_size: OperandSize,
     meta: isa::InstructionMeta,
 }
 
 impl Instruction {
     /// Constructs a new instruction from its byte representation and metadata.
     pub fn new(bytes: Vec<u8>, mut operand_size: OperandSize, meta: isa::InstructionMeta) -> Self {
-        // TODO: InstructionKind::XXX?
-
         // Certain Falcon weirdos encode their subopcode in the high size bits and thus
         // making the instruction per se unsized. We need to make sure to not use a false
         // positive operand size.
@@ -161,28 +156,49 @@ impl Instruction {
         }
     }
 
-    /// Returns a reference to the raw byte representation of
-    /// this `Instruction`.
+    /// Checks whether the instruction is a crypto command.
+    ///
+    /// Although crypto commands are actually a single instruction which encodes
+    /// different crypto opcodes and crypto operands, each crypto command is treated
+    /// as a separate instruction by the disassembler to simplify the implementation.
+    ///
+    /// This method returns `true` when this [`Instruction`] object wraps any valid
+    /// crypto command.
+    ///
+    /// [`Instruction`]: struct.Instruction.html
+    pub fn is_crypto(&self) -> bool {
+        match self.kind() {
+            InstructionKind::CNOP
+            | InstructionKind::CMOV
+            | InstructionKind::CXSIN
+            | InstructionKind::CXSOUT
+            | InstructionKind::CRND
+            | InstructionKind::CS0BEGIN
+            | InstructionKind::CS0EXEC
+            | InstructionKind::CS1BEGIN
+            | InstructionKind::CS1EXEC
+            | InstructionKind::CCHMOD
+            | InstructionKind::CXOR
+            | InstructionKind::CADD
+            | InstructionKind::CAND
+            | InstructionKind::CREV
+            | InstructionKind::CGFMUL
+            | InstructionKind::CSECRET
+            | InstructionKind::CKEYREG
+            | InstructionKind::CKEXP
+            | InstructionKind::CKREXP
+            | InstructionKind::CENC
+            | InstructionKind::CDEC
+            | InstructionKind::CSIGCMP
+            | InstructionKind::CSIGENC
+            | InstructionKind::CSIGCLR => true,
+            _ => false,
+        }
+    }
+
+    /// Returns a reference to the raw byte representation of this instruction.
     pub fn raw_bytes(&self) -> &[u8] {
         self.bytes.as_slice()
-    }
-
-    /// Checks whether this instruction is valid.
-    ///
-    /// This is the case when the instruction is described by [`InstructionKind::XXX`].
-    ///
-    /// [`InstructionKind::XXX`]: ./isa/enum.InstructionKind.html#variant.XXX
-    pub fn is_valid(&self) -> bool {
-        !self.is_invalid()
-    }
-
-    /// Checks whether this instruction is invalid.
-    ///
-    /// This is the case when the instruction is described by [`InstructionKind::XXX`].
-    ///
-    /// [`InstructionKind::XXX`]: ./isa/enum.InstructionKind.html#variant.XXX
-    pub fn is_invalid(&self) -> bool {
-        self.kind().invalid()
     }
 
     /// Gets the [`InstructionKind`] that is represented by this instruction variant.
@@ -215,6 +231,17 @@ impl Instruction {
     /// whenever needed.
     pub fn subopcode(&self) -> u8 {
         self.meta.subopcode
+    }
+
+    /// Gets the [`OperandSize`] of the instruction.
+    ///
+    /// The operand size determines which quantity of size in the operands is modified
+    /// by the instruction. Sized instructions may choose between 8-bit, 16-bit and 32-bit
+    /// variants, whereas unsized instructions always operate on the full 32 bits.
+    ///
+    /// [`OperandSize`]: ./opcode/enum.OperandSize.html
+    pub fn operand_size(&self) -> OperandSize {
+        self.operand_size
     }
 
     /// A vector of instruction [`Operand`]s.

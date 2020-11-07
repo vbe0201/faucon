@@ -24,17 +24,19 @@ macro_rules! immediate {
             position: 0,
             width: 0,
             sign: false,
-            shift: None,
+            shift_left: None,
+            shift_right: None,
             mask: None,
             raw_value: Some($value),
         })
     };
-    ($v:ident, $pos:tt, $width:tt, $sign:tt, $shift:expr, $mask:expr) => {
+    ($v:ident, $pos:tt, $width:tt, $sign:tt, $shift_left:expr, $shift_right:expr, $mask:expr) => {
         Argument::$v(Immediate {
             position: $pos,
             width: $width,
             sign: $sign,
-            shift: $shift,
+            shift_left: $shift_left,
+            shift_right: $shift_right,
             mask: $mask,
             raw_value: None,
         })
@@ -94,50 +96,50 @@ pub const NOP: Argument = Argument::Nop;
 /// An unsigned 8-bit immediate.
 ///
 /// These are used for bit positions, shifts and 8-bit instructions.
-pub const I8: Argument = immediate!(U8, 2, 1, false, None, None);
+pub const I8: Argument = immediate!(U8, 2, 1, false, None, None, None);
 
 /// An unsigned 8-bit immediate zero-extended to 16 bits.
 ///
 /// These are used for sethi and 16-bit instructions.
-pub const I8ZX16: Argument = immediate!(U16, 2, 1, false, None, None);
+pub const I8ZX16: Argument = immediate!(U16, 2, 1, false, None, None, None);
 
 /// A signed 8-bit immediate sign-extended to 16 bits.
 ///
 /// These are used for sethi and 16-bit instructions.
-pub const I8SX16: Argument = immediate!(I16, 2, 1, true, None, None);
+pub const I8SX16: Argument = immediate!(I16, 2, 1, true, None, None, None);
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for memory addressing and most 32-bit instructions.
-pub const I8ZX32: Argument = immediate!(U32, 2, 1, false, None, None);
+pub const I8ZX32: Argument = immediate!(U32, 2, 1, false, None, None, None);
 
 /// A signed 32-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for memory addressing and most 32-bit instructions.
-pub const I8SX32: Argument = immediate!(I32, 2, 1, true, None, None);
+pub const I8SX32: Argument = immediate!(I32, 2, 1, true, None, None, None);
 
 /// A signed 8-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for Falcon v5 MOV instructions.
-pub const I8SX32P1: Argument = immediate!(I32, 1, 1, true, None, None);
+pub const I8SX32P1: Argument = immediate!(I32, 1, 1, true, None, None, None);
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
 /// by one.
 ///
 /// These are mainly used for memory addressing.
-pub const I8ZX32S1: Argument = immediate!(U32, 2, 1, false, Some(1), None);
+pub const I8ZX32S1: Argument = immediate!(U32, 2, 1, false, Some(1), None, None);
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
 /// by two.
 ///
 /// These are mainly used for memory addressing.
-pub const I8ZX32S2: Argument = immediate!(U32, 2, 1, false, Some(2), None);
+pub const I8ZX32S2: Argument = immediate!(U32, 2, 1, false, Some(2), None, None);
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
 /// by 16.
 ///
 /// These are used by the SETHI instruction.
-pub const I8ZX32S16: Argument = immediate!(U32, 2, 1, false, Some(16), None);
+pub const I8ZX32S16: Argument = immediate!(U32, 2, 1, false, Some(16), None, None);
 
 /// A helper that leverages the selection of a correct parser for immediates
 /// in sized instructions to the disassembler.
@@ -165,32 +167,32 @@ pub const I8SXS: Argument = Argument::SizeConverter(|size| match size {
 ///
 /// Used by 8-bit instructions which have a 16-bit immediate form for
 /// whatever reason.
-pub const I16T8: Argument = immediate!(U8, 2, 2, false, None, Some(0xFF));
+pub const I16T8: Argument = immediate!(U8, 2, 2, false, None, None, Some(0xFF));
 
 /// An unsigned 16-bit immediate.
 ///
 /// These are used by sethi and 16-bit instructions.
-pub const I16: Argument = immediate!(U16, 2, 2, false, None, None);
+pub const I16: Argument = immediate!(U16, 2, 2, false, None, None, None);
 
 /// An unsigned 16-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for most 32-bit instructions.
-pub const I16ZX32: Argument = immediate!(U32, 2, 2, false, None, None);
+pub const I16ZX32: Argument = immediate!(U32, 2, 2, false, None, None, None);
 
 /// An unsigned 16-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for Falcon v5 call instructions.
-pub const I16ZX32P1: Argument = immediate!(U32, 1, 2, false, None, None);
+pub const I16ZX32P1: Argument = immediate!(U32, 1, 2, false, None, None, None);
 
 /// A signed 16-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for most 32-bit instructions.
-pub const I16SX32: Argument = immediate!(I32, 2, 2, true, None, None);
+pub const I16SX32: Argument = immediate!(I32, 2, 2, true, None, None, None);
 
 /// A signed 16-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for Falcon v5 MOV instructions.
-pub const I16SX32P1: Argument = immediate!(I32, 1, 2, true, None, None);
+pub const I16SX32P1: Argument = immediate!(I32, 1, 2, true, None, None, None);
 
 /// A helper that leverages the selection of a correct parser for immediates
 /// in sized instructions to the disassembler.
@@ -217,17 +219,17 @@ pub const I16SXS: Argument = Argument::SizeConverter(|size| match size {
 /// An unsigned 24-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for absolute call/jump addresses.
-pub const I24ZX32: Argument = immediate!(U32, 1, 3, false, None, None);
+pub const I24ZX32: Argument = immediate!(U32, 1, 3, false, None, None, None);
 
 /// A signed 24-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for Falcon v5 CALL instructions.
-pub const I24SX32: Argument = immediate!(I32, 1, 3, true, None, None);
+pub const I24SX32: Argument = immediate!(I32, 1, 3, true, None, None, None);
 
 /// An unsigned 32-bit immediate.
 ///
 /// These are used for MOV instructions.
-pub const I32: Argument = immediate!(U32, 1, 4, false, None, None);
+pub const I32: Argument = immediate!(U32, 1, 4, false, None, None, None);
 
 /// A Falcon general-purpose register, encoded in the low 4 bits of the first
 /// instruction byte.
@@ -261,13 +263,15 @@ pub const FLAGS: Argument = register!(Spr, 8);
 ///
 /// Treated as an 8-bit immediate by the hardware, used for miscellaneous
 /// instructions that operate on the flag bits.
-pub const FLAG: Argument = immediate!(Flag, 2, 1, false, None, Some(0x1F));
+pub const FLAG: Argument = immediate!(Flag, 2, 1, false, None, None, Some(0x1F));
 
 /// A software trap value.
 ///
 /// It is used by the TRAP instruction and is encoded in the low two bits of
 /// instruction byte 1, the subopcode in this case.
-pub const TRAP: Argument = immediate!(U8, 1, 1, false, None, Some(0x3));
+pub const TRAP: Argument = immediate!(U8, 1, 1, false, None, None, Some(0x3));
+
+pub const CIMM: Argument = immediate!(U8, 2, 2, false, None, Some(0x4), Some(0x3F));
 
 /// A Falcon special-purpose register, encoded in the high 4 bits of the second
 /// instruction byte.
@@ -276,6 +280,12 @@ pub const SR1: Argument = register!(Spr, 1, true);
 /// A Falcon special-purpose register, encoded in the low 4 bits of the second
 /// instruction byte.
 pub const SR2: Argument = register!(Spr, 1, false);
+
+/// A Falcon crypto register, encoded in the high 4 bits of the third instruction byte.
+pub const CR1: Argument = register!(Crypto, 2, true);
+
+/// A Falcon crypto register, encoded in the low 4 bits of the third instruction byte.
+pub const CR2: Argument = register!(Crypto, 2, false);
 
 /// A memory access to an 8-bit value in Falcon DMem. The address is stored in a single
 /// register.
@@ -509,15 +519,20 @@ pub struct Immediate<T> {
     position: usize,
     width: usize,
     sign: bool,
-    shift: Option<usize>,
+    shift_left: Option<usize>,
+    shift_right: Option<usize>,
     mask: Option<usize>,
 
     raw_value: Option<T>,
 }
 
 impl<T: PrimInt + NumCast> Immediate<T> {
-    fn shift(&self) -> usize {
-        self.shift.unwrap_or(0)
+    fn shift_left(&self) -> usize {
+        self.shift_left.unwrap_or(0)
+    }
+
+    fn shift_right(&self) -> usize {
+        self.shift_right.unwrap_or(0)
     }
 
     fn mask(&self) -> usize {
@@ -544,36 +559,61 @@ impl<T: PrimInt + NumCast> Immediate<T> {
         let value: T = match self.width {
             1 => {
                 if self.sign {
-                    cast(insn[self.position] as i8 & self.mask() as i8).unwrap()
+                    cast(insn[self.position] as i8 >> self.shift_right() & self.mask() as i8)
+                        .unwrap()
                 } else {
-                    cast(insn[self.position] & self.mask() as u8).unwrap()
+                    cast(insn[self.position] >> self.shift_right() & self.mask() as u8).unwrap()
                 }
             }
             2 => {
                 if self.sign {
-                    cast(LittleEndian::read_i16(&insn[self.position..]) & self.mask() as i16).unwrap()
+                    cast(
+                        LittleEndian::read_i16(&insn[self.position..]) >> self.shift_right()
+                            & self.mask() as i16,
+                    )
+                    .unwrap()
                 } else {
-                    cast(LittleEndian::read_u16(&insn[self.position..]) & self.mask() as u16).unwrap()
+                    cast(
+                        LittleEndian::read_u16(&insn[self.position..]) >> self.shift_right()
+                            & self.mask() as u16,
+                    )
+                    .unwrap()
                 }
             }
             3 => {
                 if self.sign {
-                    cast(LittleEndian::read_i24(&insn[self.position..]) & self.mask() as i32).unwrap()
+                    cast(
+                        LittleEndian::read_i24(&insn[self.position..]) >> self.shift_right()
+                            & self.mask() as i32,
+                    )
+                    .unwrap()
                 } else {
-                    cast(LittleEndian::read_u24(&insn[self.position..]) & self.mask() as u32).unwrap()
+                    cast(
+                        LittleEndian::read_u24(&insn[self.position..]) >> self.shift_right()
+                            & self.mask() as u32,
+                    )
+                    .unwrap()
                 }
             }
             4 => {
                 if self.sign {
-                    cast(LittleEndian::read_i32(&insn[self.position..]) & self.mask() as i32).unwrap()
+                    cast(
+                        LittleEndian::read_i32(&insn[self.position..]) >> self.shift_right()
+                            & self.mask() as i32,
+                    )
+                    .unwrap()
                 } else {
-                    cast(LittleEndian::read_u32(&insn[self.position..]) & self.mask() as u32).unwrap()
+                    cast(
+                        LittleEndian::read_u32(&insn[self.position..]) >> self.shift_right()
+                            & self.mask() as u32,
+                    )
+                    .unwrap()
                 }
             }
             _ => unreachable!(),
         };
 
-        value << self.shift()
+        value << self.shift_left()
     }
 }
 

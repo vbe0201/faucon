@@ -1,10 +1,10 @@
 //! Implementation of Falcon code and data memory in SRAM.
 
+mod tlb;
+
 use byteorder::{ByteOrder, LittleEndian};
 
 pub use tlb::*;
-
-mod tlb;
 
 /// The size of a physical memory page in Falcon code space.
 pub const PAGE_SIZE: usize = 0x100;
@@ -14,6 +14,7 @@ pub const PAGE_SIZE: usize = 0x100;
 /// It consists of separate memory spaces for data and code,
 /// where data is stored in a flat piece of memory and code
 /// in virtual memory pages, translated by a hidden TLB.
+#[derive(Debug)]
 pub struct Memory {
     /// Representation of the Falcon data space.
     ///
@@ -38,11 +39,10 @@ pub struct Memory {
 impl Memory {
     /// Creates a new instance of the memory, initialized to all zeroes by
     /// default.
-    pub fn new() -> Self {
-        // TODO: Compute these values through UC_CAPS MMIO.
+    pub fn new(imem_size: u32, dmem_size: u32) -> Self {
         Memory {
-            data: vec![0; 0x4000],
-            code: vec![0; PAGE_SIZE * 0x80],
+            data: vec![0; dmem_size as usize],
+            code: vec![0; imem_size as usize],
             tlb: Tlb::new(),
         }
     }
@@ -106,8 +106,13 @@ impl Memory {
         LittleEndian::write_u32(&mut self.data[address as usize..], value);
     }
 
-    /// Writes a word to a given physical address in code space.
-    pub fn write_code_addr(&mut self, address: u16, value: u32) {
+    /// Reads a code word from a given physical address in code space.
+    pub fn read_code(&self, address: u16) -> u32 {
+        LittleEndian::read_u32(&self.code[address as usize..])
+    }
+
+    /// Writes a code word to a given physical address in code space.
+    pub fn write_code(&mut self, address: u16, value: u32) {
         LittleEndian::write_u32(&mut self.code[address as usize..], value);
     }
 }

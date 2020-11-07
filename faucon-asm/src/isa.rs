@@ -7,13 +7,6 @@ use faucon_asm_derive::Instruction;
 use crate::arguments::*;
 use crate::opcode::*;
 
-// Helper macro that is used by faucon-asm-derive codegen.
-macro_rules! instruction_meta {
-    ($kind:ident, $op:tt, $subop:tt, $operands:expr) => {
-        InstructionMeta::new(InstructionKind::$kind, $op as u8, $subop as u8, $operands)
-    };
-}
-
 /// A collection of metadata for representing assembly instructions.
 ///
 /// These helpers are stored in internal opcode lookup tables for identifying
@@ -74,6 +67,7 @@ impl InstructionMeta {
 /// generating opcode lookup tables that can be used to identify instructions
 /// and their variants.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Instruction)]
+#[rustfmt::skip]
 pub enum InstructionKind {
     /// The CMPU instruction.
     ///
@@ -574,8 +568,178 @@ pub enum InstructionKind {
     #[insn(opcode = 0xFF, subopcode = 0x0E, operands(R3, IORR))]
     IORDS,
 
-    /// An invalid or unknown instruction.
-    XXX,
+    // The following instructions are actually a single instruction which carries a
+    // crypto opcode to invoke a certain cryptographic operation on the SCP.
+    // However, it is easier for the disassembler to treat them as separate instructions.
+
+    /// The CNOP crypto command.
+    ///
+    /// Does nothing, surprisingly.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(), cryptop = 0x00)]
+    CNOP,
+
+    /// The CMOV crypto command.
+    ///
+    /// Moves the contents of crypto registers into other crypto registers.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x01)]
+    CMOV,
+
+    /// The CXSIN crypto command.
+    ///
+    /// Reads a block of data (0x10 bytes) from the crypto stream into a register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2), cryptop = 0x02)]
+    CXSIN,
+
+    /// The CXSOUT crypto command.
+    ///
+    /// Writes a block of data (0x10 bytes) from a register to the crypto stream.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2), cryptop = 0x03)]
+    CXSOUT,
+
+    /// The CRND crypto command.
+    ///
+    /// Reads a block of random data from the RNG block and stores it in a crypto
+    /// register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2), cryptop = 0x04)]
+    CRND,
+
+    /// The CS0BEGIN crypto command.
+    ///
+    /// Records a sequence of instructions as a macro and stores them in a special
+    /// slot for later retrieval and execution.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CIMM), cryptop = 0x05)]
+    CS0BEGIN,
+
+    /// The CS0EXEC crypto command.
+    ///
+    /// Executes the macro that was previously recorded with [`InstructionKind::CS0BEGIN`]
+    /// for a given amount of times.
+    ///
+    /// [`InstructionKind::CS0BEGIN`]: enum.InstructionKind.html#variant.CS0BEGIN
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CIMM), cryptop = 0x06)]
+    CS0EXEC,
+
+    /// The CS1BEGIN crypto command.
+    ///
+    /// Records a sequence of instructions as a macro and stores them in a special
+    /// slot for later retrieval and execution.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CIMM), cryptop = 0x07)]
+    CS1BEGIN,
+
+    /// The CS1EXEC crypto command.
+    ///
+    /// Executes the macro that was previously recorded with [`InstructionKind::CS1BEGIN`]
+    /// for a given amount of times.
+    ///
+    /// [`InstructionKind::CS1BEGIN`]: enum.InstructionKind.html#variant.CS1BEGIN
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CIMM), cryptop = 0x08)]
+    CS1EXEC,
+
+    /// The CCHMOD crypto command.
+    ///
+    /// Modifies the ACL value that guards the given crypto register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CIMM), cryptop = 0x0A)]
+    CCHMOD,
+
+    /// The CXOR crypto command.
+    ///
+    /// Performs an XOR operation on the contents of two crypto registers and stores
+    /// the result.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x0B)]
+    CXOR,
+
+    /// The CADD crypto command.
+    ///
+    /// Adds the given immediate to the value stored within the crypto register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CIMM), cryptop = 0x0C)]
+    CADD,
+
+    /// The CAND crypto command.
+    ///
+    /// Performs a bitwise AND operation on the contents of two crypto registers and
+    /// stores the result.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x0D)]
+    CAND,
+
+    /// The CREV crypto command.
+    ///
+    /// Reverses the bytes in a given crypto register and stores the result.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x0E)]
+    CREV,
+
+    /// The CGFMUL crypto command.
+    ///
+    /// Shifts the value of a given register left by one. If the bit shifted out was
+    /// set, XORs the new value with `0x87` and stores the result.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x0F)]
+    CGFMUL,
+
+    /// The CSECRET crypto command.
+    ///
+    /// Loads the hardware secret at the given index into the given register and
+    /// sets its ACL value unconditionally.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CIMM), cryptop = 0x10)]
+    CSECRET,
+
+    /// The CKEYREG crypto command.
+    ///
+    /// Sets the globally active key slot for encryption/decryption operands to the
+    /// given crypto register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2), cryptop = 0x11)]
+    CKEYREG,
+
+    /// The CKEXP crypto command.
+    ///
+    /// Expands the AES key in the given crypto register for use with the
+    /// [`InstructionKind::CDEC`] command.
+    ///
+    /// [`InstructionKind::CDEC`]: enum.InstructionKind.html#variant.CDEC
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x12)]
+    CKEXP,
+
+    /// The CKREXP crypto command.
+    ///
+    /// Obtains the original AES key given the last 16 bytes of the expanded key
+    /// from the [`InstructionKind::CKEXP`] command.
+    ///
+    /// [`InstructionKind::CKEXP`]: enum.InstructionKind.html#variant.CKEXP
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x13)]
+    CKREXP,
+
+    /// The CENC crypto command.
+    ///
+    /// Encrypts the data in the given register with the key in the active key slot
+    /// and stores the result in the other register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x14)]
+    CENC,
+
+    /// The CDEC crypto command.
+    ///
+    /// Decrypts the data in the given register with the key in the active key slot
+    /// and stores the result in the other register.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x15)]
+    CDEC,
+
+    /// The CSIGCMP crypto command.
+    ///
+    /// Does a memcmp on the signatures in the crypto registers and stores the signature
+    /// in a specific key slot in SCP SRAM if it matches. This initiates the process
+    /// of granting Heavy Secure Mode privileges to the next code block.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x16)]
+    CSIGCMP,
+
+    /// The CSIGENC crypto command.
+    ///
+    /// Encrypts the HS auth signature of the running code with the key in the given
+    /// register and stores the result.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(CR2, CR1), cryptop = 0x17)]
+    CSIGENC,
+
+    /// The CSIGCLR crypto command.
+    ///
+    /// Clears the HS auth signature of the running code from the key slot in SCP SRAM.
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(), cryptop = 0x18)]
+    CSIGCLR,
 }
 
 impl fmt::Display for InstructionKind {
@@ -641,7 +805,30 @@ impl fmt::Display for InstructionKind {
             InstructionKind::IOWRS => "iowrs",
             InstructionKind::IORD => "iord",
             InstructionKind::IORDS => "iords",
-            InstructionKind::XXX => "???",
+            InstructionKind::CNOP => "cnop",
+            InstructionKind::CMOV => "cmov",
+            InstructionKind::CXSIN => "cxsin",
+            InstructionKind::CXSOUT => "cxsout",
+            InstructionKind::CRND => "crnd",
+            InstructionKind::CS0BEGIN => "cs0begin",
+            InstructionKind::CS0EXEC => "cs0exec",
+            InstructionKind::CS1BEGIN => "cs1begin",
+            InstructionKind::CS1EXEC => "cs1exec",
+            InstructionKind::CCHMOD => "cchmod",
+            InstructionKind::CXOR => "cxor",
+            InstructionKind::CADD => "cadd",
+            InstructionKind::CAND => "cand",
+            InstructionKind::CREV => "crev",
+            InstructionKind::CGFMUL => "cgfmul",
+            InstructionKind::CSECRET => "csecret",
+            InstructionKind::CKEYREG => "ckeyreg",
+            InstructionKind::CKEXP => "ckexp",
+            InstructionKind::CKREXP => "ckrexp",
+            InstructionKind::CENC => "cenc",
+            InstructionKind::CDEC => "cdec",
+            InstructionKind::CSIGCMP => "csigcmp",
+            InstructionKind::CSIGENC => "csigenc",
+            InstructionKind::CSIGCLR => "csigclr",
         };
 
         write!(f, "{}", mnemonic)

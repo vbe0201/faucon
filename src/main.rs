@@ -13,10 +13,10 @@ mod debugger;
 
 use std::env;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::Path;
 
-use clap::App;
+use clap::{App, ArgMatches};
 use color_eyre::{
     eyre::{eyre, WrapErr},
     Result, Section,
@@ -49,8 +49,14 @@ fn read_config<P: AsRef<Path>>(config: Option<P>) -> Result<Config> {
 }
 
 fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
-    // Prepare the CPU and load the supplied binary into IMEM.
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(
+        config.falcon.version,
+        config.falcon.get_imem_size(),
+        config.falcon.dmem_size,
+        config.falcon.cycle_duration(),
+    );
+
+    // Upload the supplied binary into the Falcon code segment.
     if let Err(()) = code::upload_to_imem(&mut cpu, 0, 0, &code::read_falcon_binary(bin)?) {
         return Err(eyre!("the binary file is too large"))
             .wrap_err("failed to upload code")
@@ -87,6 +93,30 @@ fn disassemble_file<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> R
 
     let mut disassembler = Disassembler::stdout();
     disassembler.disassemble_stream(&mut reader)?;
+
+    Ok(())
+}
+
+fn pad_file<P>(bin: P, output: Option<P>) -> Result<()>
+where
+    P: AsRef<Path> + Copy,
+{
+    // If no output file was supplied, overwrite the binary provided by the user.
+    let output = output.unwrap_or(bin);
+
+    // Read the contents of the supplied binary.
+    let mut file = File::open(bin)?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents)?;
+    drop(file);
+
+    // Pad it to a 0x100 byte alignment.
+    code::pad_binary(&mut contents);
+
+    // Write it back to the output file.
+    let mut file = File::create(output)?;
+    file.write_all(&contents)?;
+
     Ok(())
 }
 
@@ -101,11 +131,25 @@ fn get_binary_file<'matches>(
     }
 }
 
+fn parse_subcommands(matches: ArgMatches, config: Config) -> Result<()> {
+    if let Some(matches) = matches.subcommand_matches("emu") {
+        run_emulator(get_binary_file(matches)?, config)
+    } else if let Some(matches) = matches.subcommand_matches("dis") {
+        disassemble_file(get_binary_file(matches)?, matches)
+    } else if let Some(matches) = matches.subcommand_matches("pad") {
+        pad_file(get_binary_file(matches)?, matches.value_of("output"))
+    } else {
+        Ok(())
+    }
+}
+
 fn main() -> Result<()> {
+    // Hook the panic handler to point users to the issue tracker for diagnosis.
     color_eyre::config::HookBuilder::default()
-        .panic_section(
-            "Consider reporting the bug on github (https://github.com/vbe0201/faucon/issues)",
-        )
+        .panic_section(concat!(
+            "Consider reporting the bug on GitHub: ",
+            env!("CARGO_PKG_REPOSITORY")
+        ))
         .install()?;
 
     // Build the CLI.
@@ -115,11 +159,6 @@ fn main() -> Result<()> {
     // Read the configuration file.
     let config = read_config(matches.value_of("config")).wrap_err("failed to load config")?;
 
-    if let Some(matches) = matches.subcommand_matches("emu") {
-        run_emulator(get_binary_file(matches)?, config)
-    } else if let Some(matches) = matches.subcommand_matches("dis") {
-        disassemble_file(get_binary_file(matches)?, matches)
-    } else {
-        unreachable!()
-    }
+    // Parse and execute subcommands of the application.
+    parse_subcommands(matches, config)
 }

@@ -1,14 +1,15 @@
-use faucon_asm::{Instruction, InstructionKind};
-
-use super::*;
-
 mod alu;
 mod branch;
 mod control;
+mod crypto;
 mod data;
 mod intr;
 mod utils;
 mod vm;
+
+use faucon_asm::{Instruction, InstructionKind};
+
+use super::*;
 
 /// Processes the given instruction on the microprocessor and returns the amount
 /// of CPU cycles the operation took.
@@ -70,6 +71,19 @@ fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usi
         InstructionKind::ITLB => vm::itlb,
         InstructionKind::IRET => intr::iret,
         InstructionKind::TRAP => intr::trap,
+        InstructionKind::CNOP => crypto::cnop,
+        InstructionKind::CMOV => crypto::cmov,
+        InstructionKind::CRND => crypto::crnd,
+        InstructionKind::CXOR => crypto::cxor,
+        InstructionKind::CADD => crypto::cadd,
+        InstructionKind::CAND => crypto::cand,
+        InstructionKind::CREV => crypto::crev,
+        InstructionKind::CGFMUL => crypto::cgfmul,
+        InstructionKind::CKEYREG => crypto::ckeyreg,
+        InstructionKind::CKEXP => crypto::ckexp,
+        InstructionKind::CKREXP => crypto::ckrexp,
+        InstructionKind::CENC => crypto::cenc,
+        InstructionKind::CDEC => crypto::cdec,
         _ => unimplemented!(),
     }
 }

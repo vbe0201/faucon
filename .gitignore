@@ -14,3 +14,9 @@ Thumbs.db
 /.vs/
 /.vscode/
 /.idea/
+
+# Binaries
+*.bin
+
+# The faucon configuration file.
+faucon.toml

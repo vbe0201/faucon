@@ -76,6 +76,16 @@ pub const fn get_opcode_form(opcode: u8) -> (u8, u8) {
     (opcode >> 4 & 0x3, opcode & 0xF)
 }
 
+/// Checks whether the given opcode parts and subopcode indicate that the instruction is
+/// a crypto command.
+///
+/// A crypto command is an instruction with opcode 0xF5 and subopcode 0x3C which submits
+/// a signal to the SCP to carry out a cryptographic operation for which the data are
+/// encoded in the last two bytes of the instruction.
+pub fn is_crypto_command(size: &OperandSize, a: u8, b: u8, subopcode: u8) -> bool {
+    size == &OperandSize::Unsized && a == 0x3 && b == 0x5 && subopcode == 0x3C
+}
+
 /// The location where the subopcode is stored within the instruction bytes.
 ///
 /// In Falcon assembly, opcodes generally span a variety of instructions, many

@@ -13,10 +13,10 @@ pub struct Register(pub RegisterKind, pub usize);
 
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.0 == RegisterKind::Gpr {
-            write!(f, "$r{}", self.1)
-        } else {
-            write!(f, "${}", get_spr_name(self.1).unwrap_or("unk"))
+        match (self.0, self.1) {
+            (RegisterKind::Gpr, reg) => write!(f, "$r{}", reg),
+            (RegisterKind::Spr, reg) => write!(f, "${}", get_spr_name(reg).unwrap_or("unk")),
+            (RegisterKind::Crypto, reg) => write!(f, "$c{}", reg),
         }
     }
 }
@@ -118,6 +118,8 @@ pub enum RegisterKind {
     Gpr,
     /// A special-purpose CPU register.
     Spr,
+    /// A crypto register in the Secure Co-Processor (SCP).
+    Crypto,
 }
 
 /// A direct memory access to an address in a specified space.
