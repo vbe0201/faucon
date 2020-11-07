@@ -102,6 +102,7 @@ enum_from_primitive! {
 }
 
 /// Representation of all Falcon CPU registers.
+#[derive(Debug)]
 pub struct CpuRegisters {
     /// The general-purpose CPU registers of the Falcon.
     gpr: [u32; 0x10],

@@ -14,6 +14,7 @@ pub const PAGE_SIZE: usize = 0x100;
 /// It consists of separate memory spaces for data and code,
 /// where data is stored in a flat piece of memory and code
 /// in virtual memory pages, translated by a hidden TLB.
+#[derive(Debug)]
 pub struct Memory {
     /// Representation of the Falcon data space.
     ///

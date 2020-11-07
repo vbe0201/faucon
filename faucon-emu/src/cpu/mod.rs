@@ -14,6 +14,7 @@ use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
 
 /// Representation of the Falcon processor.
+#[derive(Debug)]
 pub struct Cpu {
     /// The Falcon revision to emulate.
     version: usize,
@@ -47,6 +48,7 @@ pub struct Cpu {
 /// The execution states influence code execution and how interrupts are
 /// being handled. There are different ways to change the processor state,
 /// including resets, instructions, interrupts, and host interaction.
+#[derive(Debug, PartialEq)]
 pub enum ExecutionState {
     /// The processor is actively running and executes instructions.
     Running,

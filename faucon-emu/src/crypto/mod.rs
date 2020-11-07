@@ -13,7 +13,32 @@ use acl::AclCell;
 #[derive(Debug)]
 pub struct Scp {
     registers: [AclCell<aes::Block>; 0x8],
+    /// The secure mode the SCP is currently in.
+    pub mode: SecureMode,
     key_register: Option<usize>,
+}
+
+/// Falcon secure modes which limit the access to memory and registers from Falcon
+/// microcode.
+#[derive(Debug)]
+pub enum SecureMode {
+    /// Representation of the No Secure mode, the least privileged execution level that
+    /// is available to microcode that is not cryptographically signed.
+    NoSecure,
+    /// Representation of the Light Secure mode, an execution mode with fewer privileges
+    /// than [`SecureMode::HeavySecure`], but more than [`SecureMode::NoSecure`].
+    ///
+    /// Mainly used for debugging purposes. Can be enabled from [`SecureMode::HeavySecure`]
+    /// microcode.
+    ///
+    /// [`SecureMode::HeavySecure`]: enum.SecureMode.html#variant.HeavySecure
+    /// [`SecureMode::NoSecure`]: enum.SecureMode.html#variant.NoSecure
+    LightSecure,
+    /// Representation of the Heavy Secure mode, which effectively locks the Falcon down
+    /// into a black box and grants the highest possible amount of privileges.
+    ///
+    /// Only accessible to cryptographically signed microcode.
+    HeavySecure,
 }
 
 // TODO: Properly handle ACL values and conditions.
@@ -24,6 +49,7 @@ impl Scp {
     pub fn new() -> Self {
         Scp {
             registers: [AclCell::new(aes::Block::default()); 0x8],
+            mode: SecureMode::NoSecure,
             key_register: None,
         }
     }
