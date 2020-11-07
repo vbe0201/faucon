@@ -7,13 +7,6 @@ use faucon_asm_derive::Instruction;
 use crate::arguments::*;
 use crate::opcode::*;
 
-// Helper macro that is used by faucon-asm-derive codegen.
-macro_rules! instruction_meta {
-    ($kind:ident, $op:tt, $subop:tt, $operands:expr) => {
-        InstructionMeta::new(InstructionKind::$kind, $op as u8, $subop as u8, $operands)
-    };
-}
-
 /// A collection of metadata for representing assembly instructions.
 ///
 /// These helpers are stored in internal opcode lookup tables for identifying
