@@ -566,9 +566,6 @@ pub enum InstructionKind {
     /// Synchronously reads a word from the I/O space of the microprocessor.
     #[insn(opcode = 0xFF, subopcode = 0x0E, operands(R3, IORR))]
     IORDS,
-
-    /// An invalid or unknown instruction.
-    XXX,
 }
 
 impl fmt::Display for InstructionKind {
@@ -634,7 +631,6 @@ impl fmt::Display for InstructionKind {
             InstructionKind::IOWRS => "iowrs",
             InstructionKind::IORD => "iord",
             InstructionKind::IORDS => "iords",
-            InstructionKind::XXX => "???",
         };
 
         write!(f, "{}", mnemonic)

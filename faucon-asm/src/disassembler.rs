@@ -18,7 +18,7 @@ pub use pretty::Disassembler;
 pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
     let mut insn = Vec::new();
 
-    // First, read the opcode of the next instruction and parse it.
+    // Read the opcode of the next instruction and parse it.
     read_bytes(&mut insn, reader, 1)?;
     let operand_size = opcode::OperandSize::from(insn[0]);
     let (a, b) = opcode::get_opcode_form(insn[0]);
