@@ -134,13 +134,19 @@ pub enum Error {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
     bytes: Vec<u8>,
+    offset: usize,
     operand_size: OperandSize,
     meta: isa::InstructionMeta,
 }
 
 impl Instruction {
     /// Constructs a new instruction from its byte representation and metadata.
-    pub fn new(bytes: Vec<u8>, mut operand_size: OperandSize, meta: isa::InstructionMeta) -> Self {
+    pub fn new(
+        bytes: Vec<u8>,
+        offset: usize,
+        mut operand_size: OperandSize,
+        meta: isa::InstructionMeta,
+    ) -> Self {
         // Certain Falcon weirdos encode their subopcode in the high size bits and thus
         // making the instruction per se unsized. We need to make sure to not use a false
         // positive operand size.
@@ -151,6 +157,7 @@ impl Instruction {
 
         Instruction {
             bytes,
+            offset,
             operand_size,
             meta,
         }
@@ -160,6 +167,14 @@ impl Instruction {
     /// this `Instruction`.
     pub fn raw_bytes(&self) -> &[u8] {
         self.bytes.as_slice()
+    }
+
+    /// The offset of the instruction in memory.
+    ///
+    /// Depending on where the disassembler started reading the instruction, one must
+    /// add this to the base address to get the real memory address of the instruction.
+    pub fn memory_offset(&self) -> usize {
+        self.offset
     }
 
     /// Gets the [`InstructionKind`] that is represented by this instruction variant.

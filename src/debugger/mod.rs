@@ -128,11 +128,12 @@ impl Debugger {
 
     fn disassemble(&mut self, vaddress: u32, amount: u32) {
         let address = self.falcon.memory.tlb.translate_addr(vaddress).unwrap() as usize;
+        let mut offset = 0;
         let code = &mut &self.falcon.memory.code[address..];
 
         for _ in 0..amount {
-            match read_instruction(code) {
-                Ok(insn) => println!("{}", insn),
+            match read_instruction(code, &mut offset) {
+                Ok(insn) => println!("{:08X}  {}", address + offset, insn),
                 Err(faucon_asm::Error::Eof) => break,
                 Err(e) => {
                     match e {

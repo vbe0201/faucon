@@ -15,7 +15,7 @@ pub use pretty::Disassembler;
 ///
 /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
 /// [`Instruction`]: ../struct.Instruction.html
-pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
+pub fn read_instruction<R: Read>(reader: &mut R, offset: &mut usize) -> Result<Instruction> {
     let mut insn = Vec::new();
 
     // Read the opcode of the next instruction and parse it.
@@ -39,7 +39,13 @@ pub fn read_instruction<R: Read>(reader: &mut R) -> Result<Instruction> {
         &mut instruction_meta.operands,
     )?;
 
-    Ok(Instruction::new(insn, operand_size, instruction_meta))
+    // Construct an instruction from the extracted information.
+    let insn = Instruction::new(insn, *offset, operand_size, instruction_meta);
+
+    // Increment the offset to point to the next instruction.
+    *offset += insn.len();
+
+    Ok(insn)
 }
 
 fn read_operands<R: Read>(

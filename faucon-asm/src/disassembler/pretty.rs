@@ -8,7 +8,7 @@ use std::io::{self, Read, Write};
 /// out instructions using a simple but powerful
 /// format.
 pub struct Disassembler<W> {
-    pc: usize,
+    base: usize,
     output: TrackWrite<W>,
 }
 
@@ -17,7 +17,7 @@ impl<W> Disassembler<W> {
     /// to the given output.
     pub fn new(output: W) -> Self {
         Self {
-            pc: 0,
+            base: 0,
             output: TrackWrite::new(output),
         }
     }
@@ -27,7 +27,7 @@ impl<W> Disassembler<W> {
     /// The `Disassembler` will then start the disassembled instructions
     /// at the given base address.
     pub fn with_base(mut self, base: usize) -> Self {
-        self.pc = base;
+        self.base = base;
         self
     }
 }
@@ -51,7 +51,8 @@ impl<W: Write> Disassembler<W> {
     pub fn disassemble_stream<R: Read>(&mut self, stream: &mut R) -> io::Result<()> {
         use crate::Error;
 
-        let insns = std::iter::from_fn(|| match super::read_instruction(stream) {
+        let mut offset = 0;
+        let insns = std::iter::from_fn(|| match super::read_instruction(stream, &mut offset) {
             Ok(insn) => Some(insn),
             Err(Error::IoError) => None,
             Err(Error::UnknownInstruction(op)) => {
@@ -74,15 +75,13 @@ impl<W: Write> Disassembler<W> {
         let out = &mut self.output;
         for insn in insns {
             out.reset();
-            write!(out, "{:08x} ", self.pc)?;
+            write!(out, "{:08x} ", self.base + insn.memory_offset())?;
 
             insn.raw_bytes()
                 .iter()
                 .try_for_each(|byte| write!(out, "{:02x} ", byte))?;
             align_to(out, out.count, 32)?;
             writeln!(out, "{}", insn)?;
-
-            self.pc += insn.len();
         }
 
         Ok(())

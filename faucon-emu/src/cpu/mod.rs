@@ -199,7 +199,7 @@ impl Cpu {
             // If the page is marked usable, complete the access using the physical page.
             if tlb.get_flag(PageFlag::Usable) {
                 let mut code = &self.memory.code[code_address as usize..];
-                match disassembler::read_instruction(&mut code) {
+                match disassembler::read_instruction(&mut code, &mut 0) {
                     Ok(insn) => Some(insn),
                     Err(faucon_asm::Error::UnknownInstruction(_)) => {
                         self.trigger_trap(Trap::InvalidOpcode);
