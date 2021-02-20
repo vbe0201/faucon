@@ -811,9 +811,6 @@ impl Register {
     }
 }
 
-// FIXME: These Options technically can never be None, change the types and unwrap the arg!
-//        result in the memory! macro as soon as const_panic is in stable Rust.
-
 /// A direct Falcon memory access composed of registers, immediates and magic values.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MemoryAccess {
