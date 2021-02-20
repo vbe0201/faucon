@@ -111,7 +111,7 @@ pub fn mpopadd(cpu: &mut Cpu, insn: &Instruction) -> usize {
 
     // Add the second operand (an immediate) to the $sp register.
     if let Operand::I32(imm) = insn.operands()[1] {
-        cpu.registers[SP] = cpu.registers[SP].wrapping_add(imm);
+        cpu.registers[SP] = cpu.registers[SP].wrapping_add(imm as u32);
     } else {
         unreachable!();
     }

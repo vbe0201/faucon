@@ -214,26 +214,22 @@ pub enum Operand {
     /// A CPU flag that wraps around an 8-bit immediate denoting the index of a bit
     /// in the `$flags` register.
     Flag(u8),
-    /// An 8-bit-sized immediate, represented through an [`u8`]. This covers signed
-    /// and unsigned forms likewise.
-    ///
-    /// [`u8`]: https://doc.rust-lang.org/stable/std/primitive.u8.html
-    I8(u8),
-    /// A 16-bit-sized immediate, represented through an [`u16`]. This covers signed
-    /// and unsigned forms likewise.
-    ///
-    /// [`u16`]: https://doc.rust-lang.org/stable/std/primitive.u16.html
-    I16(u16),
-    /// A 24-bit-sized immediate, represented through an [`u32`]. This covers signed
-    /// and unsigned forms likewise.
-    ///
-    /// [`u32`]: https://doc.rust-lang.org/stable/std/primitive.u32.html
-    I24(u32),
-    /// A 32-bit-sized immediate, represented through an [`u32`]. This covers signed
-    /// and unsigned forms likewise.
-    ///
-    /// [`u32`]: https://doc.rust-lang.org/stable/std/primitive.u32.html
-    I32(u32),
+    /// An 8-bit-sized signed immediate.
+    I8(i8),
+    /// An 8-bit-sized unsigned immediate.
+    U8(u8),
+    /// A 16-bit-sized signed immediate.
+    I16(i16),
+    /// A 16-bit-sized unsigned immediate.
+    U16(u16),
+    /// A 24-bit-sized signed immediate.
+    I24(i32),
+    /// A 24-bit-sized unsigned immediate.
+    U24(u32),
+    /// A 32-bit-sized signed immediate.
+    I32(i32),
+    /// A 32-bit-sized unsigned immediate.
+    U32(u32),
     /// A direct access to a memory space at a given address.
     Memory(MemoryAccess),
 }
@@ -250,14 +246,14 @@ impl Operand {
             Argument::SizeConverter(_) => unreachable!(),
 
             // Immediate forms.
-            Argument::U8(imm) => Operand::I8(imm.read(insn)),
-            Argument::I8(imm) => Operand::I8(imm.read(insn) as u8),
-            Argument::U16(imm) => Operand::I16(imm.read(insn)),
-            Argument::I16(imm) => Operand::I16(imm.read(insn) as u16),
-            Argument::U24(imm) => Operand::I24(imm.read(insn)),
-            Argument::I24(imm) => Operand::I24(imm.read(insn) as u32),
-            Argument::U32(imm) => Operand::I32(imm.read(insn)),
-            Argument::I32(imm) => Operand::I32(imm.read(insn) as u32),
+            Argument::U8(imm) => Operand::U8(imm.read(insn)),
+            Argument::I8(imm) => Operand::I8(imm.read(insn)),
+            Argument::U16(imm) => Operand::U16(imm.read(insn)),
+            Argument::I16(imm) => Operand::I16(imm.read(insn)),
+            Argument::U24(imm) => Operand::U24(imm.read(insn)),
+            Argument::I24(imm) => Operand::I24(imm.read(insn)),
+            Argument::U32(imm) => Operand::U32(imm.read(insn)),
+            Argument::I32(imm) => Operand::I32(imm.read(insn)),
 
             // Register forms.
             Argument::Register(reg) => {
@@ -309,10 +305,14 @@ impl fmt::Display for Operand {
         match self {
             Operand::Register(reg) => write!(f, "{}", reg),
             Operand::Flag(flag) => write!(f, "{}", get_flag_name(*flag as usize).unwrap_or("unk")),
-            Operand::I8(val) => write!(f, "{:#x}", val),
-            Operand::I16(val) => write!(f, "{:#x}", val),
-            Operand::I24(val) => write!(f, "{:#x}", val),
-            Operand::I32(val) => write!(f, "{:#x}", val),
+            Operand::I8(val) => write!(f, "-{:#x}", val.abs()),
+            Operand::U8(val) => write!(f, "{:#x}", val),
+            Operand::I16(val) => write!(f, "-{:#x}", val.abs()),
+            Operand::U16(val) => write!(f, "{:#x}", val),
+            Operand::I24(val) => write!(f, "-{:#x}", val.abs()),
+            Operand::U24(val) => write!(f, "{:#x}", val),
+            Operand::I32(val) => write!(f, "-{:#x}", val.abs()),
+            Operand::U32(val) => write!(f, "{:#x}", val),
             Operand::Memory(mem) => write!(f, "{}", mem),
         }
     }
