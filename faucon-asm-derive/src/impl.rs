@@ -84,7 +84,7 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
             // For instructions that have less than 3 real operands, the remaining space in
             // the array is being filled out with `NOP` as a placeholder/padding.
             while operands.len() < 3 {
-                operands.push(quote! { NOP });
+                operands.push(quote! { None });
             }
 
             let instruction_meta = quote! {

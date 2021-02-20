@@ -62,7 +62,7 @@ pub fn parse_list_meta(name: &str, meta: &Meta) -> Result<Vec<TokenStream>> {
         let tokens = list
             .nested
             .iter()
-            .map(|e| quote! { #e })
+            .map(|e| quote! { Some(#e) })
             .collect::<Vec<TokenStream>>();
 
         Ok(tokens)

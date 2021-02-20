@@ -52,30 +52,27 @@ fn read_operands<R: Read>(
     buffer: &mut Vec<u8>,
     reader: &mut R,
     operand_size: u8,
-    operands: &mut [Argument],
+    operands: &mut [Option<Argument>],
 ) -> Result<()> {
     for operand in operands.iter_mut() {
-        // If the argument is actually a dummy placeholder, we can skip it.
-        if operand == &Argument::Nop {
-            continue;
-        }
+        if let Some(operand) = operand {
+            // If the argument is a SizeConverter helper, evaluate it and replace
+            // it with a real operand to save us some hassle later on.
+            if let Argument::SizeConverter(c) = operand {
+                *operand = c(operand_size);
+            }
 
-        // If the argument is a SizeConverter helper, evaluate it and replace
-        // it with a real operand to save us some hassle later on.
-        if let Argument::SizeConverter(c) = operand {
-            *operand = c(operand_size);
-        }
+            // Calculate the amount of bytes to read until the operand completely fits
+            // into the buffer.
+            let mut bytes_to_read = 0;
+            let operand_width = operand.position() + operand.width();
+            if buffer.len() < operand_width {
+                bytes_to_read += (operand_width - buffer.len()) as u64;
+            }
 
-        // Calculate the amount of bytes to read until the operand completely fits
-        // into the buffer.
-        let mut bytes_to_read = 0;
-        let operand_width = operand.position() + operand.width();
-        if buffer.len() < operand_width {
-            bytes_to_read += (operand_width - buffer.len()) as u64;
+            // Read the operand bytes.
+            read_bytes(buffer, reader, bytes_to_read)?;
         }
-
-        // Read the operand bytes.
-        read_bytes(buffer, reader, bytes_to_read)?;
     }
 
     Ok(())

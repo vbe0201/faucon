@@ -95,6 +95,8 @@
 //! [envytools]: https://github.com/envytools/envytools
 //! [`Error::Eof`]: enum.Error.html#variant.Eof
 
+#![feature(const_unreachable_unchecked)]
+
 use std::fmt;
 
 pub use disassembler::*;
@@ -102,7 +104,6 @@ pub use isa::InstructionKind;
 pub use opcode::OperandSize;
 pub use operands::*;
 
-use arguments::Argument;
 use opcode::*;
 
 mod arguments;
@@ -227,13 +228,10 @@ impl Instruction {
         let mut operands = Vec::new();
 
         for arg in self.meta.operands.iter() {
-            // If the argument is a dummy placeholder, purposefully ignore it.
-            if arg == &Argument::Nop {
-                continue;
+            if let Some(arg) = arg {
+                // Extract the real value of the operand from the instruction bytes.
+                operands.push(Operand::read(arg, &self.bytes));
             }
-
-            // Extract the real value of the operand from the instruction bytes.
-            operands.push(Operand::read(arg, &self.bytes));
         }
 
         operands

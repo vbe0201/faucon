@@ -8,136 +8,126 @@ use num_traits::{cast, NumCast, PrimInt};
 
 use crate::operands::{MemorySpace, RegisterKind};
 
-macro_rules! arg {
+macro_rules! unwrap {
     ($argument:expr, $variant:pat => $result:expr) => {
         if let $variant = $argument {
-            Some($result)
+            $result
         } else {
-            None
+            unsafe { ::std::hint::unreachable_unchecked() }
         }
     };
 }
 
-macro_rules! immediate {
-    ($v:ident, $value:tt) => {
-        Argument::$v(Immediate {
-            position: 0,
-            width: 0,
-            sign: false,
-            shift: None,
-            mask: None,
-            raw_value: Some($value),
-        })
-    };
-    ($v:ident, $pos:tt, $width:tt, $sign:tt, $shift:expr, $mask:expr) => {
-        Argument::$v(Immediate {
-            position: $pos,
-            width: $width,
-            sign: $sign,
-            shift: $shift,
-            mask: $mask,
-            raw_value: None,
-        })
-    };
-}
-
-macro_rules! register {
-    ($kind:ident, $value:tt) => {
-        Argument::Register(Register {
-            kind: RegisterKind::$kind,
-            position: 0,
-            high: false,
-            raw_value: Some($value),
-        })
-    };
-    ($kind:ident, $pos:tt, $high:tt) => {
-        Argument::Register(Register {
-            kind: RegisterKind::$kind,
-            position: $pos,
-            high: $high,
-            raw_value: None,
-        })
-    };
-}
-
-macro_rules! memory {
-    ($v:ident, $reg:ident) => {
-        Argument::Memory(MemoryAccess::Reg(
-            MemorySpace::$v,
-            arg!($reg, Argument::Register(r) => r),
-        ))
-    };
-    ($v:ident, $reg1:ident, $reg2:ident, $scale:tt) => {
-        Argument::Memory(MemoryAccess::RegReg(
-            MemorySpace::$v,
-            arg!($reg1, Argument::Register(r) => r),
-            arg!($reg2, Argument::Register(r) => r),
-            $scale,
-        ))
-    };
-    ($v:ident, $reg:ident, $imm:ident) => {
-        Argument::Memory(MemoryAccess::RegImm(
-            MemorySpace::$v,
-            arg!($reg, Argument::Register(r) => r),
-            arg!($imm, Argument::U32(imm) => imm),
-        ))
-    };
-}
-
-/// A dummy placeholder for the statically allocated buffer of three operand
-/// arguments, in case an instruction does not have three operands.
-///
-/// This should never be interpreted into a concrete value and shall be
-/// ignored.
-pub const NOP: Argument = Argument::Nop;
-
 /// An unsigned 8-bit immediate.
 ///
 /// These are used for bit positions, shifts and 8-bit instructions.
-pub const I8: Argument = immediate!(U8, 2, 1, false, None, None);
+pub const I8: Argument = Argument::U8(Immediate {
+    position: 2,
+    width: 1,
+    sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// An unsigned 8-bit immediate zero-extended to 16 bits.
 ///
 /// These are used for sethi and 16-bit instructions.
-pub const I8ZX16: Argument = immediate!(U16, 2, 1, false, None, None);
+pub const I8ZX16: Argument = Argument::U16(Immediate {
+    position: 2,
+    width: 1,
+    sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// A signed 8-bit immediate sign-extended to 16 bits.
 ///
 /// These are used for sethi and 16-bit instructions.
-pub const I8SX16: Argument = immediate!(I16, 2, 1, true, None, None);
+pub const I8SX16: Argument = Argument::I16(Immediate {
+    position: 2,
+    width: 1,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for memory addressing and most 32-bit instructions.
-pub const I8ZX32: Argument = immediate!(U32, 2, 1, false, None, None);
+pub const I8ZX32: Argument = Argument::U32(Immediate {
+    position: 2,
+    width: 1,
+    sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// A signed 32-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for memory addressing and most 32-bit instructions.
-pub const I8SX32: Argument = immediate!(I32, 2, 1, true, None, None);
+pub const I8SX32: Argument = Argument::I32(Immediate {
+    position: 2,
+    width: 1,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// A signed 8-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for Falcon v5 MOV instructions.
-pub const I8SX32P1: Argument = immediate!(I32, 1, 1, true, None, None);
+pub const I8SX32P1: Argument = Argument::I32(Immediate {
+    position: 1,
+    width: 1,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
 /// by one.
 ///
 /// These are mainly used for memory addressing.
-pub const I8ZX32S1: Argument = immediate!(U32, 2, 1, false, Some(1), None);
+pub const I8ZX32S1: Argument = Argument::U32(Immediate {
+    position: 2,
+    width: 1,
+    sign: false,
+    shift: Some(1),
+    mask: None,
+    raw_value: None,
+});
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
 /// by two.
 ///
 /// These are mainly used for memory addressing.
-pub const I8ZX32S2: Argument = immediate!(U32, 2, 1, false, Some(2), None);
+pub const I8ZX32S2: Argument = Argument::U32(Immediate {
+    position: 2,
+    width: 1,
+    sign: false,
+    shift: Some(2),
+    mask: None,
+    raw_value: None,
+});
 
 /// An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
 /// by 16.
 ///
 /// These are used by the SETHI instruction.
-pub const I8ZX32S16: Argument = immediate!(U32, 2, 1, false, Some(16), None);
+pub const I8ZX32S16: Argument = Argument::U32(Immediate {
+    position: 2,
+    width: 1,
+    sign: false,
+    shift: Some(16),
+    mask: None,
+    raw_value: None,
+});
 
 /// A helper that leverages the selection of a correct parser for immediates
 /// in sized instructions to the disassembler.
@@ -165,32 +155,74 @@ pub const I8SXS: Argument = Argument::SizeConverter(|size| match size {
 ///
 /// Used by 8-bit instructions which have a 16-bit immediate form for
 /// whatever reason.
-pub const I16T8: Argument = immediate!(U8, 2, 2, false, None, Some(0xFF));
+pub const I16T8: Argument = Argument::U8(Immediate {
+    position: 2,
+    width: 2,
+    sign: false,
+    shift: None,
+    mask: Some(0xFF),
+    raw_value: None,
+});
 
 /// An unsigned 16-bit immediate.
 ///
 /// These are used by sethi and 16-bit instructions.
-pub const I16: Argument = immediate!(U16, 2, 2, false, None, None);
+pub const I16: Argument = Argument::U16(Immediate {
+    position: 2,
+    width: 2,
+    sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// An unsigned 16-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for most 32-bit instructions.
-pub const I16ZX32: Argument = immediate!(U32, 2, 2, false, None, None);
+pub const I16ZX32: Argument = Argument::U32(Immediate {
+    position: 2,
+    width: 2,
+    sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// An unsigned 16-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for Falcon v5 call instructions.
-pub const I16ZX32P1: Argument = immediate!(U32, 1, 2, false, None, None);
+pub const I16ZX32P1: Argument = Argument::U32(Immediate {
+    position: 1,
+    width: 2,
+    sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// A signed 16-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for most 32-bit instructions.
-pub const I16SX32: Argument = immediate!(I32, 2, 2, true, None, None);
+pub const I16SX32: Argument = Argument::I32(Immediate {
+    position: 2,
+    width: 2,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// A signed 16-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for Falcon v5 MOV instructions.
-pub const I16SX32P1: Argument = immediate!(I32, 1, 2, true, None, None);
+pub const I16SX32P1: Argument = Argument::I32(Immediate {
+    position: 1,
+    width: 2,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// A helper that leverages the selection of a correct parser for immediates
 /// in sized instructions to the disassembler.
@@ -217,77 +249,161 @@ pub const I16SXS: Argument = Argument::SizeConverter(|size| match size {
 /// An unsigned 24-bit immediate zero-extended to 32 bits.
 ///
 /// These are used for absolute call/jump addresses.
-pub const I24ZX32: Argument = immediate!(U32, 1, 3, false, None, None);
+pub const I24ZX32: Argument = Argument::U32(Immediate {
+    position: 1,
+    width: 3,
+    sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// A signed 24-bit immediate sign-extended to 32 bits.
 ///
 /// These are used for Falcon v5 CALL instructions.
-pub const I24SX32: Argument = immediate!(I32, 1, 3, true, None, None);
+pub const I24SX32: Argument = Argument::I32(Immediate {
+    position: 1,
+    width: 3,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// An unsigned 32-bit immediate.
 ///
 /// These are used for MOV instructions.
-pub const I32: Argument = immediate!(U32, 1, 4, false, None, None);
+pub const I32: Argument = Argument::U32(Immediate {
+    position: 1,
+    width: 4,
+    sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
 
 /// A Falcon general-purpose register, encoded in the low 4 bits of the first
 /// instruction byte.
-pub const R0: Argument = register!(Gpr, 0, false);
+pub const R0: Argument = Argument::Register(Register {
+    kind: RegisterKind::Gpr,
+    position: 0,
+    high: false,
+    raw_value: None,
+});
 
 /// A Falcon general-purpose register, encoded in the low 4 bits of the second
 /// instruction byte.
-pub const R1: Argument = register!(Gpr, 1, false);
+pub const R1: Argument = Argument::Register(Register {
+    kind: RegisterKind::Gpr,
+    position: 1,
+    high: false,
+    raw_value: None,
+});
 
 /// A Falcon general-purpose register, encoded in the high 4 bits of the second
 /// instruction byte.
-pub const R2: Argument = register!(Gpr, 1, true);
+pub const R2: Argument = Argument::Register(Register {
+    kind: RegisterKind::Gpr,
+    position: 1,
+    high: true,
+    raw_value: None,
+});
 
 /// A Falcon general-purpose register, encoded in the high 4 bits of the third
 /// instruction byte.
-pub const R3: Argument = register!(Gpr, 2, true);
+pub const R3: Argument = Argument::Register(Register {
+    kind: RegisterKind::Gpr,
+    position: 2,
+    high: true,
+    raw_value: None,
+});
 
 /// The stack pointer register.
 ///
 /// It is used for instructions that operate on $sp by default, without
 /// encoding its value in the instruction bytes.
-pub const SP: Argument = register!(Spr, 4);
+pub const SP: Argument = Argument::Register(Register {
+    kind: RegisterKind::Spr,
+    position: 0,
+    high: false,
+    raw_value: Some(4),
+});
 
 /// The CPU flags register.
 ///
 /// It is used for instructions that operate on $flags by default, without
 /// encoding its value in the instruction bytes.
-pub const FLAGS: Argument = register!(Spr, 8);
+pub const FLAGS: Argument = Argument::Register(Register {
+    kind: RegisterKind::Spr,
+    position: 0,
+    high: false,
+    raw_value: Some(8),
+});
 
 /// A selected bit in the Falcon $flags register.
 ///
 /// Treated as an 8-bit immediate by the hardware, used for miscellaneous
 /// instructions that operate on the flag bits.
-pub const FLAG: Argument = immediate!(Flag, 2, 1, false, None, Some(0x1F));
+pub const FLAG: Argument = Argument::Flag(Immediate {
+    position: 2,
+    width: 1,
+    sign: false,
+    shift: None,
+    mask: Some(0x1F),
+    raw_value: None,
+});
 
 /// A software trap value.
 ///
 /// It is used by the TRAP instruction and is encoded in the low two bits of
 /// instruction byte 1, the subopcode in this case.
-pub const TRAP: Argument = immediate!(U8, 1, 1, false, None, Some(0x3));
+pub const TRAP: Argument = Argument::U8(Immediate {
+    position: 1,
+    width: 1,
+    sign: false,
+    shift: None,
+    mask: Some(0b11),
+    raw_value: None,
+});
 
 /// A Falcon special-purpose register, encoded in the high 4 bits of the second
 /// instruction byte.
-pub const SR1: Argument = register!(Spr, 1, true);
+pub const SR1: Argument = Argument::Register(Register {
+    kind: RegisterKind::Spr,
+    position: 1,
+    high: true,
+    raw_value: None,
+});
 
 /// A Falcon special-purpose register, encoded in the low 4 bits of the second
 /// instruction byte.
-pub const SR2: Argument = register!(Spr, 1, false);
+pub const SR2: Argument = Argument::Register(Register {
+    kind: RegisterKind::Spr,
+    position: 1,
+    high: false,
+    raw_value: None,
+});
 
 /// A memory access to an 8-bit value in Falcon DMem. The address is stored in a single
 /// register.
-pub const MEMR8: Argument = memory!(DMem, R2);
+pub const MEMR8: Argument = Argument::Memory(MemoryAccess::Reg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+));
 
 /// A memory access to a 16-bit value in Falcon DMem. The address is stored in a single
 /// register.
-pub const MEMR16: Argument = memory!(DMem, R2);
+pub const MEMR16: Argument = Argument::Memory(MemoryAccess::Reg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+));
 
 /// A memory access to a 32-bit value in Falcon DMem. The address is stored in a single
 /// register.
-pub const MEMR32: Argument = memory!(DMem, R2);
+pub const MEMR32: Argument = Argument::Memory(MemoryAccess::Reg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+));
 
 /// A helper that leverages the selection of an appropriate parser for memory access
 /// encodings in sized instructions to the disassembler.
@@ -300,15 +416,27 @@ pub const MEMR: Argument = Argument::SizeConverter(|size| match size {
 
 /// A memory access to an 8-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an immediate offset.
-pub const MEMRI8: Argument = memory!(DMem, R2, I8ZX32);
+pub const MEMRI8: Argument = Argument::Memory(MemoryAccess::RegImm(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(I8ZX32, Argument::U32(imm) => imm),
+));
 
 /// A memory access to a 16-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an immediate offset.
-pub const MEMRI16: Argument = memory!(DMem, R2, I8ZX32S1);
+pub const MEMRI16: Argument = Argument::Memory(MemoryAccess::RegImm(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(I8ZX32S1, Argument::U32(imm) => imm),
+));
 
 /// A memory access to a 32-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an immediate offset.
-pub const MEMRI32: Argument = memory!(DMem, R2, I8ZX32S2);
+pub const MEMRI32: Argument = Argument::Memory(MemoryAccess::RegImm(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(I8ZX32S2, Argument::U32(imm) => imm),
+));
 
 /// A helper that leverages the selection of an appropriate parser for memory access
 /// encodings in sized instructions to the disassembler.
@@ -321,15 +449,27 @@ pub const MEMRI: Argument = Argument::SizeConverter(|size| match size {
 
 /// A memory access to an 8-bit value in Falcon DMem. The address is composed from a
 /// base address in the `$sp` register and an immediate offset.
-pub const MEMSPI8: Argument = memory!(DMem, SP, I8ZX32);
+pub const MEMSPI8: Argument = Argument::Memory(MemoryAccess::RegImm(
+    MemorySpace::DMem,
+    unwrap!(SP, Argument::Register(r) => r),
+    unwrap!(I8ZX32, Argument::U32(imm) => imm),
+));
 
 /// A memory access to a 16-bit value in Falcon DMem. The address is composed from a
 /// base address in the `$sp` register and an immediate offset.
-pub const MEMSPI16: Argument = memory!(DMem, SP, I8ZX32S1);
+pub const MEMSPI16: Argument = Argument::Memory(MemoryAccess::RegImm(
+    MemorySpace::DMem,
+    unwrap!(SP, Argument::Register(r) => r),
+    unwrap!(I8ZX32S1, Argument::U32(imm) => imm),
+));
 
 /// A memory access to a 32-bit value in Falcon DMem. The address is composed from a
 /// base address in the `$sp` register and an immediate offset.
-pub const MEMSPI32: Argument = memory!(DMem, SP, I8ZX32S2);
+pub const MEMSPI32: Argument = Argument::Memory(MemoryAccess::RegImm(
+    MemorySpace::DMem,
+    unwrap!(SP, Argument::Register(r) => r),
+    unwrap!(I8ZX32S2, Argument::U32(imm) => imm),
+));
 
 /// A helper that leverages the selection of an appropriate parser for memory access
 /// encodings in sized instructions to the disassembler.
@@ -342,15 +482,30 @@ pub const MEMSPI: Argument = Argument::SizeConverter(|size| match size {
 
 /// A memory access to an 8-bit value in Falcon DMem. The address is composed from a
 /// base address in the `$sp` register and an offset in another register.
-pub const MEMSPR8: Argument = memory!(DMem, SP, R1, 1);
+pub const MEMSPR8: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(SP, Argument::Register(r) => r),
+    unwrap!(R1, Argument::Register(r) => r),
+    1,
+));
 
 /// A memory access to a 16-bit value in Falcon DMem. The address is composed from a
 /// base address in the `$sp` register and an offset * 2 in another register.
-pub const MEMSPR16: Argument = memory!(DMem, SP, R1, 2);
+pub const MEMSPR16: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(SP, Argument::Register(r) => r),
+    unwrap!(R1, Argument::Register(r) => r),
+    2,
+));
 
 /// A memory access to a 32-bit value in Falcon DMem. The address is composed from a
 /// base address in the `$sp` register and an offset * 4 in another register.
-pub const MEMSPR32: Argument = memory!(DMem, SP, R1, 4);
+pub const MEMSPR32: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(SP, Argument::Register(r) => r),
+    unwrap!(R1, Argument::Register(r) => r),
+    4,
+));
 
 /// A helper that leverages the selection of an appropriate parser for memory access
 /// encodings in sized instructions to the disassembler.
@@ -363,15 +518,30 @@ pub const MEMSPR: Argument = Argument::SizeConverter(|size| match size {
 
 /// A memory access to an 8-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an offset in another register.
-pub const MEMRR8: Argument = memory!(DMem, R2, R1, 1);
+pub const MEMRR8: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(R1, Argument::Register(r) => r),
+    1,
+));
 
 /// A memory access to a 16-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an offset * 2 in another register.
-pub const MEMRR16: Argument = memory!(DMem, R2, R1, 2);
+pub const MEMRR16: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(R1, Argument::Register(r) => r),
+    2,
+));
 
 /// A memory access to a 32-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an offset * 4 in another register.
-pub const MEMRR32: Argument = memory!(DMem, R2, R1, 4);
+pub const MEMRR32: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(R1, Argument::Register(r) => r),
+    4,
+));
 
 /// A helper that leverages the selection of an appropriate parser for memory access
 /// encodings in sized instructions to the disassembler.
@@ -384,15 +554,30 @@ pub const MEMRR: Argument = Argument::SizeConverter(|size| match size {
 
 /// A memory access to an 8-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an offset in another register.
-pub const MEMRRALT8: Argument = memory!(DMem, R2, R3, 1);
+pub const MEMRRALT8: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(R3, Argument::Register(r) => r),
+    1,
+));
 
 /// A memory access to a 16-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an offset * 2 in another register.
-pub const MEMRRALT16: Argument = memory!(DMem, R2, R3, 2);
+pub const MEMRRALT16: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(R3, Argument::Register(r) => r),
+    2,
+));
 
 /// A memory access to a 32-bit value in Falcon DMem. The address is composed from a
 /// base address in a register and an offset * 4 in another register.
-pub const MEMRRALT32: Argument = memory!(DMem, R2, R3, 4);
+pub const MEMRRALT32: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::DMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(R3, Argument::Register(r) => r),
+    4,
+));
 
 /// A helper that leverages the selection of an appropriate parser for memory access
 /// encodings in sized instructions to the disassembler.
@@ -405,15 +590,27 @@ pub const MEMRRALT: Argument = Argument::SizeConverter(|size| match size {
 
 /// A memory access to a 32-bit value in Falcon IMem. The address is specified by a
 /// single register.
-pub const IOR: Argument = memory!(IMem, R2);
+pub const IOR: Argument = Argument::Memory(MemoryAccess::Reg(
+    MemorySpace::IMem,
+    unwrap!(R2, Argument::Register(r) => r),
+));
 
 /// A memory access to a 32-bit value in Falcon IMem. The address is composed from a
 /// base address in a register and an offset * 4 in another register.
-pub const IORR: Argument = memory!(IMem, R2, R1, 4);
+pub const IORR: Argument = Argument::Memory(MemoryAccess::RegReg(
+    MemorySpace::IMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(R1, Argument::Register(r) => r),
+    4,
+));
 
 /// A memory access to a 32-bit value in Falcon IMem. The address is composed from a
 /// base address in a register and an immediate offset.
-pub const IORI: Argument = memory!(IMem, R2, I8ZX32S2);
+pub const IORI: Argument = Argument::Memory(MemoryAccess::RegImm(
+    MemorySpace::IMem,
+    unwrap!(R2, Argument::Register(r) => r),
+    unwrap!(I8ZX32S2, Argument::U32(imm) => imm),
+));
 
 /// Wrapper around Falcon instruction operands.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -449,11 +646,6 @@ pub enum Argument {
 
     /// A direct memory access to an address in a specific SRAM space.
     Memory(MemoryAccess),
-
-    /// A dummy value that is used as a hack to fulfill static allocation
-    /// requirements in `faucon-asm-derive` codegen. This variant shall
-    /// never be interpreted as a real value and can be safely skipped.
-    Nop,
 }
 
 impl Argument {
@@ -474,7 +666,7 @@ impl Argument {
             Argument::Register(reg) => reg.position,
             Argument::Flag(imm) => imm.position,
             Argument::Memory(mem) => mem.position(),
-            _ => 0,
+            Argument::SizeConverter(_) => unreachable!(),
         }
     }
 
@@ -495,7 +687,7 @@ impl Argument {
             Argument::Register(_) => 1,
             Argument::Flag(imm) => imm.width,
             Argument::Memory(mem) => mem.width(),
-            _ => 0,
+            Argument::SizeConverter(_) => unreachable!(),
         }
     }
 }
@@ -551,23 +743,29 @@ impl<T: PrimInt + NumCast> Immediate<T> {
             }
             2 => {
                 if self.sign {
-                    cast(LittleEndian::read_i16(&insn[self.position..]) & self.mask() as i16).unwrap()
+                    cast(LittleEndian::read_i16(&insn[self.position..]) & self.mask() as i16)
+                        .unwrap()
                 } else {
-                    cast(LittleEndian::read_u16(&insn[self.position..]) & self.mask() as u16).unwrap()
+                    cast(LittleEndian::read_u16(&insn[self.position..]) & self.mask() as u16)
+                        .unwrap()
                 }
             }
             3 => {
                 if self.sign {
-                    cast(LittleEndian::read_i24(&insn[self.position..]) & self.mask() as i32).unwrap()
+                    cast(LittleEndian::read_i24(&insn[self.position..]) & self.mask() as i32)
+                        .unwrap()
                 } else {
-                    cast(LittleEndian::read_u24(&insn[self.position..]) & self.mask() as u32).unwrap()
+                    cast(LittleEndian::read_u24(&insn[self.position..]) & self.mask() as u32)
+                        .unwrap()
                 }
             }
             4 => {
                 if self.sign {
-                    cast(LittleEndian::read_i32(&insn[self.position..]) & self.mask() as i32).unwrap()
+                    cast(LittleEndian::read_i32(&insn[self.position..]) & self.mask() as i32)
+                        .unwrap()
                 } else {
-                    cast(LittleEndian::read_u32(&insn[self.position..]) & self.mask() as u32).unwrap()
+                    cast(LittleEndian::read_u32(&insn[self.position..]) & self.mask() as u32)
+                        .unwrap()
                 }
             }
             _ => unreachable!(),
@@ -622,31 +820,25 @@ pub enum MemoryAccess {
     /// A memory access to either DMEM or IMEM that is composed of a single register.
     ///
     /// The address calculation takes the following form: `[$reg]`
-    Reg(MemorySpace, Option<Register>),
+    Reg(MemorySpace, Register),
     /// A memory access to either DMEM or IMEM that is composed of two registers and a
     /// value that is used for scaling.
     ///
     /// The address calculation takes the following form: `[$reg1 + $reg2 * scale]`
-    RegReg(MemorySpace, Option<Register>, Option<Register>, u8),
+    RegReg(MemorySpace, Register, Register, u8),
     /// A memory access to either DMEM or IMEM that is composed of a register and an
     /// immediate value.
     ///
     /// The address calculation takes the following form: `[$reg + imm]`
-    RegImm(MemorySpace, Option<Register>, Option<Immediate<u32>>),
+    RegImm(MemorySpace, Register, Immediate<u32>),
 }
 
 impl MemoryAccess {
     pub fn position(&self) -> usize {
         match self {
-            MemoryAccess::Reg(_, reg) => reg.as_ref().unwrap().position,
-            MemoryAccess::RegReg(_, reg1, reg2, _) => max(
-                reg1.as_ref().unwrap().position,
-                reg2.as_ref().unwrap().position,
-            ),
-            MemoryAccess::RegImm(_, reg, imm) => max(
-                reg.as_ref().unwrap().position,
-                imm.as_ref().unwrap().position,
-            ),
+            MemoryAccess::Reg(_, reg) => reg.position,
+            MemoryAccess::RegReg(_, reg1, reg2, _) => max(reg1.position, reg2.position),
+            MemoryAccess::RegImm(_, reg, imm) => max(reg.position, imm.position),
         }
     }
 
@@ -655,9 +847,6 @@ impl MemoryAccess {
             MemoryAccess::Reg(_, _) => 1,
             MemoryAccess::RegReg(_, _, _, _) => 1,
             MemoryAccess::RegImm(_, reg, imm) => {
-                let reg = reg.as_ref().unwrap();
-                let imm = imm.as_ref().unwrap();
-
                 if reg.position > imm.position {
                     1
                 } else {

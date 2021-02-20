@@ -264,17 +264,12 @@ impl Operand {
             // Direct memory access.
             Argument::Memory(mem) => match mem {
                 ArgMemoryAccess::Reg(space, reg) => {
-                    let reg = reg.as_ref().unwrap();
-
                     Operand::Memory(MemoryAccess::Reg {
                         space: *space,
                         base: Register(reg.kind, reg.read(insn) as usize),
                     })
                 }
                 ArgMemoryAccess::RegReg(space, reg1, reg2, scale) => {
-                    let reg1 = reg1.as_ref().unwrap();
-                    let reg2 = reg2.as_ref().unwrap();
-
                     Operand::Memory(MemoryAccess::RegReg {
                         space: *space,
                         base: Register(reg1.kind, reg1.read(insn) as usize),
@@ -283,9 +278,6 @@ impl Operand {
                     })
                 }
                 ArgMemoryAccess::RegImm(space, reg, imm) => {
-                    let reg = reg.as_ref().unwrap();
-                    let imm = imm.as_ref().unwrap();
-
                     Operand::Memory(MemoryAccess::RegImm {
                         space: *space,
                         base: Register(reg.kind, reg.read(insn) as usize),
@@ -293,9 +285,6 @@ impl Operand {
                     })
                 }
             },
-
-            // The Nop placeholder, which should never be interpreted.
-            Argument::Nop => panic!("Attempt to parse an illegal Nop argument"),
         }
     }
 }

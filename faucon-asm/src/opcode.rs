@@ -23,7 +23,7 @@ pub enum OperandSize {
 
 impl OperandSize {
     /// Checks whether the operands are sized or not.
-    pub fn sized(&self) -> bool {
+    pub const fn sized(&self) -> bool {
         match self {
             OperandSize::Unsized => false,
             _ => true,
@@ -32,7 +32,7 @@ impl OperandSize {
 
     /// Gets the value of the bits that represents the operand size in in the
     /// instruction opcode.
-    pub fn value(&self) -> u8 {
+    pub const fn value(&self) -> u8 {
         match self {
             OperandSize::EightBit => 0b00,
             OperandSize::SixteenBit => 0b01,
@@ -48,7 +48,7 @@ impl From<u8> for OperandSize {
             0b00 => OperandSize::EightBit,
             0b01 => OperandSize::SixteenBit,
             0b10 => OperandSize::ThirtyTwoBit,
-            _ => OperandSize::Unsized, // Only possibility that is left is 3 anyway.
+            _ => OperandSize::Unsized,
         }
     }
 }
@@ -97,12 +97,13 @@ pub enum SubopcodeLocation {
 }
 
 impl SubopcodeLocation {
-    /// Gets the subopcode location as a numeric value.
+    /// Gets the subopcode location as a byteslice index.
     ///
-    /// It denotes the byte within an instruction where the value is encoded so
-    /// that the disassembler can decide on how many bytes it needs to read to
-    /// obtain the value.
-    pub fn get(&self) -> u64 {
+    /// The subopcodes of instructions may be encoded in different places depending
+    /// on its form. This tells you which byte of the instruction should contain it
+    /// by virtually returning its index in a byteslice. This information can then
+    /// be used to read as many bytes as needed to find the one holding the subopcode.
+    pub const fn get(&self) -> u64 {
         match self {
             SubopcodeLocation::OH => 0,
             SubopcodeLocation::O1 => 0,
