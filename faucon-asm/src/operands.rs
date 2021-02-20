@@ -6,8 +6,9 @@ use crate::arguments::{Argument, MemoryAccess as ArgMemoryAccess};
 
 /// A Falcon CPU register.
 ///
-/// It is described by a tuple which holds the kind of register and its index
-/// which is required for addressing.
+/// The Falcon utilizes separate register files for 16 general-purpose registers
+/// and another 16 special-purpose registers. This structure stores information
+/// on the type of register and the register index itself.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Register(pub RegisterKind, pub usize);
 
@@ -21,10 +22,21 @@ impl fmt::Display for Register {
     }
 }
 
-/// Gets the dedicated name of a special-purpose register based on the given register
-/// index.
+/// Types of CPU registers supported by the Falcon.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegisterKind {
+    /// A general-purpose CPU register.
+    Gpr,
+    /// A special-purpose CPU register.
+    Spr,
+}
+
+/// Gets the qualified name of a special-purpose register based on the given
+/// register index.
 #[rustfmt::skip]
 pub fn get_spr_name(value: usize) -> Option<&'static str> {
+    assert!(value < 0x10);
+
     [
         /* 0x0 */ Some("iv0"),
         /* 0x1 */ Some("iv1"),
@@ -45,10 +57,12 @@ pub fn get_spr_name(value: usize) -> Option<&'static str> {
     ][value]
 }
 
-/// Gets the dedicated name of a flag bit in the `$flags` register based on the given
-/// bit index.
+/// Gets the qualified name of a flag bit in the `$flags` register based on the
+/// given bit index.
 #[rustfmt::skip]
 pub fn get_flag_name(value: usize) -> Option<&'static str> {
+    assert!(value < 0x20);
+
     [
         /* 0x00 */ Some("p0"),
         /* 0x01 */ Some("p1"),
@@ -74,7 +88,7 @@ pub fn get_flag_name(value: usize) -> Option<&'static str> {
         /* 0x15 */ Some("is1"),
         /* 0x16 */ Some("is2"),
         /* 0x17 */ None,
-        /* 0x18 */ Some("ta"),
+        /* 0x18 */ Some("ea"),
         /* 0x19 */ None,
         /* 0x1A */ None,
         /* 0x1B */ None,
@@ -85,18 +99,18 @@ pub fn get_flag_name(value: usize) -> Option<&'static str> {
     ][value]
 }
 
-/// The Falcon memory spaces.
+/// The used Falcon memory spaces in SRAM.
 ///
-/// The Falcon utilizes separated memory spaces in SRAM that have special purposes
-/// and act completely independent from each other. They have byte-oriented addressing
-/// and unaligned access leads to data corruption.
+/// Falcon follows the Harvard computer model by utilizing separate memory spaces
+/// for code and data. The *IMEM (instruction memory)* utilizes primitive paging
+/// and contains the code that is executed. The *DMEM (data memory)* on the other
+/// hand stores local variables and the stack. Unaligned access to it leads to
+/// data corruption.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MemorySpace {
-    /// The Falcon code space that consists of memory pages tracked by a reverse
-    /// page table.
+    /// The IMEM segment.
     IMem,
-    /// The Falcon data space that acts as a linear piece of memory storing data
-    /// and the stack.
+    /// The DMEM segment.
     DMem,
 }
 
@@ -111,53 +125,44 @@ impl fmt::Display for MemorySpace {
     }
 }
 
-/// The types of CPU registers that are utilized by the Falcon processor.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RegisterKind {
-    /// A general-purpose CPU register.
-    Gpr,
-    /// A special-purpose CPU register.
-    Spr,
-}
-
-/// A direct memory access to an address in a specified space.
+/// A direct memory access to an address in a [`MemorySpace`].
 ///
-/// Some instructions directly operate on a given memory chunk, where the location can
-/// be described in various variants:
+/// Some instructions directly access an address in a specific memory space. An
+/// address can be described in the following formats:
 ///
 /// - Access through a single register holding the address: `[$reg]`
-/// - Access through two registers for address and offset with scale: `[$reg1 + $reg2 * scale]`
-/// - Access through a register for address and an immediate for offset: `[$reg + imm]`
+/// - Access through two registers for base address and scaled offset: `[$reg1 + $reg2 * scale]`
+/// - Access through a register for base address and an immediate for offset: `[$reg + imm]`
 ///
-/// It is within the user's responsibility to correctly interpret and process the variants
-/// of this enumeration.
+/// [`MemorySpace`]: enum.MemorySpace.html
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MemoryAccess {
     /// A form where the memory address is derived from a single register: `[$reg]`
     Reg {
         /// The memory space which should be accessed.
         space: MemorySpace,
-        /// A descriptor of the CPU register that holds the address.
+        /// The register which holds the address to access.
         base: Register,
     },
     /// A form where the memory address is derived from two registers: `[$reg1 + $reg2 * scale]`
     RegReg {
         /// The memory space which should be accessed.
         space: MemorySpace,
-        /// A descriptor of the CPU register that holds the base address.
+        /// The register which holds the memory base address.
         base: Register,
-        /// An offset to the base address that is denoted by the register operand.
+        /// The register that holds the offset to the base address.
         offset: Register,
-        /// A constant scale for the offset value.
+        /// A constant scale for the offset value. Determined by the instruction
+        /// form.
         scale: u8,
     },
     /// A form where the memory address is derived from a register and an immediate: `[$reg + imm]`
     RegImm {
         /// The memory space which should be accessed.
         space: MemorySpace,
-        /// A descriptor of the CPU register that holds the base address.
+        /// The register which holds the memory base address.
         base: Register,
-        /// An offset of the base address that is denoted by the register operand.
+        /// An offset of the base address stored in an immediate.
         offset: u32,
     },
 }
@@ -196,23 +201,21 @@ impl fmt::Display for MemoryAccess {
     }
 }
 
-/// An operand in Falcon assembly that belongs to an [`Instruction`].
+/// An operand of a Falcon assembly [`Instruction`].
 ///
 /// Operands usually denote CPU registers, immediates, and memory addressing for
-/// the instruction to operate on. A [`Vec`] of instruction operands can be obtained
+/// the instruction to operate on. A `Vec` of instruction operands can be obtained
 /// for every instruction individually through [`Instruction::operands`]. It is
 /// at the user's responsibility to correctly interpret and process the operands.
 ///
 /// [`Instruction`]: ../struct.Instruction.html
-/// [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html
 /// [`Instruction::operands`]: ../struct.Instruction.html#method.operands
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operand {
-    /// A CPU register that wraps around the kind of register and the index that is
-    /// assigned to it.
+    /// A Falcon CPU register operand.
     Register(Register),
-    /// A CPU flag that wraps around an 8-bit immediate denoting the index of a bit
-    /// in the `$flags` register.
+    /// An immediate operand that represents a specific bit of the `$csw`/`$flags`
+    /// CPU register.
     Flag(u8),
     /// An 8-bit-sized signed immediate.
     I8(i8),
@@ -263,12 +266,10 @@ impl Operand {
 
             // Direct memory access.
             Argument::Memory(mem) => match mem {
-                ArgMemoryAccess::Reg(space, reg) => {
-                    Operand::Memory(MemoryAccess::Reg {
-                        space: *space,
-                        base: Register(reg.kind, reg.read(insn) as usize),
-                    })
-                }
+                ArgMemoryAccess::Reg(space, reg) => Operand::Memory(MemoryAccess::Reg {
+                    space: *space,
+                    base: Register(reg.kind, reg.read(insn) as usize),
+                }),
                 ArgMemoryAccess::RegReg(space, reg1, reg2, scale) => {
                     Operand::Memory(MemoryAccess::RegReg {
                         space: *space,
@@ -277,13 +278,11 @@ impl Operand {
                         scale: *scale,
                     })
                 }
-                ArgMemoryAccess::RegImm(space, reg, imm) => {
-                    Operand::Memory(MemoryAccess::RegImm {
-                        space: *space,
-                        base: Register(reg.kind, reg.read(insn) as usize),
-                        offset: imm.read(insn),
-                    })
-                }
+                ArgMemoryAccess::RegImm(space, reg, imm) => Operand::Memory(MemoryAccess::RegImm {
+                    space: *space,
+                    base: Register(reg.kind, reg.read(insn) as usize),
+                    offset: imm.read(insn),
+                }),
             },
         }
     }

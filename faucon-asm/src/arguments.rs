@@ -8,11 +8,21 @@ use num_traits::{cast, NumCast, PrimInt};
 
 use crate::operands::{MemorySpace, RegisterKind};
 
+// A helper macro that is supposed to unwrap an `Argument` of a known kind into
+// its contained type, may it be a `Register`, `Immediate` or `MemoryAccess`.
+//
+// This is useful when operands encode each other, e.g. a memory access encodes
+// a specific register argument, to remove the boilerplate code of validating a
+// variant of `Argument` at runtime by feeding that directly into the constant
+// evaluation engine.
 macro_rules! unwrap {
     ($argument:expr, $variant:pat => $result:expr) => {
         if let $variant = $argument {
             $result
         } else {
+            // SAFETY: As an internal macro that is only applied on constant
+            // `Argument` instances with known variants, it always produces the
+            // expected results and code flow never gets to land here.
             unsafe { ::std::hint::unreachable_unchecked() }
         }
     };
