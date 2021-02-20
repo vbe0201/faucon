@@ -56,9 +56,9 @@ impl From<u8> for OperandSize {
 impl fmt::Display for OperandSize {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mnemonic = match self {
-            OperandSize::EightBit => " b8",
-            OperandSize::SixteenBit => " b16",
-            OperandSize::ThirtyTwoBit => " b32",
+            OperandSize::EightBit => ".b",
+            OperandSize::SixteenBit => ".h",
+            OperandSize::ThirtyTwoBit => ".w",
             OperandSize::Unsized => "",
         };
 
