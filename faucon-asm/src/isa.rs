@@ -101,6 +101,7 @@ pub enum InstructionKind {
     #[insn(opcode = 0x38, subopcode = 0x00, operands(R1, R2, I16ZXS))]
     #[insn(opcode = 0x3B, subopcode = 0x00, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x00, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF4, subopcode = 0x30, operands(SP, SP, I8SX32))]
     #[insn(opcode = 0xF5, subopcode = 0x30, operands(SP, SP, I16SX32))]
     #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, SP, R2))]
     ADD,
