@@ -8,6 +8,5 @@ homepage = "https://github.com/vbe0201/faucon"
 edition = "2018"
 
 [dependencies]
-byteorder = "1.3.4"
 faucon-asm-derive = { path = "../faucon-asm-derive" }
 num-traits = "0.2"

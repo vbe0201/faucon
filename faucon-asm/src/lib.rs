@@ -97,20 +97,19 @@
 
 #![feature(const_unreachable_unchecked)]
 
-use std::fmt;
-
-pub use disassembler::*;
-pub use isa::InstructionKind;
-pub use opcode::OperandSize;
-pub use operands::*;
-
-use opcode::*;
-
 mod arguments;
 pub mod disassembler;
 pub mod isa;
 pub mod opcode;
 pub mod operands;
+
+use std::fmt;
+
+pub use disassembler::*;
+pub use isa::InstructionKind;
+pub use opcode::OperandSize;
+use opcode::*;
+pub use operands::*;
 
 /// A result that is returned by the functions in this crate.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -230,7 +229,7 @@ impl Instruction {
         for arg in self.meta.operands.iter() {
             if let Some(arg) = arg {
                 // Extract the real value of the operand from the instruction bytes.
-                operands.push(Operand::read(arg, &self.bytes));
+                operands.push(Operand::parse(arg, &self.bytes));
             }
         }
 

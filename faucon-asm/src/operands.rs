@@ -2,7 +2,24 @@
 
 use std::fmt;
 
-use crate::arguments::{Argument, MemoryAccess as ArgMemoryAccess};
+use num_traits::{PrimInt, Signed, Unsigned};
+
+use crate::arguments::{Argument, MachineEncoding};
+
+fn display_signed_hex<I>(immediate: &I, f: &mut fmt::Formatter<'_>) -> fmt::Result
+where
+    I: fmt::LowerHex + PrimInt + Signed,
+{
+    let sign = if immediate.is_negative() { "-" } else { "" };
+    write!(f, "{}{:#x}", sign, immediate.abs())
+}
+
+fn display_unsigned_hex<I>(immediate: &I, f: &mut fmt::Formatter<'_>) -> fmt::Result
+where
+    I: fmt::LowerHex + PrimInt + Unsigned,
+{
+    write!(f, "{:#x}", immediate)
+}
 
 /// A Falcon CPU register.
 ///
@@ -238,12 +255,7 @@ pub enum Operand {
 }
 
 impl Operand {
-    /// Reads the value of an [`Argument`] from the instruction bytes and wraps it
-    /// into a real [`Operand`].
-    ///
-    /// [`Argument`]: ../argument/enum.Argument.html
-    /// [`Operand`]: enum.Operand.html
-    pub(crate) fn read(arg: &Argument, insn: &[u8]) -> Self {
+    pub(crate) fn parse(arg: &Argument, insn: &[u8]) -> Self {
         match arg {
             // Already evaluated by the disassembler, unreachable at this point.
             Argument::SizeConverter(_) => unreachable!(),
@@ -259,31 +271,11 @@ impl Operand {
             Argument::I32(imm) => Operand::I32(imm.read(insn)),
 
             // Register forms.
-            Argument::Register(reg) => {
-                Operand::Register(Register(reg.kind, reg.read(insn) as usize))
-            }
+            Argument::Register(reg) => Operand::Register(reg.read(insn)),
             Argument::Flag(imm) => Operand::Flag(imm.read(insn)),
 
             // Direct memory access.
-            Argument::Memory(mem) => match mem {
-                ArgMemoryAccess::Reg(space, reg) => Operand::Memory(MemoryAccess::Reg {
-                    space: *space,
-                    base: Register(reg.kind, reg.read(insn) as usize),
-                }),
-                ArgMemoryAccess::RegReg(space, reg1, reg2, scale) => {
-                    Operand::Memory(MemoryAccess::RegReg {
-                        space: *space,
-                        base: Register(reg1.kind, reg1.read(insn) as usize),
-                        offset: Register(reg2.kind, reg2.read(insn) as usize),
-                        scale: *scale,
-                    })
-                }
-                ArgMemoryAccess::RegImm(space, reg, imm) => Operand::Memory(MemoryAccess::RegImm {
-                    space: *space,
-                    base: Register(reg.kind, reg.read(insn) as usize),
-                    offset: imm.read(insn),
-                }),
-            },
+            Argument::Memory(mem) => Operand::Memory(mem.read(insn)),
         }
     }
 }
@@ -293,14 +285,17 @@ impl fmt::Display for Operand {
         match self {
             Operand::Register(reg) => write!(f, "{}", reg),
             Operand::Flag(flag) => write!(f, "{}", get_flag_name(*flag as usize).unwrap_or("unk")),
-            Operand::I8(val) => write!(f, "-{:#x}", val.abs()),
-            Operand::U8(val) => write!(f, "{:#x}", val),
-            Operand::I16(val) => write!(f, "-{:#x}", val.abs()),
-            Operand::U16(val) => write!(f, "{:#x}", val),
-            Operand::I24(val) => write!(f, "-{:#x}", val.abs()),
-            Operand::U24(val) => write!(f, "{:#x}", val),
-            Operand::I32(val) => write!(f, "-{:#x}", val.abs()),
-            Operand::U32(val) => write!(f, "{:#x}", val),
+
+            Operand::I8(val) => display_signed_hex(val, f),
+            Operand::I16(val) => display_signed_hex(val, f),
+            Operand::I24(val) => display_signed_hex(val, f),
+            Operand::I32(val) => display_signed_hex(val, f),
+
+            Operand::U8(val) => display_unsigned_hex(val, f),
+            Operand::U16(val) => display_unsigned_hex(val, f),
+            Operand::U24(val) => display_unsigned_hex(val, f),
+            Operand::U32(val) => display_unsigned_hex(val, f),
+
             Operand::Memory(mem) => write!(f, "{}", mem),
         }
     }
