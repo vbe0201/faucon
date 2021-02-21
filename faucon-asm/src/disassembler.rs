@@ -10,8 +10,8 @@ use crate::{Error, Instruction, Result};
 mod pretty;
 pub use pretty::Disassembler;
 
-/// Reads an instruction from a given [`Read`]er and attempts to parse it into an
-/// [`Instruction`] object.
+/// Reads an instruction from a given [`Read`]er holding its binary representation and
+/// attempts to parse it into an [`Instruction`] object.
 ///
 /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
 /// [`Instruction`]: ../struct.Instruction.html
