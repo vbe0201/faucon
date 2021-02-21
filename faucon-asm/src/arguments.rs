@@ -18,6 +18,7 @@ pub trait Positional {
     /// The width of the encoded quantity in machine code, measured in bytes.
     fn width(&self) -> usize;
 
+    /// Gets the range of the encoded quantity within a slice of instruction bytes.
     fn as_range(&self) -> Range<usize> {
         self.position()..self.position() + self.width()
     }
