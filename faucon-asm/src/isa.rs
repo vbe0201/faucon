@@ -432,7 +432,7 @@ pub enum InstructionKind {
 
     /// The CALL instruction.
     ///
-    /// Performs an unconditional branch to an absolute address, pushing
+    /// Performs an unconditional call to an absolute address, pushing
     /// the return address onto the stack.
     #[insn(opcode = 0xF3, subopcode = 0x03, operands(I16ZX32P1))]
     #[insn(opcode = 0xF4, subopcode = 0x21, operands(I8ZX32))]
@@ -441,18 +441,16 @@ pub enum InstructionKind {
 
     /// The LCALL instruction.
     ///
-    /// Performs an unconditional branch to an absolute address, pushing
-    /// the return address onto the stack.
-    // FIXME: This is effectively just a CALL. Why is that a dedicated instruction?
+    /// Performs an unconditional long call to an absolute address,
+    /// pushing the return address onto the stack.
     #[insn(opcode = 0x7E, subopcode = 0x01, operands(I24ZX32))]
     LCALL,
 
-    /// The LJMP instruction.
+    /// The LBRA instruction.
     ///
-    /// Performs an unconditional branch to an absolute address.
-    // FIXME: This is effectively just a JMP. Why is that a dedicated instruction?
+    /// Performs an unconditional long branch to an absolute address.
     #[insn(opcode = 0x3E, subopcode = 0x00, operands(I24ZX32))]
-    LJMP,
+    LBRA,
 
     /// The RET instruction.
     ///
@@ -614,7 +612,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::MPOPADDRET => "mpopaddret",
             InstructionKind::CALL => "call",
             InstructionKind::LCALL => "lcall",
-            InstructionKind::LJMP => "ljmp",
+            InstructionKind::LBRA => "lbra",
             InstructionKind::RET => "ret",
             InstructionKind::EXIT => "exit",
             InstructionKind::SLEEP => "sleep",

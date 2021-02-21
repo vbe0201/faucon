@@ -52,7 +52,7 @@ fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usi
         InstructionKind::MOV => control::mov,
         InstructionKind::CALL => branch::call,
         InstructionKind::LCALL => branch::call,
-        InstructionKind::LJMP => branch::jmp,
+        InstructionKind::LBRA => branch::bra,
         InstructionKind::RET => branch::ret,
         InstructionKind::LD => data::ld,
         InstructionKind::ST => data::st,

@@ -22,7 +22,7 @@ pub fn call(cpu: &mut Cpu, insn: &Instruction) -> usize {
 }
 
 /// Performs a (long) unconditional branch to an absolute target address.
-pub fn jmp(cpu: &mut Cpu, insn: &Instruction) -> usize {
+pub fn bra(cpu: &mut Cpu, insn: &Instruction) -> usize {
     // Extract the instruction operands (single register or immediate).
     let target = insn.operands()[0];
 
