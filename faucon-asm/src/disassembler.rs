@@ -19,33 +19,36 @@ pub fn read_instruction<R: Read>(reader: &mut R, offset: &mut usize) -> Result<I
     let mut insn = Vec::new();
 
     // Read the opcode of the next instruction and parse it.
-    read_bytes(&mut insn, reader, 1)?;
-    let operand_size = opcode::OperandSize::from(insn[0]);
-    let (a, b) = opcode::get_opcode_form(insn[0]);
+    let opcode = {
+        read_bytes(&mut insn, reader, 1)?;
+        insn[0]
+    };
 
-    // Read the subopcode that is necessary to look up the instruction.
-    let subopcode_location = opcode::get_subopcode_location(operand_size.value(), a, b)
-        .ok_or(Error::UnknownInstruction(insn[0]))?;
-    read_bytes(&mut insn, reader, subopcode_location.get())?;
-    let subopcode = subopcode_location.parse(&insn);
+    // Parse the opcode to obtain the instruction size and the encoding form.
+    let (a, b) = opcode::get_opcode_form(opcode);
+    let operand_size = opcode::OperandSize::from(opcode);
 
-    // Now do the actual instruction lookup and read the remaining bytes.
-    let mut instruction_meta = InstructionKind::lookup_meta(operand_size.sized(), a, b, subopcode)
-        .ok_or(Error::UnknownInstruction(insn[0]))?;
-    read_operands(
-        &mut insn,
-        reader,
-        operand_size.value(),
-        &mut instruction_meta.operands,
-    )?;
+    // Parse the subopcode value required for instruction lookup.
+    let subopcode = {
+        let location = opcode::get_subopcode_location(operand_size.value(), a, b)
+            .ok_or(Error::UnknownInstruction(opcode))?;
+        read_bytes(&mut insn, reader, location.get())?;
 
-    // Construct an instruction from the extracted information.
-    let insn = Instruction::new(insn, *offset, operand_size, instruction_meta);
+        location.parse(&insn)
+    };
 
-    // Increment the offset to point to the next instruction.
-    *offset += insn.len();
+    Ok({
+        // Look up a matching instruction variant and read out the operands it takes.
+        let mut meta = InstructionKind::lookup_meta(operand_size.sized(), a, b, subopcode)
+            .ok_or(Error::UnknownInstruction(opcode))?;
+        read_operands(&mut insn, reader, operand_size.value(), &mut meta.operands)?;
 
-    Ok(insn)
+        // Increment the offset to point to the next instruction.
+        let current_offset = *offset;
+        *offset += insn.len();
+
+        Instruction::new(insn, current_offset, operand_size, meta)
+    })
 }
 
 fn read_operands<R: Read>(
@@ -54,25 +57,23 @@ fn read_operands<R: Read>(
     operand_size: u8,
     operands: &mut [Option<Argument>],
 ) -> Result<()> {
-    for operand in operands.iter_mut() {
-        if let Some(operand) = operand {
-            // If the argument is a SizeConverter helper, evaluate it and replace
-            // it with a real operand to save us some hassle later on.
-            if let Argument::SizeConverter(c) = operand {
-                *operand = c(operand_size);
-            }
-
-            // Calculate the amount of bytes to read until the operand completely fits
-            // into the buffer.
-            let mut bytes_to_read = 0;
-            let operand_width = operand.position() + operand.width();
-            if buffer.len() < operand_width {
-                bytes_to_read += (operand_width - buffer.len()) as u64;
-            }
-
-            // Read the operand bytes.
-            read_bytes(buffer, reader, bytes_to_read)?;
+    for operand in operands.iter_mut().filter_map(|o| o.as_mut()) {
+        // If the argument is a SizeConverter helper, evaluate it and replace
+        // it with a real operand to save us some hassle later on.
+        if let Argument::SizeConverter(c) = operand {
+            *operand = c(operand_size);
         }
+
+        // Calculate the amount of bytes to read until the operand completely fits
+        // into the buffer.
+        let mut bytes_to_read = 0;
+        let operand_width = operand.position() + operand.width();
+        if buffer.len() < operand_width {
+            bytes_to_read += (operand_width - buffer.len()) as u64;
+        }
+
+        // Read the operand bytes.
+        read_bytes(buffer, reader, bytes_to_read)?;
     }
 
     Ok(())
