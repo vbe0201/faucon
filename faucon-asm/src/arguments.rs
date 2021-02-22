@@ -699,44 +699,36 @@ pub enum Argument {
     Memory(MemoryAccess),
 }
 
-impl Argument {
-    /// Gets the position in the instruction bytes where an operand matching the
-    /// [`Argument`] starts.
-    ///
-    /// [`Argument`]: enum.Argument.html
-    pub fn position(&self) -> usize {
+impl Positional for Argument {
+    fn position(&self) -> usize {
         match self {
-            Argument::U8(imm) => imm.position,
-            Argument::I8(imm) => imm.position,
-            Argument::U16(imm) => imm.position,
-            Argument::I16(imm) => imm.position,
-            Argument::U24(imm) => imm.position,
-            Argument::I24(imm) => imm.position,
-            Argument::U32(imm) => imm.position,
-            Argument::I32(imm) => imm.position,
-            Argument::Register(reg) => reg.position,
-            Argument::Flag(imm) => imm.position,
+            Argument::U8(imm) => imm.position(),
+            Argument::I8(imm) => imm.position(),
+            Argument::U16(imm) => imm.position(),
+            Argument::I16(imm) => imm.position(),
+            Argument::U24(imm) => imm.position(),
+            Argument::I24(imm) => imm.position(),
+            Argument::U32(imm) => imm.position(),
+            Argument::I32(imm) => imm.position(),
+            Argument::Register(reg) => reg.position(),
+            Argument::Flag(imm) => imm.position(),
             Argument::Memory(mem) => mem.position(),
             Argument::SizeConverter(_) => unreachable!(),
         }
     }
 
-    /// Gets the width over how many bytes an operand matching the [`Argument`]
-    /// spans.
-    ///
-    /// [`Argument`]: enum.Argument.html
-    pub fn width(&self) -> usize {
+    fn width(&self) -> usize {
         match self {
-            Argument::U8(imm) => imm.width,
-            Argument::I8(imm) => imm.width,
-            Argument::U16(imm) => imm.width,
-            Argument::I16(imm) => imm.width,
-            Argument::U24(imm) => imm.width,
-            Argument::I24(imm) => imm.width,
-            Argument::U32(imm) => imm.width,
-            Argument::I32(imm) => imm.width,
-            Argument::Register(_) => 1,
-            Argument::Flag(imm) => imm.width,
+            Argument::U8(imm) => imm.width(),
+            Argument::I8(imm) => imm.width(),
+            Argument::U16(imm) => imm.width(),
+            Argument::I16(imm) => imm.width(),
+            Argument::U24(imm) => imm.width(),
+            Argument::I24(imm) => imm.width(),
+            Argument::U32(imm) => imm.width(),
+            Argument::I32(imm) => imm.width(),
+            Argument::Register(reg) => reg.width(),
+            Argument::Flag(imm) => imm.width(),
             Argument::Memory(mem) => mem.width(),
             Argument::SizeConverter(_) => unreachable!(),
         }

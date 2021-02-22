@@ -2,7 +2,7 @@
 
 use std::io::Read;
 
-use crate::arguments::Argument;
+use crate::arguments::{Argument, Positional};
 use crate::isa::*;
 use crate::opcode;
 use crate::{Error, Instruction, Result};

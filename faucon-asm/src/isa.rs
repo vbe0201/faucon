@@ -446,6 +446,12 @@ pub enum InstructionKind {
     #[insn(opcode = 0x7E, subopcode = 0x01, operands(I24ZX32))]
     LCALL,
 
+    /// The BRA instruction.
+    ///
+    /// Performs an unconditional branch to a PC-relative address.
+    #[insn(opcode = 0xF9, subopcode = 0x04, operands(R2))]
+    BRA,
+
     /// The LBRA instruction.
     ///
     /// Performs an unconditional long branch to an absolute address.
@@ -612,6 +618,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::MPOPADDRET => "mpopaddret",
             InstructionKind::CALL => "call",
             InstructionKind::LCALL => "lcall",
+            InstructionKind::BRA => "bra",
             InstructionKind::LBRA => "lbra",
             InstructionKind::RET => "ret",
             InstructionKind::EXIT => "exit",
