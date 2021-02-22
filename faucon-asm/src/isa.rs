@@ -448,7 +448,8 @@ pub enum InstructionKind {
 
     /// The BRA instruction.
     ///
-    /// Performs an unconditional branch to a PC-relative address.
+    /// Performs an unconditional branch to an absolute or PC-relative
+    /// address.
     #[insn(opcode = 0xF9, subopcode = 0x04, operands(R2))]
     BRA,
 
