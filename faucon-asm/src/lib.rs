@@ -97,6 +97,9 @@
 
 #![feature(const_unreachable_unchecked)]
 
+#[macro_use]
+extern crate nom;
+
 mod arguments;
 pub mod assembler;
 pub mod disassembler;
