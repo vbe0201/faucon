@@ -115,7 +115,7 @@ impl SubopcodeLocation {
     }
 
     /// Extracts the subopcode value from the instruction bytes.
-    pub fn parse(&self, insn: &[u8]) -> u8 {
+    pub fn parse_value(&self, insn: &[u8]) -> u8 {
         match self {
             SubopcodeLocation::OH => insn[0] >> 6,
             SubopcodeLocation::O1 => insn[0] & 0xF,

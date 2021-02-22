@@ -34,7 +34,7 @@ pub fn read_instruction<R: Read>(reader: &mut R, offset: &mut usize) -> Result<I
             .ok_or(Error::UnknownInstruction(opcode))?;
         read_bytes(&mut insn, reader, location.get())?;
 
-        location.parse(&insn)
+        location.parse_value(&insn)
     };
 
     Ok({

@@ -9,4 +9,5 @@ edition = "2018"
 
 [dependencies]
 faucon-asm-derive = { path = "../faucon-asm-derive" }
+nom = "6.1"
 num-traits = "0.2"

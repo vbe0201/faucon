@@ -98,6 +98,7 @@
 #![feature(const_unreachable_unchecked)]
 
 mod arguments;
+pub mod assembler;
 pub mod disassembler;
 pub mod isa;
 pub mod opcode;
