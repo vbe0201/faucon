@@ -15,6 +15,21 @@ pub fn parse_pinline_comment(input: &str) -> IResult<&str, ()> {
     value((), tuple((tag("/*"), take_until("*/"), tag("*/"))))(input)
 }
 
+pub fn parse_identifier(input: &str) -> IResult<&str, &str> {
+    recognize(pair(
+        alt((alpha1, tag("_"))),
+        many0(alt((alphanumeric1, tag("_")))),
+    ))(input)
+}
+
+pub fn parse_label(input: &str) -> IResult<&str, &str> {
+    parse_identifier(input)
+}
+
+pub fn parse_label_definition(input: &str) -> IResult<&str, &str> {
+    terminated(parse_label, char(':'))(input)
+}
+
 #[inline]
 fn parse_number<T>(literal: &str, radix: u32) -> Result<T, <T as Num>::FromStrRadixErr>
 where
