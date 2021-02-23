@@ -23,7 +23,7 @@ pub fn parse_identifier(input: &str) -> IResult<&str, &str> {
 }
 
 pub fn parse_label(input: &str) -> IResult<&str, &str> {
-    parse_identifier(input)
+    preceded(char('#'), parse_identifier)(input)
 }
 
 pub fn parse_label_definition(input: &str) -> IResult<&str, &str> {
