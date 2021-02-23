@@ -1,11 +1,20 @@
-use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::character::complete::*;
 use nom::combinator::*;
 use nom::multi::*;
 use nom::sequence::*;
-use nom::IResult;
+use nom::{branch::*, error::ParseError};
+use nom::{IResult, Parser};
 use num_traits::{Num, PrimInt, Signed, Unsigned};
+
+pub fn whitespace<'a, O, E: ParseError<&'a str>, F: 'a>(
+    parser: F,
+) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+where
+    F: Parser<&'a str, O, E>,
+{
+    delimited(multispace0, parser, multispace0)
+}
 
 pub fn parse_eol_comment(input: &str) -> IResult<&str, ()> {
     value((), pair(tag("//"), is_not("\n\r")))(input)
