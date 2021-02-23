@@ -7,6 +7,43 @@ use nom::sequence::*;
 use nom::IResult;
 use num_traits::{PrimInt, Signed, Unsigned};
 
+fn signed_decimal<T>(input: &str) -> IResult<&str, T>
+where
+    T: PrimInt + Signed,
+{
+    map_res(
+        pair(
+            map(opt(alt((tag("+"), tag("-")))), |sign: Option<&str>| {
+                sign.map(|s| if s == "-" { true } else { false })
+                    .unwrap_or(false)
+            }),
+            recognize(many1(terminated(one_of("0123456789"), many0(char('_'))))),
+        ),
+        |out: (bool, &str)| {
+            T::from_str_radix(&str::replace(&out.1, "_", ""), 10).and_then(|n| {
+                if out.0 {
+                    Ok(-n)
+                } else {
+                    Ok(n)
+                }
+            })
+        },
+    )(input)
+}
+
+fn unsigned_decimal<T>(input: &str) -> IResult<&str, T>
+where
+    T: PrimInt + Unsigned,
+{
+    map_res(
+        preceded(
+            opt(tag("+")),
+            recognize(many1(terminated(one_of("0123456789"), many0(char('_'))))),
+        ),
+        |out: &str| T::from_str_radix(&str::replace(&out, "_", ""), 10),
+    )(input)
+}
+
 fn signed_hexadecimal<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Signed,
