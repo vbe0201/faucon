@@ -7,6 +7,14 @@ use nom::sequence::*;
 use nom::IResult;
 use num_traits::{Num, PrimInt, Signed, Unsigned};
 
+pub fn parse_eol_comment(input: &str) -> IResult<&str, ()> {
+    value((), pair(tag("//"), is_not("\n\r")))(input)
+}
+
+pub fn parse_pinline_comment(input: &str) -> IResult<&str, ()> {
+    value((), tuple((tag("/*"), take_until("*/"), tag("*/"))))(input)
+}
+
 #[inline]
 fn parse_number<T>(literal: &str, radix: u32) -> Result<T, <T as Num>::FromStrRadixErr>
 where
