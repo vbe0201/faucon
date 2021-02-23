@@ -30,6 +30,10 @@ pub fn parse_label_definition(input: &str) -> IResult<&str, &str> {
     terminated(parse_label, char(':'))(input)
 }
 
+pub fn parse_directive(input: &str) -> IResult<&str, &str> {
+    preceded(char('.'), parse_identifier)(input)
+}
+
 #[inline]
 fn parse_number<T>(literal: &str, radix: u32) -> Result<T, <T as Num>::FromStrRadixErr>
 where
