@@ -10,6 +10,13 @@ use num_traits::{Num, PrimInt, Signed, Unsigned};
 
 use crate::isa::InstructionKind;
 use crate::opcode::OperandSize;
+use crate::operands::{Register, RegisterKind};
+
+macro_rules! parse_to_type {
+    ($input:expr => $output:expr) => {
+        map(tag_no_case($input), |_| $output)
+    };
+}
 
 pub fn whitespace<'a, O, E: ParseError<&'a str>, F: 'a>(
     parser: F,
@@ -35,81 +42,75 @@ pub fn identifier(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
-macro_rules! parse_mnemonic {
-    ($input:expr => $variant:expr) => {
-        map(tag_no_case($input), |_| $variant)
-    };
-}
-
 pub fn mnemonic(input: &str) -> IResult<&str, (InstructionKind, OperandSize)> {
     pair(
         alt((
             alt((
-                parse_mnemonic!("cmpu" => InstructionKind::CMPU),
-                parse_mnemonic!("cmps" => InstructionKind::CMPS),
-                parse_mnemonic!("cmp" => InstructionKind::CMP),
-                parse_mnemonic!("add" => InstructionKind::ADD),
-                parse_mnemonic!("adc" => InstructionKind::ADC),
-                parse_mnemonic!("sub" => InstructionKind::SUB),
-                parse_mnemonic!("sbb" => InstructionKind::SBB),
-                parse_mnemonic!("shl" => InstructionKind::SHL),
-                parse_mnemonic!("shr" => InstructionKind::SHR),
-                parse_mnemonic!("sar" => InstructionKind::SAR),
-                parse_mnemonic!("shlc" => InstructionKind::SHLC),
-                parse_mnemonic!("shrc" => InstructionKind::SHRC),
-                parse_mnemonic!("not" => InstructionKind::NOT),
-                parse_mnemonic!("neg" => InstructionKind::NEG),
-                parse_mnemonic!("hswap" => InstructionKind::HSWAP),
-                parse_mnemonic!("sethi" => InstructionKind::SETHI),
-                parse_mnemonic!("clear" => InstructionKind::CLEAR),
-                parse_mnemonic!("mulu" => InstructionKind::MULU),
-                parse_mnemonic!("muls" => InstructionKind::MULS),
-                parse_mnemonic!("sext" => InstructionKind::SEXT),
-                parse_mnemonic!("and" => InstructionKind::AND),
+                parse_to_type!("cmpu" => InstructionKind::CMPU),
+                parse_to_type!("cmps" => InstructionKind::CMPS),
+                parse_to_type!("cmp" => InstructionKind::CMP),
+                parse_to_type!("add" => InstructionKind::ADD),
+                parse_to_type!("adc" => InstructionKind::ADC),
+                parse_to_type!("sub" => InstructionKind::SUB),
+                parse_to_type!("sbb" => InstructionKind::SBB),
+                parse_to_type!("shl" => InstructionKind::SHL),
+                parse_to_type!("shr" => InstructionKind::SHR),
+                parse_to_type!("sar" => InstructionKind::SAR),
+                parse_to_type!("shlc" => InstructionKind::SHLC),
+                parse_to_type!("shrc" => InstructionKind::SHRC),
+                parse_to_type!("not" => InstructionKind::NOT),
+                parse_to_type!("neg" => InstructionKind::NEG),
+                parse_to_type!("hswap" => InstructionKind::HSWAP),
+                parse_to_type!("sethi" => InstructionKind::SETHI),
+                parse_to_type!("clear" => InstructionKind::CLEAR),
+                parse_to_type!("mulu" => InstructionKind::MULU),
+                parse_to_type!("muls" => InstructionKind::MULS),
+                parse_to_type!("sext" => InstructionKind::SEXT),
+                parse_to_type!("and" => InstructionKind::AND),
             )),
             alt((
-                parse_mnemonic!("or" => InstructionKind::OR),
-                parse_mnemonic!("xor" => InstructionKind::XOR),
-                parse_mnemonic!("xbit" => InstructionKind::XBIT),
-                parse_mnemonic!("bset" => InstructionKind::BSET),
-                parse_mnemonic!("bclr" => InstructionKind::BCLR),
-                parse_mnemonic!("btgl" => InstructionKind::BTGL),
-                parse_mnemonic!("div" => InstructionKind::DIV),
-                parse_mnemonic!("mod" => InstructionKind::MOD),
-                parse_mnemonic!("setp" => InstructionKind::SETP),
-                parse_mnemonic!("mov" => InstructionKind::MOV),
-                parse_mnemonic!("ld" => InstructionKind::LD),
-                parse_mnemonic!("st" => InstructionKind::ST),
-                parse_mnemonic!("push" => InstructionKind::PUSH),
-                parse_mnemonic!("pop" => InstructionKind::POP),
-                parse_mnemonic!("mpush" => InstructionKind::MPUSH),
-                parse_mnemonic!("mpop" => InstructionKind::MPOP),
-                parse_mnemonic!("mpopadd" => InstructionKind::MPOPADD),
-                parse_mnemonic!("mpopret" => InstructionKind::MPOPRET),
-                parse_mnemonic!("mpopaddret" => InstructionKind::MPOPADDRET),
-                parse_mnemonic!("call" => InstructionKind::CALL),
-                parse_mnemonic!("lcall" => InstructionKind::LCALL),
+                parse_to_type!("or" => InstructionKind::OR),
+                parse_to_type!("xor" => InstructionKind::XOR),
+                parse_to_type!("xbit" => InstructionKind::XBIT),
+                parse_to_type!("bset" => InstructionKind::BSET),
+                parse_to_type!("bclr" => InstructionKind::BCLR),
+                parse_to_type!("btgl" => InstructionKind::BTGL),
+                parse_to_type!("div" => InstructionKind::DIV),
+                parse_to_type!("mod" => InstructionKind::MOD),
+                parse_to_type!("setp" => InstructionKind::SETP),
+                parse_to_type!("mov" => InstructionKind::MOV),
+                parse_to_type!("ld" => InstructionKind::LD),
+                parse_to_type!("st" => InstructionKind::ST),
+                parse_to_type!("push" => InstructionKind::PUSH),
+                parse_to_type!("pop" => InstructionKind::POP),
+                parse_to_type!("mpush" => InstructionKind::MPUSH),
+                parse_to_type!("mpop" => InstructionKind::MPOP),
+                parse_to_type!("mpopadd" => InstructionKind::MPOPADD),
+                parse_to_type!("mpopret" => InstructionKind::MPOPRET),
+                parse_to_type!("mpopaddret" => InstructionKind::MPOPADDRET),
+                parse_to_type!("call" => InstructionKind::CALL),
+                parse_to_type!("lcall" => InstructionKind::LCALL),
             )),
             alt((
-                parse_mnemonic!("bra" => InstructionKind::BRA),
-                parse_mnemonic!("lbra" => InstructionKind::LBRA),
-                parse_mnemonic!("ret" => InstructionKind::RET),
-                parse_mnemonic!("exit" => InstructionKind::EXIT),
-                parse_mnemonic!("sleep" => InstructionKind::SLEEP),
-                parse_mnemonic!("ptlb" => InstructionKind::PTLB),
-                parse_mnemonic!("vtlb" => InstructionKind::VTLB),
-                parse_mnemonic!("itlb" => InstructionKind::ITLB),
-                parse_mnemonic!("iret" => InstructionKind::IRET),
-                parse_mnemonic!("trap" => InstructionKind::TRAP),
-                parse_mnemonic!("xcld" => InstructionKind::XCLD),
-                parse_mnemonic!("xdld" => InstructionKind::XDLD),
-                parse_mnemonic!("xdst" => InstructionKind::XDST),
-                parse_mnemonic!("xcwait" => InstructionKind::XCWAIT),
-                parse_mnemonic!("xdwait" => InstructionKind::XDWAIT),
-                parse_mnemonic!("iord" => InstructionKind::IORD),
-                parse_mnemonic!("iords" => InstructionKind::IORDS),
-                parse_mnemonic!("iowr" => InstructionKind::IOWR),
-                parse_mnemonic!("iowrs" => InstructionKind::IOWRS),
+                parse_to_type!("bra" => InstructionKind::BRA),
+                parse_to_type!("lbra" => InstructionKind::LBRA),
+                parse_to_type!("ret" => InstructionKind::RET),
+                parse_to_type!("exit" => InstructionKind::EXIT),
+                parse_to_type!("sleep" => InstructionKind::SLEEP),
+                parse_to_type!("ptlb" => InstructionKind::PTLB),
+                parse_to_type!("vtlb" => InstructionKind::VTLB),
+                parse_to_type!("itlb" => InstructionKind::ITLB),
+                parse_to_type!("iret" => InstructionKind::IRET),
+                parse_to_type!("trap" => InstructionKind::TRAP),
+                parse_to_type!("xcld" => InstructionKind::XCLD),
+                parse_to_type!("xdld" => InstructionKind::XDLD),
+                parse_to_type!("xdst" => InstructionKind::XDST),
+                parse_to_type!("xcwait" => InstructionKind::XCWAIT),
+                parse_to_type!("xdwait" => InstructionKind::XDWAIT),
+                parse_to_type!("iord" => InstructionKind::IORD),
+                parse_to_type!("iords" => InstructionKind::IORDS),
+                parse_to_type!("iowr" => InstructionKind::IOWR),
+                parse_to_type!("iowrs" => InstructionKind::IOWRS),
             )),
         )),
         map(
@@ -122,6 +123,44 @@ pub fn mnemonic(input: &str) -> IResult<&str, (InstructionKind, OperandSize)> {
                 _ => unreachable!(),
             },
         ),
+    )(input)
+}
+
+fn general_purpose_register(input: &str) -> IResult<&str, Register> {
+    map(
+        preceded(
+            alt((complete(tag_no_case("reg")), tag_no_case("r"))),
+            digit1,
+        ),
+        |s: &str| Register(RegisterKind::Gpr, s.parse::<usize>().unwrap()),
+    )(input)
+}
+
+fn special_purpose_register(input: &str) -> IResult<&str, Register> {
+    alt((
+        parse_to_type!("iv0" => Register(RegisterKind::Spr, 0x0)),
+        parse_to_type!("iv1" => Register(RegisterKind::Spr, 0x1)),
+        parse_to_type!("iv2" => Register(RegisterKind::Spr, 0x2)),
+        parse_to_type!("ev" => Register(RegisterKind::Spr, 0x3)),
+        parse_to_type!("sp" => Register(RegisterKind::Spr, 0x4)),
+        parse_to_type!("pc" => Register(RegisterKind::Spr, 0x5)),
+        parse_to_type!("imb" => Register(RegisterKind::Spr, 0x6)),
+        parse_to_type!("dmb" => Register(RegisterKind::Spr, 0x7)),
+        parse_to_type!("csw" => Register(RegisterKind::Spr, 0x8)),
+        parse_to_type!("ccr" => Register(RegisterKind::Spr, 0x9)),
+        parse_to_type!("sec" => Register(RegisterKind::Spr, 0xA)),
+        parse_to_type!("ctx" => Register(RegisterKind::Spr, 0xB)),
+        parse_to_type!("exci" => Register(RegisterKind::Spr, 0xC)),
+        parse_to_type!("sec1" => Register(RegisterKind::Spr, 0xD)),
+        parse_to_type!("imb1" => Register(RegisterKind::Spr, 0xE)),
+        parse_to_type!("dmb1" => Register(RegisterKind::Spr, 0xF)),
+    ))(input)
+}
+
+pub fn register(input: &str) -> IResult<&str, Register> {
+    preceded(
+        char('$'),
+        alt((general_purpose_register, special_purpose_register)),
     )(input)
 }
 
