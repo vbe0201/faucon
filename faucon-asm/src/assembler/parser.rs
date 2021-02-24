@@ -10,7 +10,7 @@ use num_traits::{Num, PrimInt, Signed, Unsigned};
 
 use crate::isa::InstructionKind;
 use crate::opcode::OperandSize;
-use crate::operands::{Register, RegisterKind};
+use crate::operands::{MemoryAccess, MemorySpace, Register, RegisterKind};
 
 macro_rules! parse_to_type {
     ($input:expr => $output:expr) => {
@@ -162,6 +162,44 @@ pub fn register(input: &str) -> IResult<&str, Register> {
         char('$'),
         alt((general_purpose_register, special_purpose_register)),
     )(input)
+}
+
+pub fn memory_access(input: &str) -> IResult<&str, MemoryAccess> {
+    // Parse the prefix that indicates the accessed memory space.
+    let (input, space) = alt((
+        parse_to_type!("i" => MemorySpace::IMem),
+        parse_to_type!("d" => MemorySpace::DMem),
+    ))(input)?;
+
+    // Prepare a parser for the single-register form: `$rX`.
+    let reg = map(register, move |base| MemoryAccess::Reg { space, base });
+    // Prepare a parser for the double-register form: `$rX + $rY * scale`.
+    let reg_reg = map(
+        tuple((
+            register,
+            whitespace(tag("+")),
+            register,
+            opt(preceded(whitespace(tag("*")), unsigned_integer)),
+        )),
+        move |out: (Register, &str, Register, Option<u8>)| MemoryAccess::RegReg {
+            space,
+            base: out.0,
+            offset: out.2,
+            scale: out.3.unwrap_or(1),
+        },
+    );
+    // Prepare a parser for the register-immediate form: `$rX + imm`.
+    let reg_imm = map(
+        tuple((register, whitespace(tag("+")), unsigned_integer)),
+        move |out: (Register, &str, u32)| MemoryAccess::RegImm {
+            space,
+            base: out.0,
+            offset: out.2,
+        },
+    );
+
+    // Put it all together to parse the memory access.
+    delimited(tag("["), whitespace(alt((reg_imm, reg_reg, reg))), tag("]"))(input)
 }
 
 pub fn label(input: &str) -> IResult<&str, &str> {
