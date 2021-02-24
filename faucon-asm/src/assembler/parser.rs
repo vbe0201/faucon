@@ -176,6 +176,30 @@ pub fn directive(input: &str) -> IResult<&str, &str> {
     preceded(char('.'), identifier)(input)
 }
 
+pub fn signed_integer<T>(input: &str) -> IResult<&str, T>
+where
+    T: PrimInt + Signed,
+{
+    alt((
+        signed_binary,
+        signed_hexadecimal,
+        signed_octal,
+        signed_decimal,
+    ))(input)
+}
+
+pub fn unsigned_integer<T>(input: &str) -> IResult<&str, T>
+where
+    T: PrimInt + Unsigned,
+{
+    alt((
+        unsigned_binary,
+        unsigned_hexadecimal,
+        unsigned_octal,
+        unsigned_decimal,
+    ))(input)
+}
+
 #[inline]
 fn parse_number<T>(literal: &str, radix: u32) -> Result<T, <T as Num>::FromStrRadixErr>
 where
@@ -184,7 +208,7 @@ where
     T::from_str_radix(&str::replace(&literal, "_", ""), radix)
 }
 
-pub fn signed_decimal<T>(input: &str) -> IResult<&str, T>
+fn signed_decimal<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Signed,
 {
@@ -202,7 +226,7 @@ where
     )(input)
 }
 
-pub fn unsigned_decimal<T>(input: &str) -> IResult<&str, T>
+fn unsigned_decimal<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Unsigned,
 {
@@ -215,7 +239,7 @@ where
     )(input)
 }
 
-pub fn signed_hexadecimal<T>(input: &str) -> IResult<&str, T>
+fn signed_hexadecimal<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Signed,
 {
@@ -239,7 +263,7 @@ where
     )(input)
 }
 
-pub fn unsigned_hexadecimal<T>(input: &str) -> IResult<&str, T>
+fn unsigned_hexadecimal<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Unsigned,
 {
@@ -258,7 +282,7 @@ where
     )(input)
 }
 
-pub fn signed_octal<T>(input: &str) -> IResult<&str, T>
+fn signed_octal<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Signed,
 {
@@ -279,7 +303,7 @@ where
     )(input)
 }
 
-pub fn unsigned_octal<T>(input: &str) -> IResult<&str, T>
+fn unsigned_octal<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Unsigned,
 {
@@ -295,7 +319,7 @@ where
     )(input)
 }
 
-pub fn signed_binary<T>(input: &str) -> IResult<&str, T>
+fn signed_binary<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Signed,
 {
@@ -316,7 +340,7 @@ where
     )(input)
 }
 
-pub fn unsigned_binary<T>(input: &str) -> IResult<&str, T>
+fn unsigned_binary<T>(input: &str) -> IResult<&str, T>
 where
     T: PrimInt + Unsigned,
 {
