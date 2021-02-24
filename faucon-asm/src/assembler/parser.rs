@@ -202,12 +202,12 @@ pub fn memory_access(input: &str) -> IResult<&str, MemoryAccess> {
     delimited(tag("["), whitespace(alt((reg_imm, reg_reg, reg))), tag("]"))(input)
 }
 
-pub fn label(input: &str) -> IResult<&str, &str> {
+pub fn expression(input: &str) -> IResult<&str, &str> {
     preceded(char('#'), identifier)(input)
 }
 
 pub fn label_definition(input: &str) -> IResult<&str, &str> {
-    terminated(label, char(':'))(input)
+    terminated(expression, char(':'))(input)
 }
 
 pub fn directive(input: &str) -> IResult<&str, &str> {
