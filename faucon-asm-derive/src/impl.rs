@@ -68,81 +68,98 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
     let mut rw = vec![quote! { None }; 0x10];
     let mut rrw = vec![quote! { None }; 0x10];
 
+    let mut get_forms_match_arms = Vec::new();
+
     // Given an opcode and a subopcode, this closure determines the appropriate opcode
     // table from the above vectors and inserts an InstructionMeta table at the index
     // of the subopcode to enhance instruction lookup speed through array indexing.
-    let mut fill_table =
-        |vname: &Ident, opcode: u8, subopcode: u8, operands: &mut Vec<TokenStream>| {
-            let (size, a, b) = (
-                (opcode >> 6) as usize,
-                (opcode >> 4 & 0x3) as usize,
-                (opcode & 0xF) as usize,
-            );
-            let subopcode = subopcode as usize;
+    let mut fill_table = |vname: &Ident,
+                          opcode: u8,
+                          subopcode: u8,
+                          operands: &mut Vec<TokenStream>,
+                          forms: &mut Vec<TokenStream>| {
+        let (size, a, b) = (
+            (opcode >> 6) as usize,
+            (opcode >> 4 & 0x3) as usize,
+            (opcode & 0xF) as usize,
+        );
+        let subopcode = subopcode as usize;
 
-            // faucon-asm stores the operands of each instruction in `[Argument; 3]` arrays.
-            // For instructions that have less than 3 real operands, the remaining space in
-            // the array is being filled out with `NOP` as a placeholder/padding.
-            while operands.len() < 3 {
-                operands.push(quote! { None });
-            }
+        // faucon-asm stores the operands of each instruction in `[Argument; 3]` arrays.
+        // For instructions that have less than 3 real operands, the remaining space in
+        // the array is being filled out with `NOP` as a placeholder/padding.
+        while operands.len() < 3 {
+            operands.push(quote! { None });
+        }
 
-            let instruction_meta = quote! {
+        let instruction_meta = {
+            forms.push(quote! {
+                InstructionMeta::new(
+                    InstructionKind::#vname,
+                    #opcode,
+                    #subopcode as u8,
+                    [#(#operands),*],
+                )
+            });
+
+            quote! {
                 Some(InstructionMeta::new(
                     InstructionKind::#vname,
-                    #opcode as u8,
+                    #opcode,
                     #subopcode as u8,
                     [#(#operands),*],
                 ))
-            };
-
-            match (size, a, b) {
-                (0x0..=0x2, 0x0, _) => wi[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x1, _) => srwi8[b] = instruction_meta,
-                (0x0..=0x2, 0x2, _) => srwi16[b] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x0) => sri8[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x1) => sri16[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x2) => srr[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x3) => sunk[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x4) => swi8[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x5) => srri8[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x6) => smi8[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x7) => smi16[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x8) => srri16[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0x9) => srw[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xA) => swrr[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xB) => smr[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xC) => srrw[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xD) => sm[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xE) => i24[subopcode] = instruction_meta,
-                (0x0..=0x2, 0x3, 0xF) => swr[subopcode] = instruction_meta,
-                (0x3, 0x0, _) => rwi8[b] = instruction_meta,
-                (0x3, 0x1, _) => wi32[0] = instruction_meta,
-                (0x3, 0x2, _) => rwi16[b] = instruction_meta,
-                (0x3, 0x3, 0x0) => mi8[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x1) => mi16[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x2) => r1[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x3) => i16z[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x4) => i8z[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x5) => i16s[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x6) => rri1[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x7) => rri2[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x8) => n[subopcode] = instruction_meta,
-                (0x3, 0x3, 0x9) => r2[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xA) => rr[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xB) => ri[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xC) => w[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xD) => rm[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xE) => rw[subopcode] = instruction_meta,
-                (0x3, 0x3, 0xF) => rrw[subopcode] = instruction_meta,
-                _ => unreachable!(),
             }
         };
+
+        match (size, a, b) {
+            (0x0..=0x2, 0x0, _) => wi[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x1, _) => srwi8[b] = instruction_meta,
+            (0x0..=0x2, 0x2, _) => srwi16[b] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x0) => sri8[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x1) => sri16[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x2) => srr[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x3) => sunk[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x4) => swi8[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x5) => srri8[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x6) => smi8[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x7) => smi16[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x8) => srri16[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0x9) => srw[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xA) => swrr[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xB) => smr[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xC) => srrw[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xD) => sm[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xE) => i24[subopcode] = instruction_meta,
+            (0x0..=0x2, 0x3, 0xF) => swr[subopcode] = instruction_meta,
+            (0x3, 0x0, _) => rwi8[b] = instruction_meta,
+            (0x3, 0x1, _) => wi32[0] = instruction_meta,
+            (0x3, 0x2, _) => rwi16[b] = instruction_meta,
+            (0x3, 0x3, 0x0) => mi8[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x1) => mi16[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x2) => r1[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x3) => i16z[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x4) => i8z[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x5) => i16s[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x6) => rri1[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x7) => rri2[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x8) => n[subopcode] = instruction_meta,
+            (0x3, 0x3, 0x9) => r2[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xA) => rr[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xB) => ri[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xC) => w[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xD) => rm[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xE) => rw[subopcode] = instruction_meta,
+            (0x3, 0x3, 0xF) => rrw[subopcode] = instruction_meta,
+            _ => unreachable!(),
+        }
+    };
 
     // Iterate through all the variants of the enum that derives from the `Instruction` macro
     // and parse the attribute decorators to insert the instructions into the lookup tables.
     for variant in data.variants.iter() {
         let vname = &variant.ident;
+        let mut get_forms_vec = Vec::new();
 
         // Parse and collect all the #[insn] decorators that are attached to this variant.
         let mut insn_attributes = variant
@@ -159,8 +176,10 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
             operands,
         } in insn_attributes.iter_mut()
         {
-            fill_table(vname, *opcode, *subopcode, operands);
+            fill_table(vname, *opcode, *subopcode, operands, &mut get_forms_vec);
         }
+
+        get_forms_match_arms.push(quote! { InstructionKind::#vname => vec![#(#get_forms_vec),*] });
     }
 
     Ok(quote! {
@@ -317,7 +336,7 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
         ];
 
         impl #name {
-            pub fn lookup_meta(
+            pub(crate) fn lookup_meta(
                 sized: bool,
                 a: u8,
                 b: u8,
@@ -366,6 +385,12 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
                     (false, 0x3, 0xE) => FORM_RW[subopcode].clone(),
                     (false, 0x3, 0xF) => FORM_RRW[subopcode].clone(),
                     _ => unreachable!(),
+                }
+            }
+
+            pub(crate) fn get_forms(&self) -> Vec<InstructionMeta> {
+                match self {
+                    #(#get_forms_match_arms),*
                 }
             }
         }
