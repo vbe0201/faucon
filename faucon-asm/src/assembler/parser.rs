@@ -27,6 +27,15 @@ where
     delimited(multispace0, parser, multispace0)
 }
 
+pub fn semicolon<'a, O, E: ParseError<&'a str>, F: 'a>(
+    parser: F,
+) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+where
+    F: Parser<&'a str, O, E>,
+{
+    terminated(parser, preceded(multispace0, tag(";")))
+}
+
 pub fn eol_comment(input: &str) -> IResult<&str, ()> {
     value((), pair(tag("//"), is_not("\n\r")))(input)
 }
