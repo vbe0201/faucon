@@ -2,10 +2,9 @@ use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::character::complete::*;
 use nom::combinator::*;
-use nom::error::ParseError;
 use nom::multi::*;
 use nom::sequence::*;
-use nom::{IResult, Parser};
+use nom::IResult;
 use num_traits::{Num, PrimInt, Signed, Unsigned};
 
 use crate::isa::InstructionKind;
@@ -22,8 +21,8 @@ macro_rules! parse_to_type {
 }
 
 pub fn start<'a, T>(
-    parser: impl Fn(LineSpan<'a>) -> ParserResult<'a, T>,
-) -> impl Fn(&'a str) -> ParserResult<'a, T> {
+    mut parser: impl FnMut(LineSpan<'a>) -> ParserResult<'a, T>,
+) -> impl FnMut(&'a str) -> ParserResult<'a, T> {
     move |s: &'a str| parser(LineSpan::new(s))
 }
 
@@ -43,15 +42,6 @@ pub fn whitespace<'a, T>(
         parser,
         many0(alt((value((), multispace1), eol_comment, pinline_comment))),
     )
-}
-
-pub fn semicolon<'a, O, E: ParseError<LineSpan<'a>>, F: 'a>(
-    parser: F,
-) -> impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, O, E>
-where
-    F: Parser<LineSpan<'a>, O, E>,
-{
-    terminated(parser, preceded(multispace0, tag(";")))
 }
 
 pub fn identifier(input: LineSpan) -> ParserResult<&str> {
