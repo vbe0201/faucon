@@ -27,13 +27,22 @@ pub fn start<'a, T>(
     move |s: &'a str| parser(LineSpan::new(s))
 }
 
-pub fn whitespace<'a, O, E: ParseError<LineSpan<'a>>, F: 'a>(
-    parser: F,
-) -> impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, O, E>
-where
-    F: Parser<LineSpan<'a>, O, E>,
-{
-    delimited(multispace0, parser, multispace0)
+fn eol_comment(input: LineSpan) -> ParserResult<()> {
+    value((), tuple((tag("//"), none_of("/"), is_not("\n\r"))))(input)
+}
+
+fn pinline_comment(input: LineSpan) -> ParserResult<()> {
+    value((), tuple((tag("/*"), take_until("*/"), tag("*/"))))(input)
+}
+
+pub fn whitespace<'a, T>(
+    parser: impl FnMut(LineSpan<'a>) -> ParserResult<'a, T>,
+) -> impl FnMut(LineSpan<'a>) -> ParserResult<'a, T> {
+    delimited(
+        many0(alt((value((), multispace1), eol_comment, pinline_comment))),
+        parser,
+        many0(alt((value((), multispace1), eol_comment, pinline_comment))),
+    )
 }
 
 pub fn semicolon<'a, O, E: ParseError<LineSpan<'a>>, F: 'a>(
@@ -43,14 +52,6 @@ where
     F: Parser<LineSpan<'a>, O, E>,
 {
     terminated(parser, preceded(multispace0, tag(";")))
-}
-
-pub fn eol_comment(input: LineSpan) -> ParserResult<()> {
-    value((), pair(tag("//"), is_not("\n\r")))(input)
-}
-
-pub fn pinline_comment(input: LineSpan) -> ParserResult<()> {
-    value((), tuple((tag("/*"), take_until("*/"), tag("*/"))))(input)
 }
 
 pub fn identifier(input: LineSpan) -> ParserResult<&str> {
