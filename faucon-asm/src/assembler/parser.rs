@@ -218,7 +218,7 @@ pub fn expression(input: LineSpan) -> ParserResult<&str> {
 }
 
 pub fn label_definition(input: LineSpan) -> ParserResult<&str> {
-    let (ls, expr) = terminated(expression, char(':'))(input)?;
+    let (ls, expr) = terminated(identifier, char(':'))(input)?;
     Ok((ls, &expr))
 }
 
