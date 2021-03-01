@@ -24,7 +24,9 @@ pub enum Token<'a> {
 }
 
 impl<'a> Token<'a> {
-    fn from_span(input: parser::LineSpan<'a>) -> parser::ParserResult<'a, ParseSpan<Self>> {
+    fn from_span(
+        input: parser::LineSpan<'a>,
+    ) -> nom::IResult<parser::LineSpan<'a>, ParseSpan<Self>> {
         parser::whitespace(spanned(alt((
             map(tag(";"), |_| Token::Semicolon),
             map(parser::directive, |d| Token::Directive(d)),
@@ -40,7 +42,9 @@ impl<'a> Token<'a> {
     }
 }
 
-pub fn tokenize<'a>(input: &'a str) -> parser::ParserResult<'a, Vec<ParseSpan<Token<'a>>>> {
+pub fn tokenize<'a>(
+    input: &'a str,
+) -> nom::IResult<parser::LineSpan<'a>, Vec<ParseSpan<Token<'a>>>> {
     parser::start(fold_many0(
         Token::from_span,
         Vec::new(),

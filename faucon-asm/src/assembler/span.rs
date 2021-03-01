@@ -1,9 +1,9 @@
-use super::parser::{LineSpan, ParserResult};
+use super::parser::LineSpan;
 
 // Matches an object from the given parser and wraps it in a [`ParseSpan`].
 pub fn spanned<'a, T>(
-    mut parser: impl FnMut(LineSpan<'a>) -> ParserResult<'a, T>,
-) -> impl FnMut(LineSpan<'a>) -> ParserResult<'a, ParseSpan<T>> {
+    mut parser: impl FnMut(LineSpan<'a>) -> nom::IResult<LineSpan<'a>, T>,
+) -> impl FnMut(LineSpan<'a>) -> nom::IResult<LineSpan<'a>, ParseSpan<T>> {
     move |s: LineSpan<'a>| {
         let (input, position) = nom_locate::position(s)?;
         let (remainder, token) = parser(input)?;
