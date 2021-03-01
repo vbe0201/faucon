@@ -4,6 +4,7 @@ use nom::combinator::map;
 use nom::multi::fold_many0;
 
 use super::parser;
+use super::span::{spanned, ParseSpan};
 use crate::isa::InstructionKind;
 use crate::opcode::OperandSize;
 use crate::operands::{MemoryAccess, Register};
@@ -23,8 +24,8 @@ pub enum Token<'a> {
 }
 
 impl<'a> Token<'a> {
-    pub fn parse(input: parser::LineSpan<'a>) -> parser::ParserResult<'a, Self> {
-        parser::whitespace(alt((
+    fn from_span(input: parser::LineSpan<'a>) -> parser::ParserResult<'a, ParseSpan<Self>> {
+        parser::whitespace(spanned(alt((
             map(tag(";"), |_| Token::Semicolon),
             map(parser::directive, |d| Token::Directive(d)),
             map(parser::expression, |e| Token::Expression(e)),
@@ -35,13 +36,13 @@ impl<'a> Token<'a> {
             map(parser::label_definition, |l| Token::Label(l)),
             map(parser::mnemonic, |m| Token::Mnemonic(m)),
             map(parser::identifier, |i| Token::Ident(i)),
-        )))(input)
+        ))))(input)
     }
 }
 
-pub fn tokenize<'a>(input: &'a str) -> parser::ParserResult<'a, Vec<Token<'a>>> {
+pub fn tokenize<'a>(input: &'a str) -> parser::ParserResult<'a, Vec<ParseSpan<Token<'a>>>> {
     parser::start(fold_many0(
-        Token::parse,
+        Token::from_span,
         Vec::new(),
         |mut tokens: Vec<_>, t| {
             tokens.push(t);
