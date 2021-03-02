@@ -27,7 +27,7 @@ fn pinline_comment(input: LineSpan) -> IResult<LineSpan, ()> {
     value((), tuple((tag("/*"), take_until("*/"), tag("*/"))))(input)
 }
 
-pub fn whitespace<'a, T>(
+pub fn ws0<'a, T>(
     parser: impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T>,
 ) -> impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T> {
     delimited(
@@ -37,7 +37,17 @@ pub fn whitespace<'a, T>(
     )
 }
 
-pub fn identifier(input: LineSpan) -> IResult<LineSpan, &str> {
+pub fn ws1<'a, T>(
+    parser: impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T>,
+) -> impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T> {
+    delimited(
+        many0(alt((value((), multispace1), eol_comment, pinline_comment))),
+        parser,
+        many1(alt((value((), multispace1), eol_comment, pinline_comment))),
+    )
+}
+
+fn identifier(input: LineSpan) -> IResult<LineSpan, &str> {
     let (ls, ident) = recognize(pair(
         alt((alpha1, tag("_"))),
         many0(alt((alphanumeric1, tag("_")))),
@@ -168,33 +178,30 @@ pub fn register(input: LineSpan) -> IResult<LineSpan, Register> {
 }
 
 pub fn flag(input: LineSpan) -> IResult<LineSpan, u8> {
-    alt((
-        unsigned_integer,
-        preceded(
-            char('$'),
-            alt((
-                value(0x00, tag_no_case("p0")),
-                value(0x01, tag_no_case("p1")),
-                value(0x02, tag_no_case("p2")),
-                value(0x03, tag_no_case("p3")),
-                value(0x04, tag_no_case("p4")),
-                value(0x05, tag_no_case("p5")),
-                value(0x06, tag_no_case("p6")),
-                value(0x07, tag_no_case("p7")),
-                value(0x08, tag_no_case("c")),
-                value(0x09, tag_no_case("o")),
-                value(0x0A, tag_no_case("s")),
-                value(0x0B, tag_no_case("z")),
-                value(0x10, tag_no_case("ie0")),
-                value(0x11, tag_no_case("ie1")),
-                value(0x12, tag_no_case("ie2")),
-                value(0x14, tag_no_case("is0")),
-                value(0x15, tag_no_case("is1")),
-                value(0x16, tag_no_case("is2")),
-                value(0x18, tag_no_case("ea")),
-            )),
-        ),
-    ))(input)
+    preceded(
+        char('$'),
+        alt((
+            value(0x00, tag_no_case("p0")),
+            value(0x01, tag_no_case("p1")),
+            value(0x02, tag_no_case("p2")),
+            value(0x03, tag_no_case("p3")),
+            value(0x04, tag_no_case("p4")),
+            value(0x05, tag_no_case("p5")),
+            value(0x06, tag_no_case("p6")),
+            value(0x07, tag_no_case("p7")),
+            value(0x08, tag_no_case("c")),
+            value(0x09, tag_no_case("o")),
+            value(0x0A, tag_no_case("s")),
+            value(0x0B, tag_no_case("z")),
+            value(0x10, tag_no_case("ie0")),
+            value(0x11, tag_no_case("ie1")),
+            value(0x12, tag_no_case("ie2")),
+            value(0x14, tag_no_case("is0")),
+            value(0x15, tag_no_case("is1")),
+            value(0x16, tag_no_case("is2")),
+            value(0x18, tag_no_case("ea")),
+        )),
+    )(input)
 }
 
 pub fn memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
@@ -210,9 +217,9 @@ pub fn memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
     let reg_reg = map(
         tuple((
             register,
-            whitespace(tag("+")),
+            ws0(tag("+")),
             register,
-            opt(preceded(whitespace(tag("*")), unsigned_integer)),
+            opt(preceded(ws0(tag("*")), unsigned_integer)),
         )),
         move |out: (Register, LineSpan, Register, Option<u8>)| MemoryAccess::RegReg {
             space,
@@ -223,7 +230,7 @@ pub fn memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
     );
     // Prepare a parser for the register-immediate form: `$rX + imm`.
     let reg_imm = map(
-        tuple((register, whitespace(tag("+")), unsigned_integer)),
+        tuple((register, ws0(tag("+")), unsigned_integer)),
         move |out: (Register, LineSpan, u32)| MemoryAccess::RegImm {
             space,
             base: out.0,
@@ -232,7 +239,7 @@ pub fn memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
     );
 
     // Put it all together to parse the memory access.
-    delimited(tag("["), whitespace(alt((reg_imm, reg_reg, reg))), tag("]"))(input)
+    delimited(tag("["), ws0(alt((reg_imm, reg_reg, reg))), tag("]"))(input)
 }
 
 pub fn expression(input: LineSpan) -> IResult<LineSpan, &str> {

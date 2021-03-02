@@ -13,7 +13,6 @@ use crate::operands::{MemoryAccess, Register};
 pub enum Token<'a> {
     Directive(&'a str),
     Expression(&'a str),
-    Ident(&'a str),
     Label(&'a str),
     Mnemonic((InstructionKind, OperandSize)),
     Register(Register),
@@ -27,7 +26,7 @@ impl<'a> Token<'a> {
     fn from_span(
         input: parser::LineSpan<'a>,
     ) -> nom::IResult<parser::LineSpan<'a>, ParseSpan<Self>> {
-        parser::whitespace(spanned(alt((
+        spanned(alt((
             map(parser::directive, |d| Token::Directive(d)),
             map(parser::expression, |e| Token::Expression(e)),
             map(parser::register, |r| Token::Register(r)),
@@ -37,8 +36,7 @@ impl<'a> Token<'a> {
             map(parser::signed_integer, |i: i32| Token::SignedInt(i)),
             map(parser::label_definition, |l| Token::Label(l)),
             map(parser::mnemonic, |m| Token::Mnemonic(m)),
-            map(parser::identifier, |i| Token::Ident(i)),
-        ))))(input)
+        )))(input)
     }
 }
 
@@ -46,7 +44,7 @@ pub fn tokenize<'a>(
     input: &'a str,
 ) -> nom::IResult<parser::LineSpan<'a>, Vec<ParseSpan<Token<'a>>>> {
     parser::start(fold_many0(
-        Token::from_span,
+        parser::ws1(Token::from_span),
         Vec::new(),
         |mut tokens: Vec<_>, t| {
             tokens.push(t);
