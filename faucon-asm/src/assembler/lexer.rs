@@ -15,7 +15,6 @@ pub enum Token<'a> {
     Expression(&'a str),
     Ident(&'a str),
     Label(&'a str),
-    Semicolon,
     Mnemonic((InstructionKind, OperandSize)),
     Register(Register),
     Flag(u8),
@@ -29,7 +28,6 @@ impl<'a> Token<'a> {
         input: parser::LineSpan<'a>,
     ) -> nom::IResult<parser::LineSpan<'a>, ParseSpan<Self>> {
         parser::whitespace(spanned(alt((
-            map(tag(";"), |_| Token::Semicolon),
             map(parser::directive, |d| Token::Directive(d)),
             map(parser::expression, |e| Token::Expression(e)),
             map(parser::register, |r| Token::Register(r)),
