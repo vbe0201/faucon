@@ -18,6 +18,7 @@ pub enum Token<'a> {
     Register(Register),
     Flag(u8),
     Memory(MemoryAccess),
+    String(&'a str),
     SignedInt(i32),
     UnsignedInt(u32),
 }
@@ -36,6 +37,7 @@ impl<'a> Token<'a> {
             map(parser::signed_integer, |i: i32| Token::SignedInt(i)),
             map(parser::label_definition, |l| Token::Label(l)),
             map(parser::mnemonic, |m| Token::Mnemonic(m)),
+            map(parser::string_literal, |s| Token::String(s)),
         )))(input)
     }
 }

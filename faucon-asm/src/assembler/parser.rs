@@ -47,6 +47,11 @@ pub fn ws1<'a, T>(
     )
 }
 
+pub fn string_literal(input: LineSpan) -> IResult<LineSpan, &str> {
+    let (ls, lit) = tuple((tag(r#"""#), take_until(r#"""#), tag(r#"""#)))(input)?;
+    Ok((ls, &lit.1))
+}
+
 fn identifier(input: LineSpan) -> IResult<LineSpan, &str> {
     let (ls, ident) = recognize(pair(
         alt((alpha1, tag("_"))),
