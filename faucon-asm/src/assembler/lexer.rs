@@ -1,7 +1,6 @@
 use nom::branch::alt;
-use nom::bytes::complete::tag;
-use nom::combinator::map;
-use nom::multi::fold_many0;
+use nom::combinator::{eof, map};
+use nom::multi::many_till;
 
 use super::parser;
 use super::span::{spanned, ParseSpan};
@@ -45,12 +44,8 @@ impl<'a> Token<'a> {
 pub fn tokenize<'a>(
     input: &'a str,
 ) -> nom::IResult<parser::LineSpan<'a>, Vec<ParseSpan<Token<'a>>>> {
-    parser::start(fold_many0(
-        parser::ws1(Token::from_span),
-        Vec::new(),
-        |mut tokens: Vec<_>, t| {
-            tokens.push(t);
-            tokens
-        },
+    parser::start(map(
+        many_till(parser::ws1(Token::from_span), eof),
+        |(t, _)| t,
     ))(input)
 }
