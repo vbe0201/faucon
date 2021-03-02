@@ -167,6 +167,36 @@ pub fn register(input: LineSpan) -> IResult<LineSpan, Register> {
     )(input)
 }
 
+pub fn flag(input: LineSpan) -> IResult<LineSpan, u8> {
+    alt((
+        unsigned_integer,
+        preceded(
+            char('$'),
+            alt((
+                value(0x00, tag_no_case("p0")),
+                value(0x01, tag_no_case("p1")),
+                value(0x02, tag_no_case("p2")),
+                value(0x03, tag_no_case("p3")),
+                value(0x04, tag_no_case("p4")),
+                value(0x05, tag_no_case("p5")),
+                value(0x06, tag_no_case("p6")),
+                value(0x07, tag_no_case("p7")),
+                value(0x08, tag_no_case("c")),
+                value(0x09, tag_no_case("o")),
+                value(0x0A, tag_no_case("s")),
+                value(0x0B, tag_no_case("z")),
+                value(0x10, tag_no_case("ie0")),
+                value(0x11, tag_no_case("ie1")),
+                value(0x12, tag_no_case("ie2")),
+                value(0x14, tag_no_case("is0")),
+                value(0x15, tag_no_case("is1")),
+                value(0x16, tag_no_case("is2")),
+                value(0x18, tag_no_case("ea")),
+            )),
+        ),
+    ))(input)
+}
+
 pub fn memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
     // Parse the prefix that indicates the accessed memory space.
     let (input, space) = alt((
