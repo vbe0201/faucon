@@ -1,5 +1,6 @@
 //! Assembler for the Falcon ISA.
 
+mod context;
 pub mod error;
 mod lexer;
 mod parser;
