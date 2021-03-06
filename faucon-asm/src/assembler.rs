@@ -7,4 +7,5 @@ mod parser;
 pub mod span;
 
 pub use error::*;
+pub(crate) use lexer::Token;
 pub use span::*;
