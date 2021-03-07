@@ -876,9 +876,9 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8>> MachineEncoding for Immedi
 
 // A CPU register in Falcon assembly.
 //
-// There are 16 general-purpose register and roughly around a dozen special-purpose
-// registers. This structure holds the data necessary to parse them form instruction
-// bytes and to determine how they are used by an instruction.
+// There are 16 general-purpose register and 16 additional special-purpose registers.
+// This structure holds the data necessary to parse them form instruction bytes and
+// to determine how they are used by an instruction.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Register {
     kind: operands::RegisterKind,
