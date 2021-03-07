@@ -99,6 +99,7 @@
 
 mod arguments;
 pub mod assembler;
+mod bytes_ext;
 pub mod disassembler;
 pub mod isa;
 pub mod opcode;

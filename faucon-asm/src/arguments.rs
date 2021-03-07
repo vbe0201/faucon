@@ -4,6 +4,7 @@ use std::ops::Range;
 use num_traits::{cast, FromPrimitive, PrimInt};
 
 use crate::assembler::Token;
+use crate::bytes_ext::SaturatingCast;
 use crate::operands;
 
 // A trait that defines a quantity of a specific size that is stored at a
@@ -39,6 +40,10 @@ pub trait MachineEncoding {
     // Checks if an assembly token matches the criteria to be encoded into its
     // machine representation for a specific operand.
     fn matches(&self, token: Token) -> bool;
+
+    // Writes the underlying output type from a value to a vector containing
+    // Falcon machine code bytes.
+    fn write(&self, code: &mut Vec<u8>, element: Self::Output);
 }
 
 // A helper macro that is supposed to unwrap an `Argument` of a known kind into
@@ -784,7 +789,7 @@ impl<T> Positional for Immediate<T> {
     }
 }
 
-impl<T: FromPrimitive + PrimInt> MachineEncoding for Immediate<T> {
+impl<T: FromPrimitive + PrimInt + SaturatingCast<u8>> MachineEncoding for Immediate<T> {
     type Output = T;
 
     fn read(&self, instruction: &[u8]) -> Self::Output {
@@ -851,6 +856,22 @@ impl<T: FromPrimitive + PrimInt> MachineEncoding for Immediate<T> {
             value <= max_value
         }
     }
+
+    fn write(&self, code: &mut Vec<u8>, element: Self::Output) {
+        if self.raw_value.is_some() {
+            return;
+        }
+
+        let element = element >> self.get_shift();
+        for i in 0..self.width {
+            // Split off the lowest byte at the current position.
+            let current_byte = (element >> (i << 3)).saturating_cast();
+
+            code[self.position + i] = code[self.position + i]
+                & !(self.get_mask() >> (i << 3)).saturating_cast()
+                | current_byte;
+        }
+    }
 }
 
 // A CPU register in Falcon assembly.
@@ -910,6 +931,24 @@ impl MachineEncoding for Register {
                 }
             }
             _ => false,
+        }
+    }
+
+    fn write(&self, code: &mut Vec<u8>, element: Self::Output) {
+        // If this register has a fixed value, there's no need to serialize it.
+        if self.raw_value.is_some() {
+            return;
+        }
+
+        // Make sure that the register is within bounds. This should have been
+        // validated previously with `MachineEncoding::matches` already.
+        assert!(element.1 < 16);
+
+        // Write the register to its expected location.
+        if self.high {
+            code[self.position] = code[self.position] & 0xF | (element.1 as u8) << 4;
+        } else {
+            code[self.position] = code[self.position] & !0xF | element.1 as u8;
         }
     }
 }
@@ -1004,6 +1043,38 @@ impl MachineEncoding for MemoryAccess {
                 _base.matches(Token::Register(base)) && _offset.matches(Token::UnsignedInt(offset))
             }
             _ => false,
+        }
+    }
+
+    fn write(&self, code: &mut Vec<u8>, element: Self::Output) {
+        match (self, element) {
+            (MemoryAccess::Reg(_, _base), operands::MemoryAccess::Reg { space: _, base }) => {
+                _base.write(code, base);
+            }
+            (
+                MemoryAccess::RegReg(_, _base, _offset, _),
+                operands::MemoryAccess::RegReg {
+                    space: _,
+                    base,
+                    offset,
+                    scale: _,
+                },
+            ) => {
+                _base.write(code, base);
+                _offset.write(code, offset);
+            }
+            (
+                MemoryAccess::RegImm(_, _base, _offset),
+                operands::MemoryAccess::RegImm {
+                    space: _,
+                    base,
+                    offset,
+                },
+            ) => {
+                _base.write(code, base);
+                _offset.write(code, offset);
+            }
+            _ => panic!("Attempted to write invalid memory access form"),
         }
     }
 }
