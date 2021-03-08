@@ -17,10 +17,8 @@ use std::io::{self, BufRead, BufReader};
 use std::path::Path;
 
 use clap::App;
-use color_eyre::{
-    eyre::{eyre, WrapErr},
-    Result, Section,
-};
+use color_eyre::eyre::{eyre, WrapErr};
+use color_eyre::{Result, Section};
 
 use config::Config;
 use debugger::Debugger;
@@ -48,7 +46,32 @@ fn read_config<P: AsRef<Path>>(config: Option<P>) -> Result<Config> {
     })
 }
 
-fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
+fn assemble<P: AsRef<Path>>(source: P, matches: &clap::ArgMatches<'_>) -> Result<()> {
+    // TODO
+    Ok(())
+}
+
+fn disassemble<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> Result<()> {
+    let file = File::open(bin)?;
+    let mut reader = BufReader::new(file);
+
+    let base = if let Some(num) = matches.value_of("base") {
+        let num = if num.starts_with("0x") {
+            usize::from_str_radix(&num[2..], 16)?
+        } else {
+            num.parse()?
+        };
+        Some(num as usize)
+    } else {
+        None
+    };
+
+    let mut disassembler = Disassembler::stdout();
+    disassembler.disassemble_stream(&mut reader)?;
+    Ok(())
+}
+
+fn emulate<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
     // Prepare the CPU and load the supplied binary into IMEM.
     let mut cpu = Cpu::new();
     if let Err(()) = code::upload_to_imem(&mut cpu, 0, 0, &code::read_falcon_binary(bin)?) {
@@ -70,56 +93,22 @@ fn run_emulator<P: AsRef<Path>>(bin: P, config: Config) -> Result<()> {
     Ok(())
 }
 
-fn disassemble_file<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> Result<()> {
-    let file = File::open(bin)?;
-    let mut reader = BufReader::new(file);
-
-    let base = if let Some(num) = matches.value_of("base") {
-        let num = if num.starts_with("0x") {
-            usize::from_str_radix(&num[2..], 16)?
-        } else {
-            num.parse()?
-        };
-        Some(num as usize)
-    } else {
-        None
-    };
-
-    let mut disassembler = Disassembler::stdout();
-    disassembler.disassemble_stream(&mut reader)?;
-    Ok(())
-}
-
-fn get_binary_file<'matches>(
-    matches: &'matches clap::ArgMatches<'matches>,
-) -> Result<&'matches str> {
-    if let Some(bin) = matches.value_of("binary") {
-        Ok(bin)
-    } else {
-        return Err(eyre!("no binary file to run provided"))
-            .suggestion("provide a binary file using the -b argument");
-    }
-}
-
 fn main() -> Result<()> {
     color_eyre::config::HookBuilder::default()
         .panic_section(
-            "Consider reporting the bug on github (https://github.com/vbe0201/faucon/issues)",
+            "Consider reporting the bug on GitHub (https://github.com/vbe0201/faucon/issues)",
         )
         .install()?;
 
-    // Build the CLI.
     let cli = load_yaml!("cli.yml");
     let matches = App::from_yaml(cli).get_matches();
 
-    // Read the configuration file.
     let config = read_config(matches.value_of("config")).wrap_err("failed to load config")?;
-
-    if let Some(matches) = matches.subcommand_matches("emu") {
-        run_emulator(get_binary_file(matches)?, config)
-    } else if let Some(matches) = matches.subcommand_matches("dis") {
-        disassemble_file(get_binary_file(matches)?, matches)
-    } else {
-        unreachable!()
+    match matches.subcommand() {
+        ("asm", Some(matches)) => assemble(matches.value_of("INPUT").unwrap(), matches),
+        ("dis", Some(matches)) => disassemble(matches.value_of("INPUT").unwrap(), matches),
+        ("emu", _) => emulate(matches.value_of("INPUT").unwrap(), config),
+        _ => Err(eyre!("please invoke faucon with a subcommand")
+            .with_note(|| "See `faucon --help` for a list of supported commands.")),
     }
 }

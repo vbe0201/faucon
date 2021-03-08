@@ -21,32 +21,53 @@ args:
 
 # Breakdown of the subcommands for invoking individual faucon tools.
 subcommands:
-  # A subcommand for telling faucon to invoke the emulator on the supplied
-  # binary and start the interactive debugger REPL for dynamic analysis.
-  - emu:
-      about: Starts the dynamic faucon emulator for binary analysis
+  # A subcommand for telling faucon to assemble the supplied input file to
+  # machine code and write the results to a given output file.
+  - asm:
+      about: Assembles the given input file into a binary
       version: "0.1"
       author: Valentin B. <valentin.be@protonmail.com>
       args:
-        - binary:
-            short: bin
-            long: binary
-            value_name: FILE
-            help: The Falcon binary to load in for analysis
+        - INPUT:
+            help: The source file to assemble
+            required: true
+            index: 1
+        - OUTPUT:
+            short: out
+            long: output
+            help: The path to the output file to write the machine code to
             takes_value: true
-  # A subcommand for telling faucon to invoke the disassembler
-  # on the supplied binary and print the output to stdout
+        - include:
+            short: i
+            multiple: true
+            help: Adds one or more supplied directories to the include path for source files
+            takes_value: true
+
+  # A subcommand for telling faucon to disassemble the supplied binary and
+  # print the human-readable assembly form to stdout.
   - dis:
       about: Disassembles the given input file
+      version: "0.1"
+      author: Valentin B. <valentin.be@protonmail.com>
       args:
-        - binary:
-            short: bin
-            long: binary
-            value_name: FILE
+        - INPUT:
             help: The Falcon binary to disassemble
+            required: true
+            index: 1
+        - ADDRESS:
+            short: base
+            long: base_address
+            help: The base address in IMEM where the code to disassemble starts
             takes_value: true
-        - base:
-            long: base-address
-            value_name: ADDRESS
-            help: The base address of the disassembled code
-            takes_value: true
+
+  # A subcommand for telling faucon to invoke the emulator on the supplied
+  # binary and start the interactive debugger REPL for dynamic analysis.
+  - emu:
+      about: Starts the faucon CPU emulator for dynamic binary analysis
+      version: "0.1"
+      author: Valentin B. <valentin.be@protonmail.com>
+      args:
+        - INPUT:
+            help: The Falcon binary to load into emulated memory
+            required: true
+            index: 1
