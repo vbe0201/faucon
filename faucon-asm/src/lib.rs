@@ -107,6 +107,7 @@ pub mod operands;
 
 use std::fmt;
 
+pub use assembler::*;
 pub use disassembler::*;
 pub use isa::InstructionKind;
 pub use opcode::OperandSize;
