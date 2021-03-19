@@ -49,17 +49,17 @@ impl<W: Write> Disassembler<W> {
     ///
     /// It will also ignore any errors that occurred while reading from the `stream`.
     pub fn disassemble_stream<R: Read>(&mut self, stream: &mut R) -> io::Result<()> {
-        use crate::Error;
+        use crate::FalconError;
 
         let mut offset = 0;
         let insns = std::iter::from_fn(|| match super::read_instruction(stream, &mut offset) {
             Ok(insn) => Some(insn),
-            Err(Error::IoError) => None,
-            Err(Error::UnknownInstruction(op)) => {
+            Err(FalconError::InvalidOpcode(op)) => {
                 println!("[aborted] (unknown instruction '{:x}')", op);
                 None
             }
-            Err(Error::Eof) => {
+            Err(FalconError::IoError(_)) | Err(FalconError::ParseError(_)) => None,
+            Err(FalconError::Eof) => {
                 println!("[aborted] (end of file)");
                 None
             }

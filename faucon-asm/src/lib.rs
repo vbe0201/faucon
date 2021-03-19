@@ -106,6 +106,7 @@ pub mod opcode;
 pub mod operands;
 
 use std::fmt;
+use std::io;
 
 pub use assembler::*;
 pub use disassembler::*;
@@ -115,23 +116,50 @@ use opcode::*;
 pub use operands::*;
 
 /// A result that is returned by the functions in this crate.
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+// TODO: Get rid of this soon.
+pub type Result<T, E = FalconError> = std::result::Result<T, E>;
 
-/// Errors that are utilized by the crate.
-#[derive(Debug, PartialEq, Eq)]
-pub enum Error {
-    /// An error that occurs when the opcode corresponding to an instruction
-    /// cannot be identified.
+/// Error kinds that may occur when assembling or disassembling code
+/// using this crate.
+#[derive(Debug)]
+pub enum FalconError {
+    /// An opcode cannot be identified as a valid instruction during
+    /// disassembling machine code.
     ///
     /// In such a case, this variant holds the opcode byte in question.
-    UnknownInstruction(u8),
-    /// An I/O error has occurred while reading data from a stream.
-    IoError,
-    /// An EOF has been reached while streaming a file through [`Read`].
+    InvalidOpcode(u8),
+    /// The assembler failed to parse the input source to build machine
+    /// code out of it.
     ///
-    /// [`Read`]: https://doc.rust-lang.org/std/io/trait.Read.html
+    /// Encapsulates the original [`ParseError`] object.
+    ParseError(ParseError),
+    /// An I/O error has occurred while reading data from an input source.
+    ///
+    /// Encapsulates the original [`std::io::Error`] object.
+    IoError(io::Error),
+    /// An EOF has been prematurely reached while streaming a file through
+    /// [`std::io::Read`].
+    ///
+    /// This differs from [`std::io::ErrorKind::UnexpectedEof`] in that regard
+    /// that this error only occurs when more data were semantically expected
+    /// for an operation to successfully complete.
     Eof,
 }
+
+impl fmt::Display for FalconError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FalconError::InvalidOpcode(op) => {
+                write!(f, "Invalid opcode encountered: {:#X}", op)
+            }
+            FalconError::ParseError(e) => write!(f, "{}", e),
+            FalconError::IoError(e) => write!(f, "{}", e),
+            FalconError::Eof => write!(f, "Unexpected EOF encountered while trying to read a file"),
+        }
+    }
+}
+
+impl std::error::Error for FalconError {}
 
 /// A Falcon processor instruction.
 #[derive(Clone, Debug, PartialEq, Eq)]

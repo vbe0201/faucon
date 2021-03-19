@@ -2,7 +2,7 @@
 
 use std::io::{stdin, stdout, Write};
 
-use faucon_asm::{get_spr_name, read_instruction, RegisterKind};
+use faucon_asm::{get_spr_name, read_instruction, FalconError, RegisterKind};
 use faucon_emu::cpu::Cpu;
 use rustyline::{error::ReadlineError, Cmd, Config, Editor, KeyPress};
 
@@ -134,17 +134,15 @@ impl Debugger {
         for _ in 0..amount {
             match read_instruction(code, &mut offset) {
                 Ok(insn) => println!("{:08X}  {}", address + offset, insn),
-                Err(faucon_asm::Error::Eof) => break,
+                Err(FalconError::Eof) => break,
                 Err(e) => {
                     match e {
-                        faucon_asm::Error::UnknownInstruction(_) => {
+                        FalconError::InvalidOpcode(_) => {
                             error!("Aborting due to error:", "An unknown instruction was hit")
                         }
-                        faucon_asm::Error::IoError => {
-                            error!("Aborting due to error:", "Rust exploded")
-                        }
-                        faucon_asm::Error::Eof => {}
-                    };
+                        FalconError::IoError(_) | FalconError::ParseError(_) => unreachable!(),
+                        FalconError::Eof => {}
+                    }
                     break;
                 }
             };

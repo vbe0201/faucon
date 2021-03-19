@@ -8,6 +8,7 @@ pub mod span;
 
 use std::path::Path;
 
+use crate::FalconError;
 pub use error::*;
 pub(crate) use lexer::Token;
 pub use span::*;
@@ -52,9 +53,12 @@ impl<'a> Assembler<'a> {
         self
     }
 
-    /// Consumes the assembler entirely into building Falcon machine code out of
-    /// the stored main source file and returning a vector of instruction bytes.
-    pub fn assemble(self) -> Result<Vec<u8>, ParseError> {
+    /// Consumes the assembler into building Falcon machine code using the Assembly
+    /// input supplied as a file path to assemble.
+    ///
+    /// This file may include and utilize all symbols from source files in the
+    /// internal include path.
+    pub fn assemble<P: AsRef<Path>>(self, file: P) -> Result<Vec<u8>, FalconError> {
         todo!()
     }
 }

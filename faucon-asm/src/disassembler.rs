@@ -5,7 +5,7 @@ use std::io::Read;
 use crate::arguments::{Argument, Positional};
 use crate::isa::*;
 use crate::opcode;
-use crate::{Error, Instruction, Result};
+use crate::{FalconError, Instruction, Result};
 
 mod pretty;
 pub use pretty::Disassembler;
@@ -31,7 +31,7 @@ pub fn read_instruction<R: Read>(reader: &mut R, offset: &mut usize) -> Result<I
     // Parse the subopcode value required for instruction lookup.
     let subopcode = {
         let location = opcode::get_subopcode_location(operand_size.value(), a, b)
-            .ok_or(Error::UnknownInstruction(opcode))?;
+            .ok_or(FalconError::InvalidOpcode(opcode))?;
         read_bytes(&mut insn, reader, location.get())?;
 
         location.parse_value(&insn)
@@ -40,7 +40,7 @@ pub fn read_instruction<R: Read>(reader: &mut R, offset: &mut usize) -> Result<I
     Ok({
         // Look up a matching instruction variant and read out the operands it takes.
         let mut meta = InstructionKind::lookup_meta(operand_size.sized(), a, b, subopcode)
-            .ok_or(Error::UnknownInstruction(opcode))?;
+            .ok_or(FalconError::InvalidOpcode(opcode))?;
         read_operands(&mut insn, reader, operand_size.value(), &mut meta.operands)?;
 
         // Increment the offset to point to the next instruction.
@@ -80,14 +80,9 @@ fn read_operands<R: Read>(
 }
 
 fn read_bytes<R: Read>(buffer: &mut Vec<u8>, reader: &mut R, amount: u64) -> Result<usize> {
-    if let Ok(amount_read) = reader.take(amount).read_to_end(buffer) {
-        // If no bytes were read at all purposefully, it shouldn't count as an EOF.
-        if amount != 0 && amount_read == 0 {
-            Err(Error::Eof)
-        } else {
-            Ok(amount_read)
-        }
-    } else {
-        Err(Error::IoError)
+    match reader.take(amount).read_to_end(buffer) {
+        Ok(0) if amount != 0 => Err(FalconError::Eof),
+        Ok(amount_read) => Ok(amount_read),
+        Err(e) => Err(FalconError::IoError(e)),
     }
 }

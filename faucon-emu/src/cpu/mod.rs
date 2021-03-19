@@ -1,6 +1,6 @@
 //! Falcon microprocessor abstractions.
 
-use faucon_asm::{disassembler, Instruction};
+use faucon_asm::{disassembler, FalconError, Instruction};
 
 use crate::dma;
 use crate::memory::{LookupError, Memory, PageFlag};
@@ -201,13 +201,15 @@ impl Cpu {
                 let mut code = &self.memory.code[code_address as usize..];
                 match disassembler::read_instruction(&mut code, &mut 0) {
                     Ok(insn) => Some(insn),
-                    Err(faucon_asm::Error::UnknownInstruction(_)) => {
+                    Err(FalconError::InvalidOpcode(_)) => {
                         self.trigger_trap(Trap::InvalidOpcode);
 
                         None
                     }
-                    Err(faucon_asm::Error::IoError) => panic!("Rust exploded"),
-                    Err(faucon_asm::Error::Eof) => None,
+                    Err(FalconError::IoError(_)) | Err(FalconError::ParseError(_)) => {
+                        unreachable!()
+                    }
+                    Err(FalconError::Eof) => None,
                 }
             } else if tlb.get_flag(PageFlag::Busy) {
                 // The page is marked busy, the access must be completed when possible.
