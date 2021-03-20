@@ -6,6 +6,7 @@ mod lexer;
 mod parser;
 pub mod span;
 
+use std::fs;
 use std::path::Path;
 
 use crate::FalconError;
@@ -59,6 +60,16 @@ impl<'a> Assembler<'a> {
     /// This file may include and utilize all symbols from source files in the
     /// internal include path.
     pub fn assemble<P: AsRef<Path>>(self, file: P) -> Result<Vec<u8>, FalconError> {
+        let source = fs::read_to_string(file).map_err(FalconError::IoError)?;
+        self.assemble_str(&source)
+    }
+
+    /// Consumes the assembler into building Falcon machine code out of the given
+    /// Assembly source code string.
+    ///
+    /// The code may include and utilize all symbols from source files in the
+    /// internal include path.
+    pub fn assemble_str(self, source: &'a str) -> Result<Vec<u8>, FalconError> {
         todo!()
     }
 }
