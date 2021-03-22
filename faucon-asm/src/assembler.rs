@@ -10,6 +10,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::FalconError;
+use context::Context;
 pub use error::*;
 pub(crate) use lexer::Token;
 pub use span::*;
@@ -18,6 +19,7 @@ pub use span::*;
 /// language.
 pub struct Assembler<'a> {
     include_path: Vec<&'a Path>,
+    asm_context: Context,
 }
 
 impl<'a> Assembler<'a> {
@@ -25,6 +27,7 @@ impl<'a> Assembler<'a> {
     pub fn new() -> Self {
         Assembler {
             include_path: Vec::new(),
+            asm_context: Context::new(),
         }
     }
 
@@ -59,8 +62,15 @@ impl<'a> Assembler<'a> {
     ///
     /// This file may include and utilize all symbols from source files in the
     /// internal include path.
-    pub fn assemble<P: AsRef<Path>>(self, file: P) -> Result<Vec<u8>, FalconError> {
+    pub fn assemble<P: 'a + AsRef<Path>>(mut self, file: P) -> Result<Vec<u8>, FalconError> {
+        let file = file.as_ref();
         let source = fs::read_to_string(file).map_err(FalconError::IoError)?;
+        self.asm_context.set_context_name(
+            file.file_name()
+                .and_then(|s| Some(s.to_os_string()))
+                .unwrap(),
+        );
+
         self.assemble_str(&source)
     }
 
@@ -69,7 +79,25 @@ impl<'a> Assembler<'a> {
     ///
     /// The code may include and utilize all symbols from source files in the
     /// internal include path.
-    pub fn assemble_str(self, source: &'a str) -> Result<Vec<u8>, FalconError> {
+    pub fn assemble_str(mut self, source: &'a str) -> Result<Vec<u8>, FalconError> {
+        let mut tokens = lexer::tokenize(source)
+            .map_err(FalconError::ParseError)?
+            .into_iter()
+            .peekable();
+
+        loop {
+            match tokens.next() {
+                Some(t) => match t.token() {
+                    Token::Directive(d) => {
+                        let dir = context::parse_directive(d, &mut tokens).unwrap();
+                        println!("{:?}", dir);
+                    }
+                    _ => unimplemented!(),
+                },
+                None => break,
+            }
+        }
+
         todo!()
     }
 }

@@ -61,6 +61,11 @@ impl<T> ParseSpan<T> {
         }
     }
 
+    /// Provides immutable access to the encapsulated token object.
+    pub fn token(&self) -> &T {
+        &self.token
+    }
+
     /// Unwraps the `ParseSpan` into the encapsulated token object.
     pub fn unwrap(self) -> T {
         self.token

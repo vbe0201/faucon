@@ -1,6 +1,5 @@
 //! Error type that is used by the assembler.
 
-use std::error::Error;
 use std::fmt;
 
 use nom::Finish;
@@ -57,4 +56,4 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl Error for ParseError {}
+impl std::error::Error for ParseError {}
