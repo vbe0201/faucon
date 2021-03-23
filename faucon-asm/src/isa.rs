@@ -546,6 +546,14 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF8, subopcode = 0x03, operands())]
     XDWAIT,
 
+    /// The XDFENCE instruction.
+    ///
+    /// Constructs a memory barrier for DMA data transfers, ensuring that
+    /// all transfers queried prior to constructing the barrier will be
+    /// finished before the ones after it.
+    #[insn(opcode = 0xF8, subopcode = 0x06, operands())]
+    XDFENCE,
+
     /// The IOWR instruction.
     ///
     /// Asynchronously writes a word to the I/O space of the microprocessor.
@@ -634,6 +642,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::XDST => "xdst",
             InstructionKind::XCWAIT => "xcwait",
             InstructionKind::XDWAIT => "xdwait",
+            InstructionKind::XDFENCE => "xdfence",
             InstructionKind::IOWR => "iowr",
             InstructionKind::IOWRS => "iowrs",
             InstructionKind::IORD => "iord",

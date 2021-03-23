@@ -125,6 +125,7 @@ pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandS
                 value(InstructionKind::XDST, tag_no_case("xdst")),
                 value(InstructionKind::XCWAIT, tag_no_case("xcwait")),
                 value(InstructionKind::XDWAIT, tag_no_case("xdwait")),
+                value(InstructionKind::XDFENCE, tag_no_case("xdfence")),
                 value(InstructionKind::IORD, tag_no_case("iord")),
                 value(InstructionKind::IORDS, tag_no_case("iords")),
                 value(InstructionKind::IOWR, tag_no_case("iowr")),
