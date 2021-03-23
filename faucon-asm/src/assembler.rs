@@ -7,10 +7,11 @@ mod parser;
 pub mod span;
 
 use std::fs;
+use std::iter::Peekable;
 use std::path::Path;
 
 use crate::FalconError;
-use context::Context;
+use context::{Context, Directive};
 pub use error::*;
 pub(crate) use lexer::Token;
 pub use span::*;
@@ -19,7 +20,7 @@ pub use span::*;
 /// language.
 pub struct Assembler<'a> {
     include_path: Vec<&'a Path>,
-    asm_context: Context,
+    asm_context: Context<'a>,
 }
 
 impl<'a> Assembler<'a> {
@@ -57,6 +58,48 @@ impl<'a> Assembler<'a> {
         self
     }
 
+    fn populate_main_context<I>(
+        &mut self,
+        mut iter: Peekable<I>,
+    ) -> Result<(), Option<ParseSpan<Token<'a>>>>
+    where
+        I: Iterator<Item = ParseSpan<Token<'a>>>,
+    {
+        loop {
+            match iter.next() {
+                Some(span) => match span.token() {
+                    Token::Directive(d) => match context::parse_directive(d, &mut iter)? {
+                        Directive::Equ(name, value) => {
+                            self.asm_context.add_declaration(name, value);
+                        }
+                        Directive::Include(_) => todo!(),
+                        Directive::Section(mode, name, addr) => {
+                            self.asm_context.add_section(name, mode, addr);
+                        }
+                        dir => {
+                            self.asm_context.add_directive(dir);
+                            self.asm_context.current_section_mut().add_code_token(span);
+                        }
+                    },
+                    Token::Label(l) => {
+                        self.asm_context.add_label(l);
+                    }
+                    Token::Mnemonic(_) => {
+                        let section = self.asm_context.current_section_mut();
+                        section.counter += 1;
+                        section.add_code_token(span);
+                    }
+                    _ => {
+                        self.asm_context.current_section_mut().add_code_token(span);
+                    }
+                },
+                None => break,
+            }
+        }
+
+        Ok(())
+    }
+
     /// Consumes the assembler into building Falcon machine code using the Assembly
     /// input supplied as a file path to assemble.
     ///
@@ -80,23 +123,11 @@ impl<'a> Assembler<'a> {
     /// The code may include and utilize all symbols from source files in the
     /// internal include path.
     pub fn assemble_str(mut self, source: &'a str) -> Result<Vec<u8>, FalconError> {
-        let mut tokens = lexer::tokenize(source)
+        let tokens = lexer::tokenize(source)
             .map_err(FalconError::ParseError)?
             .into_iter()
             .peekable();
-
-        loop {
-            match tokens.next() {
-                Some(t) => match t.token() {
-                    Token::Directive(d) => {
-                        let dir = context::parse_directive(d, &mut tokens).unwrap();
-                        println!("{:?}", dir);
-                    }
-                    _ => unimplemented!(),
-                },
-                None => break,
-            }
-        }
+        self.populate_main_context(tokens).unwrap(); // XXX: Don't unwrap!
 
         todo!()
     }
