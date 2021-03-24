@@ -164,78 +164,83 @@ impl std::error::Error for FalconError {}
 /// A Falcon processor instruction.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
-    bytes: Vec<u8>,
-    offset: usize,
-    operand_size: OperandSize,
     meta: isa::InstructionMeta,
+    operand_size: OperandSize,
+    operands: Vec<Operand>,
+    pc: u32,
+
+    raw_bytes: Option<Vec<u8>>,
 }
 
 impl Instruction {
     /// Constructs a new instruction from its byte representation and metadata.
     pub fn new(
-        bytes: Vec<u8>,
-        offset: usize,
-        mut operand_size: OperandSize,
         meta: isa::InstructionMeta,
+        mut operand_size: OperandSize,
+        operands: Vec<Operand>,
+        pc: u32,
     ) -> Self {
         // Certain Falcon weirdos encode their subopcode in the high size bits and thus
         // making the instruction per se unsized. We need to make sure to not use a false
         // positive operand size.
-        let (a, b) = get_opcode_form(bytes[0]);
-        if get_subopcode_location(operand_size.value(), a, b) == Some(SubopcodeLocation::OH) {
+        if get_subopcode_location(operand_size.value(), meta.a, meta.b)
+            == Some(SubopcodeLocation::OH)
+        {
             operand_size = OperandSize::Unsized;
         }
 
         Instruction {
-            bytes,
-            offset,
-            operand_size,
             meta,
+            operand_size,
+            operands,
+            pc,
+            raw_bytes: None,
         }
     }
 
-    /// Returns a reference to the raw byte representation of
-    /// this `Instruction`.
-    pub fn raw_bytes(&self) -> &[u8] {
-        self.bytes.as_slice()
+    /// Assigns a vector of raw instruction bytes to this instruction.
+    ///
+    /// If set to a value, this will be used as the return value of [`Instruction::assemble`]
+    /// over assembling the instruction from its metadata from scratch.
+    pub fn with_raw_bytes(mut self, bytes: Vec<u8>) -> Self {
+        self.raw_bytes = Some(bytes);
+        self
     }
 
-    /// The offset of the instruction in memory.
+    /// Provides immutable access to the raw bytes of this instruction, if possible.
     ///
-    /// Depending on where the disassembler started reading the instruction, one must
-    /// add this to the base address to get the real memory address of the instruction.
-    pub fn memory_offset(&self) -> usize {
-        self.offset
+    ///  This method usually returns `None` if the instruction was not obtained
+    /// through the disassembler.
+    pub fn raw_bytes(&self) -> Option<&Vec<u8>> {
+        self.raw_bytes.as_ref()
+    }
+
+    /// Gets the value of the program counter at which the instruction lives.
+    ///
+    /// This references an address in memory that is relative to a base address,
+    /// e.g. the address at which the program code is mapped.
+    pub fn program_counter(&self) -> u32 {
+        self.pc
     }
 
     /// Gets the [`InstructionKind`] that is represented by this instruction variant.
-    ///
-    /// [`InstructionKind`]: ./isa/enum.InstructionKind.html
     pub fn kind(&self) -> isa::InstructionKind {
         self.meta.kind
     }
 
-    /// Gets the length of an instruction by counting its bytes.
-    pub fn len(&self) -> usize {
-        self.bytes.len()
-    }
-
     /// Constructs the opcode of the instruction.
     ///
-    /// The opcode is traditionally the first instruction byte. For unsized instructions,
-    /// the high two bits (`0b11`) are relevant, for sized instructions, they must be
-    /// masked out.
+    /// The opcode is traditionally the first instruction byte. The high two bits either
+    /// encode the operand sizing or a subopcode, so this is not relevant to the
+    /// opcode and will not be masked in.
     pub fn opcode(&self) -> u8 {
-        match self.operand_size {
-            OperandSize::Unsized => self.bytes[0],
-            _ => self.bytes[0] & !0xC0,
-        }
+        build_opcode_form(self.meta.a, self.meta.b)
     }
 
     /// Gets the subopcode of the instruction.
     ///
     /// The subopcode is used to identify instructions uniquely within a specific form,
-    /// whenever needed.
+    /// when needed.
     pub fn subopcode(&self) -> u8 {
         self.meta.subopcode
     }
@@ -245,26 +250,23 @@ impl Instruction {
     /// The operand size determines which quantity of size in the operands is modified
     /// by the instruction. Sized instructions may choose between 8-bit, 16-bit and 32-bit
     /// variants, whereas unsized instructions always operate on the full 32 bits.
-    ///
-    /// [`OperandSize`]: ./opcode/enum.OperandSize.html
     pub fn operand_size(&self) -> OperandSize {
         self.operand_size
     }
 
-    /// A vector of instruction [`Operand`]s.
-    ///
-    /// [`Operand`]: ./operands/enum.Operand.html
-    pub fn operands(&self) -> Vec<Operand> {
-        let mut operands = Vec::new();
+    /// Gets a vector of instruction [`Operand`]s.
+    pub fn operands(&self) -> &Vec<Operand> {
+        &self.operands
+    }
 
-        for arg in self.meta.operands.iter() {
-            if let Some(arg) = arg {
-                // Extract the real value of the operand from the instruction bytes.
-                operands.push(Operand::parse(arg, self.offset as i32, &self.bytes));
-            }
+    /// Assembles the instruction into its machine code representation and writes the
+    /// code to `output`.
+    pub fn assemble(self, output: &mut Vec<u8>) {
+        if let Some(bytes) = self.raw_bytes {
+            output.extend(bytes);
+        } else {
+            todo!()
         }
-
-        operands
     }
 }
 

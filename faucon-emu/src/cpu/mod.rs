@@ -231,7 +231,7 @@ impl Cpu {
                 // Check if it is necessary to increment the PC.
                 // If not, this has already been done by the instruction itself.
                 if self.increment_pc {
-                    self.registers[PC] += insn.len() as u32;
+                    self.registers[PC] += insn.raw_bytes().unwrap().len() as u32;
                 }
             }
             None => return,

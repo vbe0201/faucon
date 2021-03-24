@@ -133,7 +133,7 @@ impl Debugger {
 
         for _ in 0..amount {
             match read_instruction(code, &mut offset) {
-                Ok(insn) => println!("{:08X}  {}", address + offset, insn),
+                Ok(insn) => println!("{:08X}  {}", address as u32 + offset, insn),
                 Err(FalconError::Eof) => break,
                 Err(e) => {
                     match e {

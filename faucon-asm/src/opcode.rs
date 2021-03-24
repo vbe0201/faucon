@@ -69,11 +69,18 @@ impl fmt::Display for OperandSize {
 /// Extracts the instruction form from a given opcode.
 ///
 /// The returned tuple `(a, b)` contains the two parts of the opcode that
-/// decide its form. If `a` is 0-2, then `b` decides on an instruction
-/// within the form denoted by `a`. If `a` is 3, then `b` ultimately decides
-/// on the form.
+/// decide its form. If `a` is 0-2, then `b` decides on a form within the
+/// group denoted by `a`. If `a` is 3, then `b` ultimately decides on the
+/// form.
 pub const fn get_opcode_form(opcode: u8) -> (u8, u8) {
     (opcode >> 4 & 0x3, opcode & 0xF)
+}
+
+/// Builds the instruction opcode given its two form components.
+///
+/// See [`get_opcode_form`] for more details on `a` and `b`.
+pub const fn build_opcode_form(a: u8, b: u8) -> u8 {
+    (a & 0x3) << 4 | b & 0xF
 }
 
 /// The location where the subopcode is stored within the instruction bytes.
