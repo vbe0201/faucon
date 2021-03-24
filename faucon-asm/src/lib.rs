@@ -115,10 +115,6 @@ pub use opcode::OperandSize;
 use opcode::*;
 pub use operands::*;
 
-/// A result that is returned by the functions in this crate.
-// TODO: Get rid of this soon.
-pub type Result<T, E = FalconError> = std::result::Result<T, E>;
-
 /// Error kinds that may occur when assembling or disassembling code
 /// using this crate.
 #[derive(Debug)]

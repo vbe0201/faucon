@@ -6,14 +6,17 @@ use crate::arguments::{Argument, Positional};
 use crate::isa::*;
 use crate::opcode;
 use crate::operands::Operand;
-use crate::{FalconError, Instruction, Result};
+use crate::{FalconError, Instruction};
 
 mod pretty;
 pub use pretty::Disassembler;
 
 /// Reads an [`Instruction`] from a given [`std::io::Read`]er holding its binary
 /// representation.
-pub fn read_instruction<'a, R: Read>(reader: &mut R, pc: &mut u32) -> Result<Instruction> {
+pub fn read_instruction<'a, R: Read>(
+    reader: &mut R,
+    pc: &mut u32,
+) -> Result<Instruction, FalconError> {
     let mut insn = Vec::new();
 
     // Read the opcode of the next instruction and parse it.
@@ -63,7 +66,7 @@ fn read_operands<R: Read>(
     operand_size: u8,
     pc: i32,
     args: &mut [Option<Argument>],
-) -> Result<Vec<Operand>> {
+) -> Result<Vec<Operand>, FalconError> {
     let mut operands = Vec::new();
     for arg in args.iter_mut().filter_map(|o| o.as_mut()) {
         // If the argument is a SizeConverter helper, evaluate it and replace
@@ -88,7 +91,11 @@ fn read_operands<R: Read>(
     Ok(operands)
 }
 
-fn read_bytes<R: Read>(buffer: &mut Vec<u8>, reader: &mut R, amount: u64) -> Result<usize> {
+fn read_bytes<R: Read>(
+    buffer: &mut Vec<u8>,
+    reader: &mut R,
+    amount: u64,
+) -> Result<usize, FalconError> {
     match reader.take(amount).read_to_end(buffer) {
         Ok(0) if amount != 0 => Err(FalconError::Eof),
         Ok(amount_read) => Ok(amount_read),
