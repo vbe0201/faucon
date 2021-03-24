@@ -261,8 +261,8 @@ impl Operand {
             Argument::SizeConverter(_) => unreachable!(),
 
             // PC-relative branch offsets.
-            Argument::PcRel8(imm) => Operand::I32(pc + imm.read(insn) as i32),
-            Argument::PcRel16(imm) => Operand::I32(pc + imm.read(insn) as i32),
+            Argument::PcRel8(imm) => Operand::U32((pc + imm.read(insn) as i32) as u32),
+            Argument::PcRel16(imm) => Operand::U32((pc + imm.read(insn) as i32) as u32),
 
             // Immediate forms.
             Argument::U8(imm) => Operand::U8(imm.read(insn)),
