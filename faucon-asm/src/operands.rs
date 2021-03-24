@@ -31,10 +31,9 @@ pub struct Register(pub RegisterKind, pub usize);
 
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.0 == RegisterKind::Gpr {
-            write!(f, "$r{}", self.1)
-        } else {
-            write!(f, "${}", get_spr_name(self.1).unwrap_or("unk"))
+        match self.0 {
+            RegisterKind::Gpr => write!(f, "$r{}", self.1),
+            RegisterKind::Spr => write!(f, "${}", get_spr_name(self.1)),
         }
     }
 }
@@ -51,26 +50,24 @@ pub enum RegisterKind {
 /// Gets the qualified name of a special-purpose register based on the given
 /// register index.
 #[rustfmt::skip]
-pub fn get_spr_name(value: usize) -> Option<&'static str> {
-    assert!(value < 0x10);
-
+pub fn get_spr_name(value: usize) -> &'static str {
     [
-        /* 0x0 */ Some("iv0"),
-        /* 0x1 */ Some("iv1"),
-        /* 0x2 */ Some("iv2"),
-        /* 0x3 */ Some("ev"),
-        /* 0x4 */ Some("sp"),
-        /* 0x5 */ Some("pc"),
-        /* 0x6 */ Some("imb"),
-        /* 0x7 */ Some("dmb"),
-        /* 0x8 */ Some("csw"),
-        /* 0x9 */ Some("ccr"),
-        /* 0xA */ Some("sec"),
-        /* 0xB */ Some("ctx"),
-        /* 0xC */ Some("exci"),
-        /* 0xD */ Some("sec1"),
-        /* 0xE */ Some("imb1"),
-        /* 0xF */ Some("dmb1"),
+        /* 0x0 */ "iv0",
+        /* 0x1 */ "iv1",
+        /* 0x2 */ "iv2",
+        /* 0x3 */ "ev",
+        /* 0x4 */ "sp",
+        /* 0x5 */ "pc",
+        /* 0x6 */ "imb",
+        /* 0x7 */ "dmb",
+        /* 0x8 */ "csw",
+        /* 0x9 */ "ccr",
+        /* 0xA */ "sec",
+        /* 0xB */ "ctx",
+        /* 0xC */ "exci",
+        /* 0xD */ "sec1",
+        /* 0xE */ "imb1",
+        /* 0xF */ "dmb1",
     ][value]
 }
 
@@ -78,8 +75,6 @@ pub fn get_spr_name(value: usize) -> Option<&'static str> {
 /// given bit index.
 #[rustfmt::skip]
 pub fn get_flag_name(value: usize) -> Option<&'static str> {
-    assert!(value < 0x20);
-
     [
         /* 0x00 */ Some("p0"),
         /* 0x01 */ Some("p1"),

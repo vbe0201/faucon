@@ -161,7 +161,7 @@ impl Debugger {
                 let name = if kind == RegisterKind::Gpr {
                     format!("r{}", j)
                 } else {
-                    get_spr_name(j).unwrap_or("unk").to_string()
+                    get_spr_name(j).to_string()
                 };
                 print!(
                     "{:>5}: {:<10}",

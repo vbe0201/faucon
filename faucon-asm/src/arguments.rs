@@ -805,10 +805,12 @@ pub struct Immediate<T> {
 }
 
 impl<T: FromPrimitive + PrimInt + WrappingSub> Immediate<T> {
+    #[inline]
     fn get_shift(&self) -> usize {
         self.shift.unwrap_or(0)
     }
 
+    #[inline]
     fn get_mask(&self) -> T {
         self.mask.unwrap_or(T::zero().wrapping_sub(&T::one()))
     }
@@ -895,18 +897,16 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
     }
 
     fn write(&self, code: &mut Vec<u8>, element: Self::Output) {
-        if self.raw_value.is_some() {
-            return;
-        }
+        if self.raw_value.is_none() {
+            let element = element >> self.get_shift();
+            for i in 0..self.width {
+                // Split off the lowest byte at the current position.
+                let current_byte = (element >> (i << 3)).saturating_cast();
 
-        let element = element >> self.get_shift();
-        for i in 0..self.width {
-            // Split off the lowest byte at the current position.
-            let current_byte = (element >> (i << 3)).saturating_cast();
-
-            code[self.position + i] = code[self.position + i]
-                & !(self.get_mask() >> (i << 3)).saturating_cast()
-                | current_byte;
+                code[self.position + i] = code[self.position + i]
+                    & !(self.get_mask() >> (i << 3)).saturating_cast()
+                    | current_byte;
+            }
         }
     }
 }
@@ -960,32 +960,22 @@ impl MachineEncoding for Register {
 
     fn matches(&self, token: Token) -> bool {
         match token {
-            Token::Register(reg) => {
-                if let Some(value) = self.raw_value {
-                    reg.0 == self.kind && reg.1 == value as usize
-                } else {
-                    reg.0 == self.kind && reg.1 < 16
-                }
-            }
+            Token::Register(reg) => match self.raw_value {
+                Some(_) => true, // Default values do always match.
+                None => reg.0 == self.kind && reg.1 < 16,
+            },
             _ => false,
         }
     }
 
     fn write(&self, code: &mut Vec<u8>, element: Self::Output) {
         // If this register has a fixed value, there's no need to serialize it.
-        if self.raw_value.is_some() {
-            return;
-        }
-
-        // Make sure that the register is within bounds. This should have been
-        // validated previously with `MachineEncoding::matches` already.
-        assert!(element.1 < 16);
-
-        // Write the register to its expected location.
-        if self.high {
-            code[self.position] = code[self.position] & 0xF | (element.1 as u8) << 4;
-        } else {
-            code[self.position] = code[self.position] & !0xF | element.1 as u8;
+        if self.raw_value.is_none() {
+            if self.high {
+                code[self.position] = code[self.position] & 0xF | (element.1 as u8) << 4;
+            } else {
+                code[self.position] = code[self.position] & !0xF | element.1 as u8;
+            }
         }
     }
 }
