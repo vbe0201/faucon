@@ -1,4 +1,5 @@
 use std::cmp::min;
+use std::mem::size_of;
 use std::ops::Range;
 
 use num_traits::{cast, FromPrimitive, PrimInt};
@@ -73,6 +74,18 @@ pub const I8: Argument = Argument::U8(Immediate {
     position: 2,
     width: 1,
     sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
+
+// A signed 8-bit immediate.
+//
+// These are used for comparisons and PC-relative offsets.
+pub const I8S: Argument = Argument::I8(Immediate {
+    position: 2,
+    width: 1,
+    sign: true,
     shift: None,
     mask: None,
     raw_value: None,
@@ -193,7 +206,7 @@ pub const I8ZXS: Argument = Argument::SizeConverter(|size| match size {
 //
 // This handles sign-extension for the different operand sizes.
 pub const I8SXS: Argument = Argument::SizeConverter(|size| match size {
-    0 => I8,
+    0 => I8S,
     1 => I8SX16,
     2 => I8SX32,
     _ => unreachable!(),
@@ -219,6 +232,18 @@ pub const I16: Argument = Argument::U16(Immediate {
     position: 2,
     width: 2,
     sign: false,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
+
+// A signed 16-bit immediate.
+//
+// These are used for signed comparisons.
+pub const I16S: Argument = Argument::I16(Immediate {
+    position: 2,
+    width: 2,
+    sign: true,
     shift: None,
     mask: None,
     raw_value: None,
@@ -289,7 +314,7 @@ pub const I16ZXS: Argument = Argument::SizeConverter(|size| match size {
 // This handles sign-extension for the different operand sizes.
 pub const I16SXS: Argument = Argument::SizeConverter(|size| match size {
     0 => I16T8,
-    1 => I16,
+    1 => I16S,
     2 => I16SX32,
     _ => unreachable!(),
 });
@@ -329,6 +354,16 @@ pub const I32: Argument = Argument::U32(Immediate {
     mask: None,
     raw_value: None,
 });
+
+// An 8-bit PC-relative offset.
+//
+// These are used for branches.
+pub const PC8: Argument = Argument::PcRel8(unwrap!(I8S, Argument::I8(i) => i));
+
+// A 16-bit PC-relative offset.
+//
+// These are used for branches.
+pub const PC16: Argument = Argument::PcRel16(unwrap!(I16S, Argument::I16(i) => i));
 
 // A Falcon general-purpose register, encoded in the low 4 bits of the first
 // instruction byte.
@@ -683,6 +718,11 @@ pub enum Argument {
     // to extend an immediate to when dealing with variable sizing.
     SizeConverter(fn(size: u8) -> Argument),
 
+    // A signed 8-bit PC-relative offset.
+    PcRel8(Immediate<i8>),
+    // A signed 16-bit PC-relative offset.
+    PcRel16(Immediate<i16>),
+
     // An unsigned 8-bit immediate.
     U8(Immediate<u8>),
     // A signed 8-bit immediate.
@@ -723,6 +763,8 @@ impl Positional for Argument {
             Argument::Register(reg) => reg.position(),
             Argument::Flag(imm) => imm.position(),
             Argument::Memory(mem) => mem.position(),
+            Argument::PcRel8(imm) => imm.position(),
+            Argument::PcRel16(imm) => imm.position(),
             Argument::SizeConverter(_) => unreachable!(),
         }
     }
@@ -740,6 +782,8 @@ impl Positional for Argument {
             Argument::Register(reg) => reg.width(),
             Argument::Flag(imm) => imm.width(),
             Argument::Memory(mem) => mem.width(),
+            Argument::PcRel8(imm) => imm.width(),
+            Argument::PcRel16(imm) => imm.width(),
             Argument::SizeConverter(_) => unreachable!(),
         }
     }
@@ -767,13 +811,11 @@ impl<T: FromPrimitive + PrimInt> Immediate<T> {
 
     fn get_mask(&self) -> T {
         self.mask.unwrap_or({
-            let nbits = self.width << 3;
-            let bitmask = cast::<usize, T>(2.pow(nbits as u32) - 1).unwrap();
-
             if self.sign {
-                sign_extend(bitmask, nbits)
+                T::zero() - T::one()
             } else {
-                bitmask
+                let nbits = (self.width << 3) as u32;
+                cast::<usize, T>(2.pow(nbits) - 1).unwrap()
             }
         })
     }
@@ -802,12 +844,12 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8>> MachineEncoding for Immedi
 
         // Read out all the bytes and build the immediate value.
         for (i, b) in instruction[self.as_range()].iter().enumerate() {
-            let byte = T::from_u8(*b).unwrap();
+            let byte = T::from_u8(*b).or(T::from_i8(*b as i8)).unwrap();
             result = result | byte << (i << 3);
         }
 
         // If the immediate is signed, handle sign-extension correctly.
-        if self.sign {
+        if self.sign && self.width > size_of::<T>() {
             result = sign_extend(result, self.width() << 3);
         }
 

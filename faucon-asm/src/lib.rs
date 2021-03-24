@@ -260,7 +260,7 @@ impl Instruction {
         for arg in self.meta.operands.iter() {
             if let Some(arg) = arg {
                 // Extract the real value of the operand from the instruction bytes.
-                operands.push(Operand::parse(arg, &self.bytes));
+                operands.push(Operand::parse(arg, self.offset as i32, &self.bytes));
             }
         }
 

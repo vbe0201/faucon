@@ -255,10 +255,14 @@ pub enum Operand {
 }
 
 impl Operand {
-    pub(crate) fn parse(arg: &Argument, insn: &[u8]) -> Self {
+    pub(crate) fn parse(arg: &Argument, pc: i32, insn: &[u8]) -> Self {
         match arg {
             // Already evaluated by the disassembler, unreachable at this point.
             Argument::SizeConverter(_) => unreachable!(),
+
+            // PC-relative branch offsets.
+            Argument::PcRel8(imm) => Operand::I32(pc + imm.read(insn) as i32),
+            Argument::PcRel16(imm) => Operand::I32(pc + imm.read(insn) as i32),
 
             // Immediate forms.
             Argument::U8(imm) => Operand::U8(imm.read(insn)),
