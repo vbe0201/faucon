@@ -2,7 +2,7 @@ use std::cmp::min;
 use std::mem::size_of;
 use std::ops::Range;
 
-use num_traits::{cast, FromPrimitive, PrimInt};
+use num_traits::{cast, FromPrimitive, PrimInt, WrappingSub};
 
 use crate::assembler::Token;
 use crate::bytes_ext::SaturatingCast;
@@ -804,20 +804,13 @@ pub struct Immediate<T> {
     raw_value: Option<T>,
 }
 
-impl<T: FromPrimitive + PrimInt> Immediate<T> {
+impl<T: FromPrimitive + PrimInt + WrappingSub> Immediate<T> {
     fn get_shift(&self) -> usize {
         self.shift.unwrap_or(0)
     }
 
     fn get_mask(&self) -> T {
-        self.mask.unwrap_or({
-            if self.sign {
-                T::zero() - T::one()
-            } else {
-                let nbits = (self.width << 3) as u32;
-                cast::<usize, T>(2.pow(nbits) - 1).unwrap()
-            }
-        })
+        self.mask.unwrap_or(T::zero().wrapping_sub(&T::one()))
     }
 }
 
@@ -831,7 +824,9 @@ impl<T> Positional for Immediate<T> {
     }
 }
 
-impl<T: FromPrimitive + PrimInt + SaturatingCast<u8>> MachineEncoding for Immediate<T> {
+impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncoding
+    for Immediate<T>
+{
     type Output = T;
 
     fn read(&self, instruction: &[u8]) -> Self::Output {
