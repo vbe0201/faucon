@@ -15,6 +15,8 @@ use crate::opcode::*;
 pub struct InstructionMeta {
     /// The instruction kind that is represented by this object.
     pub kind: InstructionKind,
+    /// Whether this instruction is a form with variable operand sizing.
+    pub sized: bool,
     /// The first part of an instruction's opcode, which can be obtained through
     /// [`get_opcode_form`].
     ///
@@ -49,10 +51,18 @@ impl InstructionMeta {
         subopcode: u8,
         operands: [Option<Argument>; 3],
     ) -> Self {
+        let operand_size = opcode >> 6;
         let (a, b) = get_opcode_form(opcode);
+
+        let sized = match (operand_size, get_subopcode_location(operand_size, a, b)) {
+            (0b11, _) => false,
+            (_, Some(SubopcodeLocation::OH)) => false,
+            _ => true,
+        };
 
         InstructionMeta {
             kind,
+            sized,
             a,
             b,
             subopcode,

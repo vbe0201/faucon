@@ -177,8 +177,8 @@ impl Instruction {
         pc: u32,
     ) -> Self {
         // Certain Falcon weirdos encode their subopcode in the high size bits and thus
-        // making the instruction per se unsized. We need to make sure to not use a false
-        // positive operand size.
+        // making the instruction per se unsized. We need to make sure to not use a
+        // false-positive operand size under such circumstances.
         if get_subopcode_location(operand_size.value(), meta.a, meta.b)
             == Some(SubopcodeLocation::OH)
         {
