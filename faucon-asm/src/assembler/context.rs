@@ -221,8 +221,12 @@ impl<'a> Context<'a> {
     //
     // Ideally speaking, this yields sections in the order they
     // were inserted.
-    pub fn get_section(&mut self) -> Section<'a> {
-        self.sections.remove(0)
+    pub fn get_section(&mut self) -> Option<Section<'a>> {
+        if self.sections.is_empty() {
+            None
+        } else {
+            Some(self.sections.remove(0))
+        }
     }
 
     // Gets an immutable reference to the currently processed section.
@@ -298,15 +302,19 @@ impl<'a> Section<'a> {
     //
     // Ideally speaking, this yields tokens in the order they were
     // inserted.
-    pub fn get_code_token(&mut self) -> ParseSpan<Token<'a>> {
-        self.code.remove(0)
+    pub fn get_code_token(&mut self) -> Option<ParseSpan<Token<'a>>> {
+        if self.code.is_empty() {
+            None
+        } else {
+            Some(self.code.remove(0))
+        }
     }
 }
 
 impl<'a> Default for Section<'a> {
     fn default() -> Self {
         Section {
-            name: "",
+            name: "__default__",
             mode: SecurityMode::NoSecure,
             base: 0,
             counter: 0,

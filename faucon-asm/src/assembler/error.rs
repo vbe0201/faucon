@@ -21,6 +21,8 @@ pub enum ParseError {
     /// The [`ParseSpan`] it encapsulates wraps up the faulting line information
     /// along with a descriptive error message at its heart.
     Tokenization(ParseSpan<String>),
+    ///
+    Unexpected(ParseSpan<String>),
 }
 
 impl ParseError {

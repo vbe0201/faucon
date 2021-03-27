@@ -26,7 +26,7 @@ pub fn spanned<'a, T>(
 
 /// Wraps a parsed token along with information about its encoding in the
 /// input source.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseSpan<T> {
     // The contents of the line in which the spanned source element is.
     line: String,

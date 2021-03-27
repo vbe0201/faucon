@@ -1,5 +1,6 @@
 //! Assembler for the Falcon ISA.
 
+mod codegen;
 mod context;
 pub mod error;
 mod lexer;
@@ -61,14 +62,16 @@ impl<'a> Assembler<'a> {
     fn populate_main_context<I>(
         &mut self,
         mut iter: Peekable<I>,
-    ) -> Result<(), Option<ParseSpan<Token<'a>>>>
+    ) -> Result<(), ParseSpan<Token<'a>>>
     where
         I: Iterator<Item = ParseSpan<Token<'a>>>,
     {
         loop {
             match iter.next() {
                 Some(span) => match span.token() {
-                    Token::Directive(d) => match context::parse_directive(d, &mut iter)? {
+                    Token::Directive(d) => match context::parse_directive(d, &mut iter)
+                        .map_err(|e| e.unwrap_or(span.clone()))?
+                    {
                         Directive::Equ(name, value) => {
                             self.asm_context.add_declaration(name, value);
                         }
@@ -127,8 +130,9 @@ impl<'a> Assembler<'a> {
             .map_err(FalconError::ParseError)?
             .into_iter()
             .peekable();
+
         self.populate_main_context(tokens).unwrap(); // XXX: Don't unwrap!
 
-        todo!()
+        codegen::build_context(self.asm_context).map_err(FalconError::ParseError)
     }
 }
