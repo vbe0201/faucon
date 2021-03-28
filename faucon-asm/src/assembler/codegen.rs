@@ -1,8 +1,11 @@
 use std::mem::size_of;
 
+use crate::arguments::Argument;
 use crate::assembler::context::{Context, Directive, Section};
 use crate::assembler::error::ParseError;
 use crate::assembler::lexer::Token;
+use crate::isa::InstructionMeta;
+use crate::opcode::{build_opcode_form, OperandSize};
 
 fn write_byte(output: &mut Vec<u8>, b: u8) {
     output.push(b);
@@ -27,6 +30,22 @@ fn align_up(address: u32, align: u32) -> u32 {
 
 fn skip(output: &mut Vec<u8>, size: u32, value: u8) {
     output.extend(vec![value; size as usize]);
+}
+
+fn matches_operand(_section: &mut Section, _arg: &Argument) -> bool {
+    todo!()
+}
+
+fn select_instruction_form<'a>(
+    forms: &'a Vec<InstructionMeta>,
+    section: &mut Section,
+) -> Option<&'a InstructionMeta> {
+    forms.iter().find(|m| {
+        m.operands
+            .iter()
+            .filter_map(|o| o.as_ref())
+            .fold(true, |acc, a| acc && matches_operand(section, a))
+    })
 }
 
 fn lower_directive<'a>(output: &mut Vec<u8>, pc: &mut u32, directive: Directive<'a>) {
@@ -62,6 +81,28 @@ fn lower_directive<'a>(output: &mut Vec<u8>, pc: &mut u32, directive: Directive<
     }
 }
 
+fn lower_instruction(
+    output: &mut Vec<u8>,
+    pc: &mut u32,
+    form: &InstructionMeta,
+    size: &OperandSize,
+    _section: &mut Section,
+) {
+    // Construct and write the instruction opcode.
+    // TODO: Validate `size`.
+    output.push(size.value() << 6 | build_opcode_form(form.a, form.b));
+
+    // Write the instruction subopcode into the location.
+    let subopcode_position = *pc as usize + form.subopcode_location.get() as usize;
+    output.resize(subopcode_position + 1, 0);
+    output[subopcode_position] |= form.subopcode_location.build_value(form.subopcode);
+
+    // TODO: Write operands.
+
+    // Increment the program counter to point to the next instruction.
+    *pc += output[*pc as usize..].len() as u32;
+}
+
 fn first_pass_assemble_section<'a>(
     context: &mut Context<'a>,
     mut section: Section,
@@ -77,7 +118,11 @@ fn first_pass_assemble_section<'a>(
             }
             Token::Expression(_expr) => todo!(),
             Token::Label(_label) => todo!(),
-            Token::Mnemonic((_kind, _size)) => todo!(),
+            Token::Mnemonic((kind, size)) => {
+                let instruction_forms = kind.get_forms();
+                let form = select_instruction_form(&instruction_forms, &mut section).unwrap();
+                lower_instruction(&mut output, &mut pc, form, size, &mut section);
+            }
             _ => unreachable!(),
         }
     }

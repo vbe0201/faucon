@@ -87,7 +87,7 @@ pub const fn build_opcode_form(a: u8, b: u8) -> u8 {
 ///
 /// In Falcon assembly, opcodes generally span a variety of instructions, many
 /// cases require an additional subopcode to identify instructions uniquely.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SubopcodeLocation {
     /// The subopcode is encoded in the high 2 bits of byte 0.
     OH,
@@ -118,6 +118,18 @@ impl SubopcodeLocation {
             SubopcodeLocation::OL => 1,
             SubopcodeLocation::O3 => 2,
             SubopcodeLocation::O5 => 4,
+        }
+    }
+
+    /// Brings the subopcode value into shape for being encoded directly.
+    pub fn build_value(&self, value: u8) -> u8 {
+        match self {
+            SubopcodeLocation::OH => value << 6,
+            SubopcodeLocation::O1
+            | SubopcodeLocation::O2
+            | SubopcodeLocation::O3
+            | SubopcodeLocation::O5 => value & 0xF,
+            SubopcodeLocation::OL => value & 0x3F,
         }
     }
 

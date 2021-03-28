@@ -14,15 +14,11 @@ use crate::assembler::span::ParseSpan;
 /// and what the error itself was caused by.
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParseError {
-    /// The input source to parse is not encoded as valid UTF-8.
-    Encoding,
     /// A tokenization error that indicates unparseable characters.
     ///
     /// The [`ParseSpan`] it encapsulates wraps up the faulting line information
     /// along with a descriptive error message at its heart.
     Tokenization(ParseSpan<String>),
-    ///
-    Unexpected(ParseSpan<String>),
 }
 
 impl ParseError {

@@ -27,6 +27,8 @@ pub struct InstructionMeta {
     ///
     /// [`get_opcode_form`]: ../opcode/fn.get_opcode_form.html
     pub b: u8,
+    /// The location of the subopcode.
+    pub subopcode_location: SubopcodeLocation,
     /// The subopcode of an instruction.
     ///
     /// If [`InstructionMeta::a`] is in the range of 0 through 2, the subopcode
@@ -53,10 +55,11 @@ impl InstructionMeta {
     ) -> Self {
         let operand_size = opcode >> 6;
         let (a, b) = get_opcode_form(opcode);
+        let subopcode_location = get_subopcode_location(operand_size, a, b).unwrap();
 
-        let sized = match (operand_size, get_subopcode_location(operand_size, a, b)) {
+        let sized = match (operand_size, subopcode_location) {
             (0b11, _) => false,
-            (_, Some(SubopcodeLocation::OH)) => false,
+            (_, SubopcodeLocation::OH) => false,
             _ => true,
         };
 
@@ -65,6 +68,7 @@ impl InstructionMeta {
             sized,
             a,
             b,
+            subopcode_location,
             subopcode,
             operands,
         }

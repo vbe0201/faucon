@@ -40,7 +40,7 @@ pub trait MachineEncoding {
 
     // Checks if an assembly token matches the criteria to be encoded into its
     // machine representation for a specific operand.
-    fn matches(&self, token: Token) -> bool;
+    fn matches(&self, token: &Token) -> bool;
 
     // Writes the underlying output type from a value to a vector containing
     // Falcon machine code bytes.
@@ -857,13 +857,13 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
         result << self.get_shift()
     }
 
-    fn matches(&self, token: Token) -> bool {
+    fn matches(&self, token: &Token) -> bool {
         // Try to extract the value and convert it into the appropriate type. If that
         // fails, we can assume that the value would not produce a match anyway.
         let value = if let Some(value) = match token {
             Token::Flag(_) => return true,
-            Token::SignedInt(imm) => cast::<i32, T>(imm),
-            Token::UnsignedInt(imm) => cast::<u32, T>(imm),
+            Token::SignedInt(imm) => cast::<i32, T>(*imm),
+            Token::UnsignedInt(imm) => cast::<u32, T>(*imm),
             _ => return false,
         } {
             value
@@ -958,7 +958,7 @@ impl MachineEncoding for Register {
         operands::Register(self.kind, register as usize)
     }
 
-    fn matches(&self, token: Token) -> bool {
+    fn matches(&self, token: &Token) -> bool {
         match token {
             Token::Register(reg) => match self.raw_value {
                 Some(_) => true, // Default values do always match.
@@ -1040,12 +1040,12 @@ impl MachineEncoding for MemoryAccess {
         }
     }
 
-    fn matches(&self, token: Token) -> bool {
+    fn matches(&self, token: &Token) -> bool {
         match (self, token) {
             (
                 MemoryAccess::Reg(_, _base),
                 Token::Memory(operands::MemoryAccess::Reg { space: _, base }),
-            ) => _base.matches(Token::Register(base)),
+            ) => _base.matches(&Token::Register(*base)),
             (
                 MemoryAccess::RegReg(_, _base, _offset, _scale),
                 Token::Memory(operands::MemoryAccess::RegReg {
@@ -1055,9 +1055,9 @@ impl MachineEncoding for MemoryAccess {
                     scale,
                 }),
             ) => {
-                _base.matches(Token::Register(base))
-                    && _offset.matches(Token::Register(offset))
-                    && *_scale == scale
+                _base.matches(&Token::Register(*base))
+                    && _offset.matches(&Token::Register(*offset))
+                    && _scale == scale
             }
             (
                 MemoryAccess::RegImm(_, _base, _offset),
@@ -1067,7 +1067,7 @@ impl MachineEncoding for MemoryAccess {
                     offset,
                 }),
             ) => {
-                _base.matches(Token::Register(base)) && _offset.matches(Token::UnsignedInt(offset))
+                _base.matches(&Token::Register(*base)) && _offset.matches(&Token::UnsignedInt(*offset))
             }
             _ => false,
         }

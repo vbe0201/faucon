@@ -95,7 +95,7 @@
 //! [envytools]: https://github.com/envytools/envytools
 //! [`Error::Eof`]: enum.Error.html#variant.Eof
 
-#![feature(const_unreachable_unchecked)]
+#![feature(const_option, const_unreachable_unchecked)]
 
 mod arguments;
 pub mod assembler;
