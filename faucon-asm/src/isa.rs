@@ -110,113 +110,119 @@ pub enum InstructionKind {
     ///
     /// Computes the sum of two operands and stores the result.
     #[insn(opcode = 0x10, subopcode = 0x00, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x00, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x37, subopcode = 0x00, operands(R2, R2, I16ZXS))]
     #[insn(opcode = 0x38, subopcode = 0x00, operands(R1, R2, I16ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x00, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x00, operands(R3, R2, R1))]
-    #[insn(opcode = 0xF4, subopcode = 0x30, operands(SP, SP, I8SX32))]
-    #[insn(opcode = 0xF5, subopcode = 0x30, operands(SP, SP, I16SX32))]
-    #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, SP, R2))]
+    #[insn(opcode = 0x36, subopcode = 0x00, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x37, subopcode = 0x00, operands(R2, I16ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x00, operands(R2, R1))]
     ADD,
+
+    /// The ADDSP instruction.
+    ///
+    /// Computes the sum of the current stack pointer with a value and stores
+    /// the result as the new stack pointer.
+    #[insn(opcode = 0xF4, subopcode = 0x30, operands(SP, I8SX32))]
+    #[insn(opcode = 0xF5, subopcode = 0x30, operands(SP, I16SX32))]
+    #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, R2))]
+    ADDSP,
 
     /// The ADC instruction.
     ///
     /// Computes the sum of two operands with a carry and stores the result.
     #[insn(opcode = 0x11, subopcode = 0x01, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x01, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x37, subopcode = 0x01, operands(R2, R2, I16ZXS))]
     #[insn(opcode = 0x38, subopcode = 0x01, operands(R1, R2, I16ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x01, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x01, operands(R3, R2, R1))]
+    #[insn(opcode = 0x36, subopcode = 0x01, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x37, subopcode = 0x01, operands(R2, I16ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x01, operands(R2, R1))]
     ADC,
 
     /// The SUB instruction.
     ///
     /// Subtracts two operands and stores the result.
     #[insn(opcode = 0x12, subopcode = 0x02, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x02, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x37, subopcode = 0x02, operands(R2, R2, I16ZXS))]
     #[insn(opcode = 0x38, subopcode = 0x02, operands(R1, R2, I16ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x02, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x02, operands(R3, R2, R1))]
+    #[insn(opcode = 0x36, subopcode = 0x02, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x37, subopcode = 0x02, operands(R2, I16ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x02, operands(R2, R1))]
     SUB,
 
     /// The SBB instruction.
     ///
     /// Subtracts two operands with borrow and stores the result.
     #[insn(opcode = 0x13, subopcode = 0x03, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x03, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x37, subopcode = 0x03, operands(R2, R2, I16ZXS))]
     #[insn(opcode = 0x38, subopcode = 0x03, operands(R1, R2, I16ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x03, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x03, operands(R3, R2, R1))]
+    #[insn(opcode = 0x36, subopcode = 0x03, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x37, subopcode = 0x03, operands(R2, I16ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x03, operands(R2, R1))]
     SBB,
 
     /// The SHL instruction.
     ///
     /// Shifts a value left and stores the result.
     #[insn(opcode = 0x14, subopcode = 0x04, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x04, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x04, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x04, operands(R3, R2, R1))]
+    #[insn(opcode = 0x36, subopcode = 0x04, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x04, operands(R2, R1))]
     SHL,
 
     /// The SHR instruction.
     ///
     /// Shifts a value right and stores the result.
     #[insn(opcode = 0x15, subopcode = 0x05, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x05, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x05, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x05, operands(R3, R2, R1))]
+    #[insn(opcode = 0x36, subopcode = 0x05, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x05, operands(R2, R1))]
     SHR,
 
     /// The SAR instruction.
     ///
     /// Shifts a value right with sign bit and stores the result.
     #[insn(opcode = 0x17, subopcode = 0x07, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x07, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x07, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x07, operands(R3, R2, R1))]
+    #[insn(opcode = 0x36, subopcode = 0x07, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x07, operands(R2, R1))]
     SAR,
 
     /// The SHLC instruction.
     ///
     /// Shifts a value left with carry in and stores the result.
     #[insn(opcode = 0x1C, subopcode = 0x0C, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x0C, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x0C, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x0C, operands(R3, R2, R1))]
+    #[insn(opcode = 0x36, subopcode = 0x0C, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x0C, operands(R2, R1))]
     SHLC,
 
     /// The SHRC instruction.
     ///
     /// Shifts a value right with carry in and stores the result.
     #[insn(opcode = 0x1D, subopcode = 0x0D, operands(R1, R2, I8ZXS))]
-    #[insn(opcode = 0x36, subopcode = 0x0D, operands(R2, R2, I8ZXS))]
-    #[insn(opcode = 0x3B, subopcode = 0x0D, operands(R2, R2, R1))]
     #[insn(opcode = 0x3C, subopcode = 0x0D, operands(R3, R2, R1))]
+    #[insn(opcode = 0x36, subopcode = 0x0D, operands(R2, I8ZXS))]
+    #[insn(opcode = 0x3B, subopcode = 0x0D, operands(R2, R1))]
     SHRC,
 
     /// The NOT instruction.
     ///
     /// Flips all bits in a value.
     #[insn(opcode = 0x39, subopcode = 0x00, operands(R1, R2))]
-    #[insn(opcode = 0x3D, subopcode = 0x01, operands(R2, R2))]
+    #[insn(opcode = 0x3D, subopcode = 0x01, operands(R2))]
     NOT,
 
     /// The NEG instruction.
     ///
     /// Negates a value
     #[insn(opcode = 0x39, subopcode = 0x01, operands(R1, R2))]
-    #[insn(opcode = 0x3D, subopcode = 0x00, operands(R2, R2))]
+    #[insn(opcode = 0x3D, subopcode = 0x00, operands(R2))]
     NEG,
 
     /// The HSWAP instruction.
     ///
     ///  Rotates a value by half it's size
     #[insn(opcode = 0x39, subopcode = 0x03, operands(R1, R2))]
-    #[insn(opcode = 0x3D, subopcode = 0x03, operands(R2, R2))]
+    #[insn(opcode = 0x3D, subopcode = 0x03, operands(R2))]
     HSWAP,
 
     /// The SETHI instruction.
@@ -237,9 +243,9 @@ pub enum InstructionKind {
     /// Performs an unsigned multiplication and stores the result.
     #[insn(opcode = 0xC0, subopcode = 0x00, operands(R1, R2, I8ZX32))]
     #[insn(opcode = 0xE0, subopcode = 0x00, operands(R1, R2, I16ZX32))]
-    #[insn(opcode = 0xF0, subopcode = 0x00, operands(R2, R2, I8ZX32))]
-    #[insn(opcode = 0xFD, subopcode = 0x00, operands(R2, R2, R1))]
     #[insn(opcode = 0xFF, subopcode = 0x00, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF0, subopcode = 0x00, operands(R2, I8ZX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x00, operands(R2, R1))]
     MULU,
 
     /// The MULS instruction.
@@ -247,18 +253,18 @@ pub enum InstructionKind {
     /// Performs a signed multiplication and stores the result.
     #[insn(opcode = 0xC1, subopcode = 0x01, operands(R1, R2, I8SX32))]
     #[insn(opcode = 0xE1, subopcode = 0x01, operands(R1, R2, I16SX32))]
-    #[insn(opcode = 0xF0, subopcode = 0x01, operands(R2, R2, I8SX32))]
-    #[insn(opcode = 0xFD, subopcode = 0x01, operands(R2, R2, R1))]
     #[insn(opcode = 0xFF, subopcode = 0x01, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF0, subopcode = 0x01, operands(R2, I8SX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x01, operands(R2, R1))]
     MULS,
 
     /// The SEXT instruction.
     ///
     /// Sign-extends a value and stores the result.
     #[insn(opcode = 0xC2, subopcode = 0x02, operands(R1, R2, I8))]
-    #[insn(opcode = 0xF0, subopcode = 0x02, operands(R2, R2, I8))]
-    #[insn(opcode = 0xFD, subopcode = 0x02, operands(R2, R2, R1))]
     #[insn(opcode = 0xFF, subopcode = 0x02, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF0, subopcode = 0x02, operands(R2, I8))]
+    #[insn(opcode = 0xFD, subopcode = 0x02, operands(R2, R1))]
     SEXT,
 
     /// The AND instruction.
@@ -266,10 +272,10 @@ pub enum InstructionKind {
     /// Performs a binary AND operation on two operands.
     #[insn(opcode = 0xC4, subopcode = 0x04, operands(R1, R2, I8ZX32))]
     #[insn(opcode = 0xE4, subopcode = 0x04, operands(R1, R2, I16ZX32))]
-    #[insn(opcode = 0xF0, subopcode = 0x04, operands(R2, R2, I8ZX32))]
-    #[insn(opcode = 0xF1, subopcode = 0x04, operands(R2, R2, I16ZX32))]
-    #[insn(opcode = 0xFD, subopcode = 0x04, operands(R2, R2, R1))]
     #[insn(opcode = 0xFF, subopcode = 0x04, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF0, subopcode = 0x04, operands(R2, I8ZX32))]
+    #[insn(opcode = 0xF1, subopcode = 0x04, operands(R2, I16ZX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x04, operands(R2, R1))]
     AND,
 
     /// The OR instruction.
@@ -277,10 +283,10 @@ pub enum InstructionKind {
     /// Performs a binary OR operation on two operands.
     #[insn(opcode = 0xC5, subopcode = 0x05, operands(R1, R2, I8ZX32))]
     #[insn(opcode = 0xE5, subopcode = 0x05, operands(R1, R2, I16ZX32))]
-    #[insn(opcode = 0xF0, subopcode = 0x05, operands(R2, R2, I8ZX32))]
-    #[insn(opcode = 0xF1, subopcode = 0x05, operands(R2, R2, I16ZX32))]
-    #[insn(opcode = 0xFD, subopcode = 0x05, operands(R2, R2, R1))]
     #[insn(opcode = 0xFF, subopcode = 0x05, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF0, subopcode = 0x05, operands(R2, I8ZX32))]
+    #[insn(opcode = 0xF1, subopcode = 0x05, operands(R2, I16ZX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x05, operands(R2, R1))]
     OR,
 
     /// The XOR instruction.
@@ -288,10 +294,10 @@ pub enum InstructionKind {
     /// Performs a binary XOR operation on two operands.
     #[insn(opcode = 0xC6, subopcode = 0x06, operands(R1, R2, I8ZX32))]
     #[insn(opcode = 0xE6, subopcode = 0x06, operands(R1, R2, I16ZX32))]
-    #[insn(opcode = 0xF0, subopcode = 0x06, operands(R2, R2, I8ZX32))]
-    #[insn(opcode = 0xF1, subopcode = 0x06, operands(R2, R2, I16ZX32))]
-    #[insn(opcode = 0xFD, subopcode = 0x06, operands(R2, R2, R1))]
     #[insn(opcode = 0xFF, subopcode = 0x06, operands(R3, R2, R1))]
+    #[insn(opcode = 0xF0, subopcode = 0x06, operands(R2, I8ZX32))]
+    #[insn(opcode = 0xF1, subopcode = 0x06, operands(R2, I16ZX32))]
+    #[insn(opcode = 0xFD, subopcode = 0x06, operands(R2, R1))]
     XOR,
 
     /// The XBIT instruction.
@@ -419,8 +425,8 @@ pub enum InstructionKind {
     /// adds the supplied immediate value to the $sp register.
     ///
     /// [`InstructionKind::MPOP`]: enum.InstructionKind.html#variant.MPOP
-    #[insn(opcode = 0xFB, subopcode = 0x02, operands(R2, I16SX32))]
     #[insn(opcode = 0xFB, subopcode = 0x04, operands(R2, I8SX32))]
+    #[insn(opcode = 0xFB, subopcode = 0x02, operands(R2, I16SX32))]
     MPOPADD,
 
     /// The MPOPRET instruction.
@@ -440,16 +446,16 @@ pub enum InstructionKind {
     ///
     /// [`InstructionKind::MPOPADD`]: enum.InstructionKind.html#variant.MPOPADD
     /// [`InstructionKind::RET`]: enum.InstructionKind.html#variant.RET
-    #[insn(opcode = 0xFB, subopcode = 0x03, operands(R2, I16SX32))]
     #[insn(opcode = 0xFB, subopcode = 0x05, operands(R2, I8SX32))]
+    #[insn(opcode = 0xFB, subopcode = 0x03, operands(R2, I16SX32))]
     MPOPADDRET,
 
     /// The CALL instruction.
     ///
     /// Performs an unconditional call to an absolute address, pushing
     /// the return address onto the stack.
-    #[insn(opcode = 0xF3, subopcode = 0x03, operands(I16ZX32P1))]
     #[insn(opcode = 0xF4, subopcode = 0x21, operands(I8ZX32))]
+    #[insn(opcode = 0xF3, subopcode = 0x03, operands(I16ZX32P1))]
     #[insn(opcode = 0xF9, subopcode = 0x05, operands(R2))]
     CALL,
 
@@ -475,6 +481,13 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF4, subopcode = 0x08, operands(PC8))]
     #[insn(opcode = 0xF5, subopcode = 0x08, operands(PC16))]
     BC,
+
+    /// The BO instruction.
+    ///
+    /// Branches to the PC-relative target when the overflow bit is set.
+    #[insn(opcode = 0xF4, subopcode = 0x09, operands(PC8))]
+    #[insn(opcode = 0xF5, subopcode = 0x09, operands(PC16))]
+    BO,
 
     /// The LBRA instruction.
     ///
@@ -612,6 +625,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMPS => "cmps",
             InstructionKind::CMP => "cmp",
             InstructionKind::ADD => "add",
+            InstructionKind::ADDSP => "addsp",
             InstructionKind::ADC => "adc",
             InstructionKind::SUB => "sub",
             InstructionKind::SBB => "sbb",
@@ -652,6 +666,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::LCALL => "lcall",
             InstructionKind::BRA => "bra",
             InstructionKind::BC => "bc",
+            InstructionKind::BO => "bo",
             InstructionKind::LBRA => "lbra",
             InstructionKind::RET => "ret",
             InstructionKind::EXIT => "exit",
