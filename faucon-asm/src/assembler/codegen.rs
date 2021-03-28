@@ -131,7 +131,8 @@ fn first_pass_assemble_section<'a>(
 }
 
 pub fn build_context<'a>(mut context: Context<'a>) -> Result<Vec<u8>, ParseError> {
-    let mut output = Vec::new();
+    // Pre-allocate one microcode page in the output buffer to reduce allocations.
+    let mut output = Vec::with_capacity(0x100);
 
     // Assemble all the sections to machine code in a first run.
     // This will be needed to produce valid offsets for inserting branch targets
