@@ -33,7 +33,7 @@ pub fn read_instruction<'a, R: Read>(
     let subopcode = {
         let location = opcode::get_subopcode_location(operand_size.value(), a, b)
             .ok_or(FalconError::InvalidOpcode(opcode))?;
-        read_bytes(&mut insn, reader, location.get())?;
+        read_bytes(&mut insn, reader, location.position())?;
 
         location.parse_value(&insn)
     };

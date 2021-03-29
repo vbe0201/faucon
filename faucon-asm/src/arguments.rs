@@ -44,7 +44,7 @@ pub trait MachineEncoding {
 
     // Writes the underlying output type from a value to a vector containing
     // Falcon machine code bytes.
-    fn write(&self, code: &mut Vec<u8>, element: Self::Output);
+    fn write(&self, code: &mut [u8], element: Self::Output);
 }
 
 // A helper macro that is supposed to unwrap an `Argument` of a known kind into
@@ -896,15 +896,15 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
         }
     }
 
-    fn write(&self, code: &mut Vec<u8>, element: Self::Output) {
+    fn write(&self, code: &mut [u8], element: Self::Output) {
         if self.raw_value.is_none() {
             let element = element >> self.get_shift();
             for i in 0..self.width {
                 // Split off the lowest byte at the current position.
                 let current_byte = (element >> (i << 3)).saturating_cast();
 
-                code[self.position + i] = code[self.position + i]
-                    & !(self.get_mask() >> (i << 3)).saturating_cast()
+                code[self.position() + i] = (code[self.position() + i]
+                    & !(self.get_mask() >> (i << 3)).saturating_cast())
                     | current_byte;
             }
         }
@@ -968,7 +968,7 @@ impl MachineEncoding for Register {
         }
     }
 
-    fn write(&self, code: &mut Vec<u8>, element: Self::Output) {
+    fn write(&self, code: &mut [u8], element: Self::Output) {
         // If this register has a fixed value, there's no need to serialize it.
         if self.raw_value.is_none() {
             if self.high {
@@ -1060,6 +1060,10 @@ impl MachineEncoding for MemoryAccess {
                     && _scale == scale
             }
             (
+                MemoryAccess::RegImm(_, _base, _),
+                Token::Memory(operands::MemoryAccess::Reg { space: _, base }),
+            ) => _base.matches(&Token::Register(*base)),
+            (
                 MemoryAccess::RegImm(_, _base, _offset),
                 Token::Memory(operands::MemoryAccess::RegImm {
                     space: _,
@@ -1067,13 +1071,14 @@ impl MachineEncoding for MemoryAccess {
                     offset,
                 }),
             ) => {
-                _base.matches(&Token::Register(*base)) && _offset.matches(&Token::UnsignedInt(*offset))
+                _base.matches(&Token::Register(*base))
+                    && _offset.matches(&Token::UnsignedInt(*offset))
             }
             _ => false,
         }
     }
 
-    fn write(&self, code: &mut Vec<u8>, element: Self::Output) {
+    fn write(&self, code: &mut [u8], element: Self::Output) {
         match (self, element) {
             (MemoryAccess::Reg(_, _base), operands::MemoryAccess::Reg { space: _, base }) => {
                 _base.write(code, base);
@@ -1089,6 +1094,13 @@ impl MachineEncoding for MemoryAccess {
             ) => {
                 _base.write(code, base);
                 _offset.write(code, offset);
+            }
+            (
+                MemoryAccess::RegImm(_, _base, _offset),
+                operands::MemoryAccess::Reg { space: _, base },
+            ) => {
+                _base.write(code, base);
+                _offset.write(code, 0);
             }
             (
                 MemoryAccess::RegImm(_, _base, _offset),

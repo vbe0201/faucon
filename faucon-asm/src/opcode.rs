@@ -110,7 +110,7 @@ impl SubopcodeLocation {
     /// on its form. This tells you which byte of the instruction should contain it
     /// by virtually returning its index in a byteslice. This information can then
     /// be used to read as many bytes as needed to find the one holding the subopcode.
-    pub const fn get(&self) -> u64 {
+    pub const fn position(&self) -> u64 {
         match self {
             SubopcodeLocation::OH => 0,
             SubopcodeLocation::O1 => 0,
@@ -118,6 +118,18 @@ impl SubopcodeLocation {
             SubopcodeLocation::OL => 1,
             SubopcodeLocation::O3 => 2,
             SubopcodeLocation::O5 => 4,
+        }
+    }
+
+    /// Gets the bitmask for masking out the subopcode from its position.
+    pub const fn mask(&self) -> u8 {
+        match self {
+            SubopcodeLocation::OH => 0b11 << 6,
+            SubopcodeLocation::O1
+            | SubopcodeLocation::O2
+            | SubopcodeLocation::O3
+            | SubopcodeLocation::O5 => 0b1111,
+            SubopcodeLocation::OL => 0b111111,
         }
     }
 

@@ -278,7 +278,7 @@ pub struct Section<'a> {
     pub counter: u32,
     // The current position within the `code` buffer at which to peek the
     // next token.
-    peek_index: usize,
+    pub peek_index: usize,
     // The program source code within the section.
     code: Vec<ParseSpan<Token<'a>>>,
 }
@@ -294,11 +294,6 @@ impl<'a> Section<'a> {
             peek_index: 0,
             code: Vec::new(),
         }
-    }
-
-    // Resets the peek index to the first token in the cache.
-    pub fn reset_peek_index(&mut self) {
-        self.peek_index = 0;
     }
 
     // Adds a new token to the code within this section.

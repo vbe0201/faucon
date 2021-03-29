@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 #[macro_use]
 extern crate enum_primitive;
 
