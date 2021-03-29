@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use crate::arguments::Argument;
+use crate::arguments::{Argument, MachineEncoding};
 use crate::assembler::context::{Context, Directive, Section};
 use crate::assembler::error::ParseError;
 use crate::assembler::lexer::Token;
@@ -32,19 +32,63 @@ fn skip(output: &mut Vec<u8>, size: u32, value: u8) {
     output.extend(vec![value; size as usize]);
 }
 
-fn matches_operand(_section: &mut Section, _arg: &Argument) -> bool {
-    todo!()
+fn matches_size(form: &InstructionMeta, size: &OperandSize) -> bool {
+    match (form.sized, size) {
+        (false, OperandSize::Unsized) => true,
+        (false, _) => false,
+        (true, OperandSize::Unsized) => false,
+        (true, _) => true,
+    }
+}
+
+fn matches_operand(section: &mut Section, size: &OperandSize, arg: &Argument) -> bool {
+    // TODO: Handle branches correctly.
+    let token = section.peek_code_token().unwrap().token();
+    match arg {
+        Argument::SizeConverter(c) => {
+            let real_arg = c(size.value());
+            matches_operand(section, size, &real_arg)
+        }
+
+        Argument::PcRel8(imm) => imm.matches(token),
+        Argument::PcRel16(imm) => imm.matches(token),
+
+        Argument::U8(imm) => imm.matches(token),
+        Argument::I8(imm) => imm.matches(token),
+        Argument::U16(imm) => imm.matches(token),
+        Argument::I16(imm) => imm.matches(token),
+        Argument::U24(imm) => imm.matches(token),
+        Argument::I24(imm) => imm.matches(token),
+        Argument::U32(imm) => imm.matches(token),
+        Argument::I32(imm) => imm.matches(token),
+
+        Argument::Register(reg) => reg.matches(token),
+        Argument::Flag(imm) => imm.matches(token),
+
+        Argument::Memory(mem) => mem.matches(token),
+    }
 }
 
 fn select_instruction_form<'a>(
     forms: &'a Vec<InstructionMeta>,
+    size: &OperandSize,
     section: &mut Section,
 ) -> Option<&'a InstructionMeta> {
     forms.iter().find(|m| {
-        m.operands
-            .iter()
-            .filter_map(|o| o.as_ref())
-            .fold(true, |acc, a| acc && matches_operand(section, a))
+        // We need to match the size of the form against the size written in assembly first.
+        // For `Argument::SizeConverter` variants that evaluate to an argument to match an
+        // operand against, this is important to not trigger the unreachable!() branch by
+        // passing an unexpected value. Although this wouldn't cause any damage, it directly
+        // causes the program to abort and bypasses the detailed error reporting mechanisms.
+        if matches_size(m, size) {
+            section.reset_peek_index();
+            m.operands
+                .iter()
+                .filter_map(|o| o.as_ref())
+                .fold(true, |acc, a| acc && matches_operand(section, size, a))
+        } else {
+            false
+        }
     })
 }
 
@@ -89,7 +133,6 @@ fn lower_instruction(
     _section: &mut Section,
 ) {
     // Construct and write the instruction opcode.
-    // TODO: Validate `size`.
     output.push(size.value() << 6 | build_opcode_form(form.a, form.b));
 
     // Write the instruction subopcode into the location.
@@ -120,7 +163,7 @@ fn first_pass_assemble_section<'a>(
             Token::Label(_label) => todo!(),
             Token::Mnemonic((kind, size)) => {
                 let instruction_forms = kind.get_forms();
-                let form = select_instruction_form(&instruction_forms, &mut section).unwrap();
+                let form = select_instruction_form(&instruction_forms, size, &mut section).unwrap();
                 lower_instruction(&mut output, &mut pc, form, size, &mut section);
             }
             _ => unreachable!(),

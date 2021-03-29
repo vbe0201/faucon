@@ -276,6 +276,9 @@ pub struct Section<'a> {
     pub base: u32,
     // Count of instructions within the section.
     pub counter: u32,
+    // The current position within the `code` buffer at which to peek the
+    // next token.
+    peek_index: usize,
     // The program source code within the section.
     code: Vec<ParseSpan<Token<'a>>>,
 }
@@ -288,13 +291,28 @@ impl<'a> Section<'a> {
             mode,
             base,
             counter: 0,
+            peek_index: 0,
             code: Vec::new(),
         }
+    }
+
+    // Resets the peek index to the first token in the cache.
+    pub fn reset_peek_index(&mut self) {
+        self.peek_index = 0;
     }
 
     // Adds a new token to the code within this section.
     pub fn add_code_token(&mut self, token: ParseSpan<Token<'a>>) {
         self.code.push(token);
+    }
+
+    // Gets the next code token of the section, without removing it from
+    // the internal cache.
+    pub fn peek_code_token(&mut self) -> Option<&ParseSpan<Token<'a>>> {
+        let temp = self.peek_index;
+        self.peek_index += 1;
+
+        self.code.get(temp)
     }
 
     // Gets the first token from the internal code cache of this
@@ -306,6 +324,7 @@ impl<'a> Section<'a> {
         if self.code.is_empty() {
             None
         } else {
+            self.peek_index = 0;
             Some(self.code.remove(0))
         }
     }
@@ -318,6 +337,7 @@ impl<'a> Default for Section<'a> {
             mode: SecurityMode::NoSecure,
             base: 0,
             counter: 0,
+            peek_index: 0,
             code: Vec::new(),
         }
     }
