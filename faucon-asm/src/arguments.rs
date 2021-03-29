@@ -826,7 +826,7 @@ impl<T> Positional for Immediate<T> {
     }
 }
 
-impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncoding
+impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub + std::fmt::Debug> MachineEncoding
     for Immediate<T>
 {
     type Output = T;
@@ -846,7 +846,7 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
         }
 
         // If the immediate is signed, handle sign-extension correctly.
-        if self.sign && self.width > size_of::<T>() {
+        if self.sign && size_of::<T>() > 1 {
             result = sign_extend(result, self.width() << 3);
         }
 
@@ -881,8 +881,8 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
         if self.sign {
             // Calculate the boundaries of the supported value range. Signed
             // numbers generally don't have shifts or bitmasks applied to them.
-            let min_value = T::zero() - cast::<usize, T>(2.pow(nbits - 1)).unwrap();
-            let max_value = cast::<usize, T>(2.pow(nbits - 1) - 1).unwrap();
+            let min_value = cast::<isize, T>((2.pow(nbits - 1) / 2) * -1).unwrap();
+            let max_value = cast::<isize, T>(2.pow(nbits - 1) - 1).unwrap();
 
             min_value <= value && value <= max_value
         } else {
