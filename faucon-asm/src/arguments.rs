@@ -700,6 +700,10 @@ fn sign_extend<T>(value: T, numbits: usize) -> T
 where
     T: FromPrimitive + PrimInt,
 {
+    if size_of::<T>() == size_of::<i8>() {
+        return value;
+    }
+
     if ((value >> (numbits - 1)) & T::one()) != T::zero() {
         value | (!T::zero()) << numbits
     } else {
@@ -826,8 +830,8 @@ impl<T> Positional for Immediate<T> {
     }
 }
 
-impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub + std::fmt::Debug> MachineEncoding
-    for Immediate<T>
+impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub>
+    MachineEncoding for Immediate<T>
 {
     type Output = T;
 
@@ -846,15 +850,12 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub + std::fmt::D
         }
 
         // If the immediate is signed, handle sign-extension correctly.
-        if self.sign && size_of::<T>() > 1 {
+        if self.sign {
             result = sign_extend(result, self.width() << 3);
         }
 
-        // Mask the immediate correctly to obtain the real value.
-        result = result & self.get_mask();
-
-        // Lastly, shift the value if necessary.
-        result << self.get_shift()
+        // Lastly, mask and shift the value appropriately, if necessary.
+        (result & self.get_mask()) << self.get_shift()
     }
 
     fn matches(&self, token: &Token) -> bool {
@@ -877,20 +878,19 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub + std::fmt::D
         }
 
         // Do an appropriate boundary check to determine whether the value is valid.
-        let nbits = (self.width << 3) as u32;
         if self.sign {
             // Calculate the boundaries of the supported value range. Signed
             // numbers generally don't have shifts or bitmasks applied to them.
-            let min_value = cast::<isize, T>((2.pow(nbits - 1) / 2) * -1).unwrap();
-            let max_value = cast::<isize, T>(2.pow(nbits - 1) - 1).unwrap();
+            let nbits = (self.width << 3) - 1;
+            let min_value = sign_extend(T::one() << nbits, self.width << 3);
+            let max_value = !min_value;
 
             min_value <= value && value <= max_value
         } else {
             // Calculate the upper boundary of the supported value range.
             // The lower boundary of `0` is enforced by Rust's design.
-            let mut max_value = cast::<usize, T>(2.pow(nbits) - 1).unwrap();
-            max_value = max_value & self.get_mask();
-            max_value = max_value << self.get_shift();
+            let max_value =
+                (T::zero().wrapping_sub(&T::one()) & self.get_mask()) << self.get_shift();
 
             value <= max_value
         }
