@@ -14,9 +14,9 @@ use crate::operands::{MemoryAccess, Register};
 pub enum Token<'a> {
     // A directive statement suggesting an action to be performed by the assembler.
     Directive(&'a str),
-    // An expression statement for referring to labels, constants and variables
-    // declared in code.
-    Expression(&'a str),
+    // A symbol that evaluates either to a declared value or to the address of a
+    // label.
+    Symbol(&'a str),
     // A label declaration that can be referred to by expressions.
     Label(&'a str),
     // An assembly mnemonic with its corresponding instruction sizing.
@@ -44,7 +44,7 @@ impl<'a> Token<'a> {
     ) -> nom::IResult<parser::LineSpan<'a>, ParseSpan<Self>> {
         spanned(alt((
             map(parser::directive, |d| Token::Directive(d)),
-            map(parser::expression, |e| Token::Expression(e)),
+            map(parser::symbol, |e| Token::Symbol(e)),
             map(parser::register, |r| Token::Register(r)),
             map(parser::flag, |f| Token::Flag(f)),
             map(parser::memory_access, |m| Token::Memory(m)),

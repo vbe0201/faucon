@@ -73,7 +73,7 @@ impl<'a> Assembler<'a> {
                         .map_err(|e| e.unwrap_or(span.clone()))?
                     {
                         Directive::Equ(name, value) => {
-                            self.asm_context.add_declaration(name, value);
+                            self.asm_context.add_declaration(name, value).unwrap();
                         }
                         Directive::Include(_) => todo!(),
                         Directive::Section(mode, name, addr) => {
@@ -81,19 +81,14 @@ impl<'a> Assembler<'a> {
                         }
                         dir => {
                             self.asm_context.add_directive(dir);
-                            self.asm_context.current_section_mut().add_code_token(span);
+                            self.asm_context.current_section().add_code_token(span);
                         }
                     },
-                    Token::Label(l) => {
-                        self.asm_context.add_label(l);
-                    }
-                    Token::Mnemonic(_) => {
-                        let section = self.asm_context.current_section_mut();
-                        section.counter += 1;
-                        section.add_code_token(span);
-                    }
-                    _ => {
-                        self.asm_context.current_section_mut().add_code_token(span);
+                    t => {
+                        if let Token::Label(l) = t {
+                            self.asm_context.add_label(l).unwrap();
+                        }
+                        self.asm_context.current_section().add_code_token(span);
                     }
                 },
                 None => break,

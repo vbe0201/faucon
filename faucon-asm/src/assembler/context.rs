@@ -55,11 +55,11 @@ fn try_extract_integer_optional<'a, I: NumCast>(span: &ParseSpan<Token<'a>>) -> 
 }
 
 #[inline]
-fn try_extract_expression_ident<'a>(
+fn try_extract_symbol_ident<'a>(
     span: ParseSpan<Token<'a>>,
 ) -> Result<&'a str, ParseSpan<Token<'a>>> {
     match span.token() {
-        Token::Expression(e) => Ok(e),
+        Token::Symbol(s) => Ok(s),
         _ => Err(span),
     }
 }
@@ -94,7 +94,7 @@ macro_rules! parse_next_token {
         $iter
             .next()
             .ok_or(None)
-            .and_then(|s| try_extract_expression_ident(s).map_err(Some))
+            .and_then(|s| try_extract_symbol_ident(s).map_err(Some))
     };
     (str: $iter:ident) => {
         $iter
@@ -173,7 +173,7 @@ pub struct Context<'a> {
     pub context_name: OsString,
 
     directives: Vec<Directive<'a>>,
-    symbols: BTreeMap<String, Symbol>,
+    symbols: BTreeMap<String, u32>,
     sections: Vec<Section<'a>>,
 }
 
@@ -229,34 +229,54 @@ impl<'a> Context<'a> {
         }
     }
 
-    // Gets an immutable reference to the currently processed section.
-    pub fn current_section(&self) -> &Section<'a> {
-        // SAFETY: Since Context is always initialized with at least
-        // a single default section, this will never cause a panic.
-        self.sections.last().unwrap()
-    }
-
     // Gets a mutable reference to the currently processed section.
-    pub fn current_section_mut(&mut self) -> &mut Section<'a> {
+    pub fn current_section(&mut self) -> &mut Section<'a> {
         // SAFETY: Since Context is always initialized with at least
         // a single default section, this will never cause a panic.
         self.sections.last_mut().unwrap()
     }
 
     // Adds a new label to the end of the internal symbol cache given its name.
-    pub fn add_label(&mut self, name: &'a str) {
-        let symbol = Symbol::label(self.current_section());
-        self.symbols.insert(
-            [self.current_section().mode.get_prefix(), name].concat(),
-            symbol,
-        );
+    //
+    // If this does not return None, a symbol of the same name has been declared
+    // previously and the assembler should abort due to multiple definitions of
+    // the same name.
+    pub fn add_label(&mut self, name: &'a str) -> Result<(), ()> {
+        self.symbols
+            .insert(name.to_owned(), 0)
+            .map_or_else(|| Ok(()), |_| Err(()))
+    }
+
+    // Updates the value of a label symbol.
+    //
+    // Returns the address of the label on success, or an empty error if the label
+    // could not be found in the internal symbol cache.
+    pub fn set_label_address(&mut self, name: &'a str, new_addr: u32) -> Result<u32, ()> {
+        self.symbols
+            .get_mut(name)
+            .and_then(|e| {
+                *e = new_addr;
+                Some(new_addr)
+            })
+            .ok_or_else(|| ())
     }
 
     // Adds a new declaration to the end of the internal symbol cache given its
     // name and value.
-    pub fn add_declaration(&mut self, name: &'a str, value: u32) {
-        let symbol = Symbol::declaration(self.current_section(), value);
-        self.symbols.insert(name.to_owned(), symbol);
+    //
+    // If this does not return None, a symbol of the same name has been declared
+    // previously and the assembler should abort due to multiple definitions of
+    // the same name.
+    pub fn add_declaration(&mut self, name: &'a str, value: u32) -> Result<(), ()> {
+        self.symbols
+            .insert(name.to_owned(), value)
+            .map_or_else(|| Ok(()), |_| Err(()))
+    }
+
+    // Attempts to look up a symbol from the internal cache by name and returns its
+    // value, if present.
+    pub fn find_symbol(&self, name: &'a str) -> Option<&u32> {
+        self.symbols.get(name)
     }
 }
 
@@ -274,7 +294,7 @@ pub struct Section<'a> {
     pub mode: SecurityMode,
     // The virtual base address in memory at which the section starts.
     pub base: u32,
-    // Count of instructions within the section.
+    // The local instruction counter within the section.
     pub counter: u32,
     // The current position within the `code` buffer at which to peek the
     // next token.
@@ -356,44 +376,4 @@ pub enum SecurityMode {
     // possible set of privileges while, at the same time, all debugging features
     // are disabled.
     HeavySecure,
-}
-
-impl SecurityMode {
-    fn get_prefix(&self) -> &'static str {
-        match self {
-            SecurityMode::NoSecure => "ns_",
-            SecurityMode::LightSecure => "ls_",
-            SecurityMode::HeavySecure => "hs_",
-        }
-    }
-}
-
-// A symbol declared in assembly.
-//
-// Symbols may either be declarations using the `EQU` directive which
-// have a value assigned to them, or labels mostly used for branches.
-#[derive(Debug, PartialEq, Eq)]
-pub struct Symbol {
-    // The position at which the label appears.
-    pub position: u32,
-    // An optional value that is assigned to the symbol.
-    pub value: Option<u32>,
-}
-
-impl Symbol {
-    // Constructs a new symbol from a label token.
-    fn label(section: &Section) -> Self {
-        Symbol {
-            position: section.base + section.counter,
-            value: None,
-        }
-    }
-
-    // Constructs a new symbol from a declaration using `EQU`.
-    fn declaration(section: &Section, value: u32) -> Self {
-        Symbol {
-            position: section.base + section.counter,
-            value: Some(value),
-        }
-    }
 }

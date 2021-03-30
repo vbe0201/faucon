@@ -11,6 +11,35 @@ use crate::isa::InstructionMeta;
 use crate::opcode::{build_opcode_form, OperandSize};
 use crate::operands::{MemoryAccess, Register};
 
+#[derive(Debug)]
+struct Relocation<'a> {
+    pub address: u32,
+    pub position: u32,
+    patched: bool,
+    pub symbol: &'a str,
+    pub argument: Argument,
+}
+
+impl<'a> Relocation<'a> {
+    pub fn new(address: u32, symbol: &'a str, arg: &Argument) -> Self {
+        Relocation {
+            address,
+            position: address,
+            patched: false,
+            symbol,
+            argument: arg.clone(),
+        }
+    }
+
+    pub fn patch(&mut self, address_base: u32, position_base: u32) {
+        if !self.patched {
+            self.address += address_base;
+            self.position += position_base;
+            self.patched = true;
+        }
+    }
+}
+
 fn write_byte(output: &mut Vec<u8>, b: u8) {
     output.push(b);
 }
@@ -53,9 +82,14 @@ fn matches_size(form: &InstructionMeta, size: &OperandSize) -> bool {
 }
 
 fn matches_operand(section: &mut Section, size: &OperandSize, arg: &Argument) -> bool {
-    // TODO: Handle branches correctly.
     if let Some(span) = section.peek_code_token() {
-        let token = span.token();
+        // If the token is a symbol, it will be resolved in the second pass.
+        // Just make sure that a `u32` would fit as the operand in that case.
+        let mut token = span.token();
+        if let Token::Symbol(_) = token {
+            token = &Token::UnsignedInt(0);
+        }
+
         match arg {
             Argument::SizeConverter(c) => {
                 let real_arg = c(size.value());
@@ -136,27 +170,7 @@ fn select_instruction_form<'a>(
     })
 }
 
-fn lower_operand(
-    output: &mut Vec<u8>,
-    pc: u32,
-    section: &mut Section,
-    size: &OperandSize,
-    arg: &Argument,
-) {
-    // TODO: Handle branches correctly.
-
-    // If necessary, evaluate the real argument value and call the function again.
-    if let Argument::SizeConverter(c) = arg {
-        let real_arg = c(size.value());
-        return lower_operand(output, pc, section, size, &real_arg);
-    }
-
-    // Resize the output buffer to fit the next operand.
-    resize_extend(output, pc as usize + arg.position() + arg.width());
-
-    // Lower the value of the operand into machine code and write it to the buffer.
-    let buffer = &mut output[pc as usize..];
-    let token = section.get_code_token().unwrap().unwrap();
+fn lower_operand_impl(buffer: &mut [u8], _pc: u32, token: Token, arg: &Argument) {
     match arg {
         Argument::PcRel8(_) => todo!(),
         Argument::PcRel16(_) => todo!(),
@@ -179,32 +193,66 @@ fn lower_operand(
     }
 }
 
-fn lower_directive<'a>(output: &mut Vec<u8>, pc: &mut u32, directive: Directive<'a>) {
+fn lower_operand<'a>(
+    output: &mut Vec<u8>,
+    pc: u32,
+    symbols: &mut Vec<Relocation<'a>>,
+    section: &mut Section<'a>,
+    size: &OperandSize,
+    arg: &Argument,
+) {
+    // If necessary, evaluate the real argument value and call the function again.
+    if let Argument::SizeConverter(c) = arg {
+        let real_arg = c(size.value());
+        return lower_operand(output, pc, symbols, section, size, &real_arg);
+    }
+
+    // Resize the output buffer to fit the next operand.
+    resize_extend(output, pc as usize + arg.position() + arg.width());
+
+    // Lower the value of the operand into machine code and write it to the buffer.
+    let buffer = &mut output[pc as usize..];
+    let token = {
+        let t = section.get_code_token().unwrap().unwrap();
+
+        // If the token is a symbol, add it to the symbol cache for evaluation in
+        // the second pass and proceed with an unsigned immediate value of zero.
+        if let Token::Symbol(s) = t {
+            symbols.push(Relocation::new(pc, s, arg));
+            Token::UnsignedInt(0)
+        } else {
+            t
+        }
+    };
+    lower_operand_impl(buffer, pc, token, arg)
+}
+
+fn lower_directive<'a>(output: &mut Vec<u8>, section: &mut Section<'a>, directive: Directive<'a>) {
     match directive {
         Directive::Align(align) => {
-            let new_pc = align_up(*pc, align);
-            skip(output, new_pc - *pc, 0);
-            *pc = new_pc;
+            let new_counter = align_up(section.counter, align);
+            skip(output, new_counter - section.counter, 0);
+            section.counter = new_counter;
         }
         Directive::Byte(b) => {
             write_byte(output, b);
-            *pc += size_of::<u8>() as u32;
+            section.counter += size_of::<u8>() as u32;
         }
         Directive::Halfword(hw) => {
             write_halfword(output, hw);
-            *pc += size_of::<u16>() as u32;
+            section.counter += size_of::<u16>() as u32;
         }
         Directive::Word(w) => {
             write_word(output, w);
-            *pc += size_of::<u32>() as u32;
+            section.counter += size_of::<u32>() as u32;
         }
         Directive::Skip(size, value) => {
             skip(output, size, value.unwrap_or(0));
-            *pc += size;
+            section.counter += size;
         }
         Directive::Str(s) => {
             write_str(output, s);
-            *pc += s.len() as u32;
+            section.counter += s.len() as u32;
         }
         // All other directives actively manipulate the assembler context and
         // have been processed and filtered out before this code executes.
@@ -212,50 +260,55 @@ fn lower_directive<'a>(output: &mut Vec<u8>, pc: &mut u32, directive: Directive<
     }
 }
 
-fn lower_instruction(
+fn lower_instruction<'a>(
     output: &mut Vec<u8>,
-    pc: &mut u32,
-    section: &mut Section,
+    section: &mut Section<'a>,
     form: &InstructionMeta,
     size: &OperandSize,
+    symbols: &mut Vec<Relocation<'a>>,
 ) {
+    let pc = section.counter;
+
     // Construct and write the instruction opcode.
     output.push(size.value() << 6 | build_opcode_form(form.a, form.b));
 
     // Write the instruction subopcode at its position.
-    let subopcode_position = *pc as usize + form.subopcode_location.position() as usize;
+    let subopcode_position = pc as usize + form.subopcode_location.position() as usize;
     resize_extend(output, subopcode_position + 1);
     output[subopcode_position] = (output[subopcode_position] & !form.subopcode_location.mask())
         | form.subopcode_location.build_value(form.subopcode);
 
     // Lower the value of the operand into machine code.
     for operand in form.operands.iter().filter_map(|o| o.as_ref()) {
-        lower_operand(output, *pc, section, size, operand);
+        lower_operand(output, section.base + pc, symbols, section, size, operand);
     }
 
     // Increment the program counter to point to the next instruction.
-    *pc += output[*pc as usize..].len() as u32;
+    section.counter += output[pc as usize..].len() as u32;
 }
 
 fn first_pass_assemble_section<'a>(
     context: &mut Context<'a>,
-    mut section: Section,
+    mut section: Section<'a>,
+    symbols: &mut Vec<Relocation<'a>>,
 ) -> Result<Vec<u8>, ParseError> {
-    let mut pc = section.base;
     let mut output = Vec::new();
 
     while let Some(span) = section.get_code_token() {
         match span.token() {
             Token::Directive(_) => {
                 let dir = context.get_directive();
-                lower_directive(&mut output, &mut pc, dir);
+                lower_directive(&mut output, &mut section, dir);
             }
-            Token::Expression(_expr) => todo!(),
-            Token::Label(_label) => todo!(),
+            Token::Label(label) => {
+                context
+                    .set_label_address(label, section.base + section.counter)
+                    .unwrap();
+            }
             Token::Mnemonic((kind, size)) => {
                 let instruction_forms = kind.get_forms();
                 let form = select_instruction_form(&mut section, &instruction_forms, size).unwrap();
-                lower_instruction(&mut output, &mut pc, &mut section, form, size);
+                lower_instruction(&mut output, &mut section, form, size, symbols);
             }
             _ => unreachable!(),
         }
@@ -267,12 +320,38 @@ fn first_pass_assemble_section<'a>(
 pub fn build_context<'a>(mut context: Context<'a>) -> Result<Vec<u8>, ParseError> {
     // Pre-allocate one microcode page in the output buffer to reduce allocations.
     let mut output = Vec::with_capacity(0x100);
+    let mut symbol_table = Vec::new();
 
-    // Assemble all the sections to machine code in a first run.
-    // This will be needed to produce valid offsets for inserting branch targets
-    // in a second run that can make use of the real memory offsets.
+    // First pass: Assemble all sections into machine code and store information
+    // to evaluate symbols into immediate values in a symbol table.
     while let Some(section) = context.get_section() {
-        output.extend(first_pass_assemble_section(&mut context, section)?);
+        let address_base = section.base;
+        let position_base = output.len() as u32;
+
+        output.extend(first_pass_assemble_section(
+            &mut context,
+            section,
+            &mut symbol_table,
+        )?);
+
+        for rel in symbol_table.iter_mut() {
+            rel.patch(address_base, position_base);
+        }
+    }
+
+    // Second pass: Now that most of the code is assembled and the offsets and
+    // values of the remaining symbols are known, do the symbol resolution and
+    // apply all relocations to the assembled code.
+    for rel in symbol_table {
+        let buffer = &mut output[rel.position as usize..];
+        let symbol = context.find_symbol(rel.symbol).unwrap();
+
+        lower_operand_impl(
+            buffer,
+            rel.address,
+            Token::UnsignedInt(*symbol),
+            &rel.argument,
+        );
     }
 
     Ok(output)
