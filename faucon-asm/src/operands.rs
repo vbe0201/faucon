@@ -237,10 +237,6 @@ pub enum Operand {
     I16(i16),
     /// A 16-bit-sized unsigned immediate.
     U16(u16),
-    /// A 24-bit-sized signed immediate.
-    I24(i32),
-    /// A 24-bit-sized unsigned immediate.
-    U24(u32),
     /// A 32-bit-sized signed immediate.
     I32(i32),
     /// A 32-bit-sized unsigned immediate.
@@ -264,8 +260,6 @@ impl Operand {
             Argument::I8(imm) => Operand::I8(imm.read(insn)),
             Argument::U16(imm) => Operand::U16(imm.read(insn)),
             Argument::I16(imm) => Operand::I16(imm.read(insn)),
-            Argument::U24(imm) => Operand::U24(imm.read(insn)),
-            Argument::I24(imm) => Operand::I24(imm.read(insn)),
             Argument::U32(imm) => Operand::U32(imm.read(insn)),
             Argument::I32(imm) => Operand::I32(imm.read(insn)),
 
@@ -287,12 +281,10 @@ impl fmt::Display for Operand {
 
             Operand::I8(val) => display_signed_hex(val, f),
             Operand::I16(val) => display_signed_hex(val, f),
-            Operand::I24(val) => display_signed_hex(val, f),
             Operand::I32(val) => display_signed_hex(val, f),
 
             Operand::U8(val) => display_unsigned_hex(val, f),
             Operand::U16(val) => display_unsigned_hex(val, f),
-            Operand::U24(val) => display_unsigned_hex(val, f),
             Operand::U32(val) => display_unsigned_hex(val, f),
 
             Operand::Memory(mem) => write!(f, "{}", mem),

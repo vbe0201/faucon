@@ -57,8 +57,8 @@ pub fn get_value(cpu: &Cpu, size: OperandSize, source: Operand) -> u32 {
         Operand::U8(imm) => imm as u32,
         Operand::I16(imm) => imm as u16 as u32,
         Operand::U16(imm) => imm as u32,
-        Operand::I24(imm) | Operand::I32(imm) => imm as u32,
-        Operand::U24(imm) | Operand::U32(imm) => imm,
+        Operand::I32(imm) => imm as u32,
+        Operand::U32(imm) => imm,
         Operand::Memory(_) => read_mem(cpu, size, source),
         _ => panic!("The operand doesn't represent an extractable value"),
     }

@@ -69,8 +69,6 @@ fn matches_operand_impl(arg: &Argument, t: &Token) -> bool {
         Argument::I8(imm) => imm.matches(t),
         Argument::U16(imm) => imm.matches(t),
         Argument::I16(imm) => imm.matches(t),
-        Argument::U24(imm) => imm.matches(t),
-        Argument::I24(imm) => imm.matches(t),
         Argument::U32(imm) => imm.matches(t),
         Argument::I32(imm) => imm.matches(t),
 
@@ -184,8 +182,6 @@ fn lower_operand_impl(buffer: &mut [u8], _pc: u32, token: Token, arg: &Argument)
         Argument::I8(imm) => imm.write(buffer, unwrap_immediate(token)),
         Argument::U16(imm) => imm.write(buffer, unwrap_immediate(token)),
         Argument::I16(imm) => imm.write(buffer, unwrap_immediate(token)),
-        Argument::U24(imm) => imm.write(buffer, unwrap_immediate(token)),
-        Argument::I24(imm) => imm.write(buffer, unwrap_immediate(token)),
         Argument::U32(imm) => imm.write(buffer, unwrap_immediate(token)),
         Argument::I32(imm) => imm.write(buffer, unwrap_immediate(token)),
 

@@ -735,10 +735,6 @@ pub enum Argument {
     U16(Immediate<u16>),
     // A signed 16-bit immediate.
     I16(Immediate<i16>),
-    // An unsigned 24-bit immediate.
-    U24(Immediate<u32>),
-    // A signed 24-bit immediate.
-    I24(Immediate<i32>),
     // An unsigned 32-bit immediate.
     U32(Immediate<u32>),
     // A signed 32-bit immediate.
@@ -760,8 +756,6 @@ impl Positional for Argument {
             Argument::I8(imm) => imm.position(),
             Argument::U16(imm) => imm.position(),
             Argument::I16(imm) => imm.position(),
-            Argument::U24(imm) => imm.position(),
-            Argument::I24(imm) => imm.position(),
             Argument::U32(imm) => imm.position(),
             Argument::I32(imm) => imm.position(),
             Argument::Register(reg) => reg.position(),
@@ -779,8 +773,6 @@ impl Positional for Argument {
             Argument::I8(imm) => imm.width(),
             Argument::U16(imm) => imm.width(),
             Argument::I16(imm) => imm.width(),
-            Argument::U24(imm) => imm.width(),
-            Argument::I24(imm) => imm.width(),
             Argument::U32(imm) => imm.width(),
             Argument::I32(imm) => imm.width(),
             Argument::Register(reg) => reg.width(),
