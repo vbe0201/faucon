@@ -232,7 +232,7 @@ fn lower_operand<'a>(
             token
         }
     };
-    lower_operand_impl(buffer, pc, token, arg)
+    lower_operand_impl(buffer, section.base + pc, token, arg)
 }
 
 fn lower_directive<'a>(output: &mut Vec<u8>, section: &mut Section<'a>, directive: Directive<'a>) {
@@ -295,7 +295,7 @@ fn lower_instruction<'a>(
         lower_operand(
             context,
             output,
-            section.base + pc,
+            pc,
             relocations,
             section,
             size,
