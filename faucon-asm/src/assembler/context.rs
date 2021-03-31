@@ -7,6 +7,7 @@ use num_traits::{cast, NumCast};
 use crate::arguments::Argument;
 use crate::assembler::lexer::Token;
 use crate::assembler::span::ParseSpan;
+use crate::opcode::OperandSize;
 
 // Assembler directives that may be used in Falcon assembly language.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -61,13 +62,19 @@ pub struct Relocation<'a> {
 
 impl<'a> Relocation<'a> {
     // Initializes a relocation for a new symbol.
-    pub fn new(address: u32, symbol: &'a str, arg: &Argument) -> Self {
+    pub fn new(address: u32, symbol: &'a str, arg: &Argument, size: &OperandSize) -> Self {
+        let argument = if let Argument::SizeConverter(c) = arg {
+            c(size.value())
+        } else {
+            arg.clone()
+        };
+
         Relocation {
             address,
             position: address,
             is_patched: false,
             symbol,
-            argument: arg.clone(),
+            argument,
         }
     }
 

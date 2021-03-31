@@ -141,7 +141,10 @@ fn select_instruction_form<'a>(
     full_match.or_else(|| {
         candidates
             .into_iter()
-            .max_by_key(|m| m.operands.iter().flatten().last().unwrap().width())
+            .max_by_key(|m| match m.operands.iter().flatten().last().unwrap() {
+                Argument::SizeConverter(c) => c(size.value()).width(),
+                arg => arg.width(),
+            })
     })
 }
 
@@ -225,7 +228,7 @@ fn lower_operand<'a>(
             if let Some(real_token) = resolve_symbol(context, s) {
                 real_token
             } else {
-                relocations.push(Relocation::new(pc, s, arg));
+                relocations.push(Relocation::new(pc, s, arg, size));
                 Token::UnsignedInt(0)
             }
         } else {
@@ -292,15 +295,7 @@ fn lower_instruction<'a>(
 
     // Lower the value of the operand into machine code.
     for arg in form.operands.iter().flatten() {
-        lower_operand(
-            context,
-            output,
-            pc,
-            relocations,
-            section,
-            size,
-            arg,
-        );
+        lower_operand(context, output, pc, relocations, section, size, arg);
     }
 
     // Increment the internal counter to point to the next instruction.
