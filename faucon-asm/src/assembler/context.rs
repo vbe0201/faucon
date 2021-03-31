@@ -1,9 +1,10 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::ffi::OsString;
 use std::iter::Peekable;
 
 use num_traits::{cast, NumCast};
 
+use crate::arguments::Argument;
 use crate::assembler::lexer::Token;
 use crate::assembler::span::ParseSpan;
 
@@ -32,6 +33,52 @@ pub enum Directive<'a> {
     Skip(u32, Option<u8>),
     // Inserts a string literal at the current position in code.
     Str(&'a str),
+}
+
+// A relocation for a forward branch yet to be resolved.
+//
+// Due to variable-length instructions, we may not know the memory address
+// of a label at the time it occurs. That's when we use relocations to keep
+// track of the symbol and leave zeroes as a filler for the jump offset.
+// After the first assembler pass when all symbols should be known, we can
+// patch these relocations and insert correct jump offsets at the desired
+// positions of the output code buffer.
+#[derive(Debug)]
+pub struct Relocation<'a> {
+    // The address this relocation points to. This may be patched at a later
+    // time before the value is accurate.
+    pub address: u32,
+    // The position within the code buffer where the relocation needs to be
+    // inserted. This may be patched at a later time.
+    pub position: u32,
+    is_patched: bool,
+    // The name of the symbol that is associated with this relocation.
+    pub symbol: &'a str,
+    // The argument that will be used to patch the emitted code with the real
+    // address of the relocation later on.
+    pub argument: Argument,
+}
+
+impl<'a> Relocation<'a> {
+    // Initializes a relocation for a new symbol.
+    pub fn new(address: u32, symbol: &'a str, arg: &Argument) -> Self {
+        Relocation {
+            address,
+            position: address,
+            is_patched: false,
+            symbol,
+            argument: arg.clone(),
+        }
+    }
+
+    // Patches the relocation with correct address and base offsets.
+    pub fn patch(&mut self, address_base: u32, position_base: u32) {
+        if !self.is_patched {
+            self.address += address_base;
+            self.position += position_base;
+            self.is_patched = true;
+        }
+    }
 }
 
 #[inline]
@@ -173,17 +220,20 @@ pub struct Context<'a> {
     pub context_name: OsString,
 
     directives: Vec<Directive<'a>>,
-    symbols: BTreeMap<String, u32>,
+    symbols: HashMap<String, Symbol>,
     sections: Vec<Section<'a>>,
 }
 
 impl<'a> Context<'a> {
     pub fn new() -> Self {
+        let mut sections = Vec::with_capacity(5);
+        sections.push(Section::default());
+
         Context {
             context_name: OsString::from("<<main>>"),
-            directives: Vec::new(),
-            symbols: BTreeMap::new(),
-            sections: vec![Section::default()],
+            directives: Vec::with_capacity(15),
+            symbols: HashMap::with_capacity(30),
+            sections,
         }
     }
 
@@ -243,7 +293,7 @@ impl<'a> Context<'a> {
     // the same name.
     pub fn add_label(&mut self, name: &'a str) -> Result<(), ()> {
         self.symbols
-            .insert(name.to_owned(), 0)
+            .insert(name.to_owned(), Symbol::default())
             .map_or_else(|| Ok(()), |_| Err(()))
     }
 
@@ -255,7 +305,8 @@ impl<'a> Context<'a> {
         self.symbols
             .get_mut(name)
             .and_then(|e| {
-                *e = new_addr;
+                e.0 = new_addr;
+                e.1 = true;
                 Some(new_addr)
             })
             .ok_or_else(|| ())
@@ -269,14 +320,16 @@ impl<'a> Context<'a> {
     // the same name.
     pub fn add_declaration(&mut self, name: &'a str, value: u32) -> Result<(), ()> {
         self.symbols
-            .insert(name.to_owned(), value)
+            .insert(name.to_owned(), Symbol(value, true))
             .map_or_else(|| Ok(()), |_| Err(()))
     }
 
     // Attempts to look up a symbol from the internal cache by name and returns its
     // value, if present.
-    pub fn find_symbol(&self, name: &'a str) -> Option<&u32> {
-        self.symbols.get(name)
+    pub fn find_symbol(&self, name: &'a str) -> Option<u32> {
+        self.symbols
+            .get(name)
+            .and_then(|s| if s.1 { Some(s.0) } else { None })
     }
 }
 
@@ -312,7 +365,7 @@ impl<'a> Section<'a> {
             base,
             counter: 0,
             peek_index: 0,
-            code: Vec::new(),
+            code: Vec::with_capacity(100),
         }
     }
 
@@ -376,4 +429,18 @@ pub enum SecurityMode {
     // possible set of privileges while, at the same time, all debugging features
     // are disabled.
     HeavySecure,
+}
+
+// An assembly symbol that is either a label or a declaration through the `EQU`
+// directive.
+//
+// In either case, a symbol has a value assigned to it and tracks if said value
+// has been resolved already via the second field.
+#[derive(Clone, Copy, Debug)]
+pub struct Symbol(pub u32, pub bool);
+
+impl Default for Symbol {
+    fn default() -> Self {
+        Symbol(0, false)
+    }
 }

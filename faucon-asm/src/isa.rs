@@ -367,8 +367,8 @@ pub enum InstructionKind {
     #[insn(opcode = 0x00, subopcode = 0x00, operands(R0, I8SX32P1))]
     #[insn(opcode = 0x40, subopcode = 0x01, operands(R0, I16SX32P1))]
     #[insn(opcode = 0x80, subopcode = 0x02, operands(R0, I24SX32))]
-    #[insn(opcode = 0x32, subopcode = 0x02, operands(R1, R2))]
     #[insn(opcode = 0xD0, subopcode = 0x00, operands(R0, I32))]
+    #[insn(opcode = 0x32, subopcode = 0x02, operands(R1, R2))]
     #[insn(opcode = 0xFE, subopcode = 0x00, operands(SR2, R2))]
     #[insn(opcode = 0xFE, subopcode = 0x01, operands(R1, SR1))]
     MOV,

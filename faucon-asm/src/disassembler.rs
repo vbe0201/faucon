@@ -68,7 +68,7 @@ fn read_operands<R: Read>(
     args: &mut [Option<Argument>],
 ) -> Result<Vec<Operand>, FalconError> {
     let mut operands = Vec::new();
-    for arg in args.iter_mut().filter_map(|o| o.as_mut()) {
+    for arg in args.iter_mut().flatten() {
         // If the argument is a SizeConverter helper, evaluate it and replace
         // it with a real operand to save us some hassle later on.
         if let Argument::SizeConverter(c) = arg {
