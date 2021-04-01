@@ -41,7 +41,7 @@ fn align_up(address: u32, align: u32) -> u32 {
     (address + align - 1) & !(align - 1)
 }
 
-fn resize_extend(vec: &mut Vec<u8>, new_len: usize) {
+pub fn resize_extend(vec: &mut Vec<u8>, new_len: usize) {
     if vec.len() < new_len {
         vec.resize(new_len, 0);
     }
@@ -322,7 +322,7 @@ fn lower_instruction<'a>(
     output[subopcode_position] = (output[subopcode_position] & !form.subopcode_location.mask())
         | form.subopcode_location.build_value(form.subopcode);
 
-    // Lower the value of the operand into machine code.
+    // Lower the values of the operands into machine code.
     for arg in form.operands.iter().flatten() {
         lower_operand(context, output, pc, relocations, section, size, arg);
     }

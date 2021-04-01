@@ -132,7 +132,7 @@ impl Debugger {
         let code = &mut &self.falcon.memory.code[address..];
 
         for _ in 0..amount {
-            match read_instruction(code, &mut offset) {
+            match unsafe { read_instruction(code, &mut offset) } {
                 Ok(insn) => println!("{:08X}  {}", address as u32 + offset, insn),
                 Err(FalconError::Eof) => break,
                 Err(e) => {

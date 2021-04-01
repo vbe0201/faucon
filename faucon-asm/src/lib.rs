@@ -108,6 +108,7 @@ pub mod operands;
 use std::fmt;
 use std::io;
 
+use arguments::{Argument, MachineEncoding, Positional};
 pub use assembler::*;
 pub use disassembler::*;
 pub use isa::InstructionKind;
@@ -158,6 +159,21 @@ impl fmt::Display for FalconError {
 impl std::error::Error for FalconError {}
 
 /// A Falcon processor instruction.
+///
+/// This is designed as a wrapper around a single Falcon assembly instruction that
+/// conveniently lets users query metadata, operand values and encoding information
+/// from it.
+///
+/// The easiest and recommended method for obtaining an instruction object is
+/// [`crate::disassembler::read_instruction`]. Thus, it is generally assumed that
+/// [`Instruction`]s more commonly appear in a disassembler rather than an assembler
+/// context, although hand-construction of instructions is possible.
+///
+/// # Safety
+///
+/// An [`Instruction`] does not enforce any scrutiny on the data it encapsulates and
+/// thus all means of obtaining an object of it are considered `unsafe`. See
+/// [`Instruction::new`] for more thoughts on why this decision was made.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
     meta: isa::InstructionMeta,
@@ -169,22 +185,22 @@ pub struct Instruction {
 }
 
 impl Instruction {
-    /// Constructs a new instruction from its byte representation and metadata.
-    pub fn new(
+    /// Constructs a new instruction from its metadata and operand values.
+    ///
+    /// # Safety
+    ///
+    /// To avoid unexpected side effects when working with [`Instruction`]s,
+    /// make sure to provide valid data when constructing them manually.
+    ///
+    /// Although this would not trigger undefined behavior per se, it may
+    /// result in undefined behavior in conjunction with [`Instruction::assemble`]
+    /// producing malformed code that is feeded into a real Falcon unit.
+    pub unsafe fn new(
         meta: isa::InstructionMeta,
-        mut operand_size: OperandSize,
+        operand_size: OperandSize,
         operands: Vec<Operand>,
         pc: u32,
     ) -> Self {
-        // Certain Falcon weirdos encode their subopcode in the high size bits and thus
-        // making the instruction per se unsized. We need to make sure to not use a
-        // false-positive operand size under such circumstances.
-        if get_subopcode_location(operand_size.value(), meta.a, meta.b)
-            == Some(SubopcodeLocation::OH)
-        {
-            operand_size = OperandSize::Unsized;
-        }
-
         Instruction {
             meta,
             operand_size,
@@ -247,12 +263,54 @@ impl Instruction {
     /// by the instruction. Sized instructions may choose between 8-bit, 16-bit and 32-bit
     /// variants, whereas unsized instructions always operate on the full 32 bits.
     pub fn operand_size(&self) -> OperandSize {
-        self.operand_size
+        if self.meta.sized {
+            self.operand_size
+        } else {
+            OperandSize::Unsized
+        }
+    }
+
+    /// Checks whether the instruction has variable operand sizing.
+    ///
+    /// See [`Instruction::operand_size`] for details on what this means.
+    pub fn is_sized(&self) -> bool {
+        self.operand_size() != OperandSize::Unsized
     }
 
     /// Gets a vector of instruction [`Operand`]s.
     pub fn operands(&self) -> &Vec<Operand> {
         &self.operands
+    }
+
+    fn assemble_operand(&self, output: &mut Vec<u8>, arg: &Argument, operand: Operand) {
+        // If necessary, evaluate the real value of the argument and re-call the method.
+        if let Argument::SizeConverter(c) = arg {
+            let real_arg = c(self.operand_size().value());
+            return self.assemble_operand(output, &real_arg, operand);
+        }
+
+        // Resize the output buffer to fit the operand.
+        codegen::resize_extend(output, arg.position() + arg.width());
+
+        // Write the operand to the code buffer.
+        match arg {
+            Argument::U8(imm) => imm.write_operand(output, operand),
+            Argument::I8(imm) => imm.write_operand(output, operand),
+            Argument::U16(imm) => imm.write_operand(output, operand),
+            Argument::I16(imm) => imm.write_operand(output, operand),
+            Argument::U32(imm) => imm.write_operand(output, operand),
+            Argument::I32(imm) => imm.write_operand(output, operand),
+
+            Argument::Register(reg) => reg.write_operand(output, operand),
+            Argument::Flag(imm) => imm.write_operand(output, operand),
+
+            Argument::Memory(mem) => mem.write_operand(output, operand),
+
+            Argument::PcRel8(imm) => imm.write_operand(output, operand.subtract_pc(self.pc)),
+            Argument::PcRel16(imm) => imm.write_operand(output, operand.subtract_pc(self.pc)),
+
+            Argument::SizeConverter(_) => unreachable!(),
+        }
     }
 
     /// Assembles the instruction into its machine code representation and writes the
@@ -261,14 +319,29 @@ impl Instruction {
         if let Some(bytes) = self.raw_bytes {
             output.extend(bytes);
         } else {
-            todo!()
+            // Construct and write the instruction opcode.
+            output.push(
+                self.operand_size().value() << 6 | build_opcode_form(self.meta.a, self.meta.b),
+            );
+
+            // Write the instruction subopcode at its expected position.
+            let subopcode_position = self.meta.subopcode_location.position() as usize;
+            codegen::resize_extend(output, subopcode_position + 1);
+            output[subopcode_position] = (output[subopcode_position]
+                & !self.meta.subopcode_location.mask())
+                | self.meta.subopcode_location.build_value(self.subopcode());
+
+            // Write the instruction operands. We can safely assume they are valid.
+            for (arg, operand) in self.meta.operands.iter().flatten().zip(self.operands()) {
+                self.assemble_operand(output, arg, *operand);
+            }
         }
     }
 }
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", self.kind(), self.operand_size)?;
+        write!(f, "{}{}", self.kind(), self.operand_size())?;
         for operand in self.operands() {
             write!(f, " {}", operand)?;
         }

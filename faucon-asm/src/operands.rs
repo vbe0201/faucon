@@ -271,6 +271,18 @@ impl Operand {
             Argument::Memory(mem) => Operand::Memory(mem.read(insn)),
         }
     }
+
+    pub(crate) fn subtract_pc(self, pc: u32) -> Self {
+        match self {
+            Operand::U8(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
+            Operand::I8(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
+            Operand::U16(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
+            Operand::I16(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
+            Operand::U32(imm) => Operand::I32(imm.wrapping_sub(pc) as i32),
+            Operand::I32(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
+            _ => self,
+        }
+    }
 }
 
 impl fmt::Display for Operand {

@@ -13,7 +13,13 @@ pub use pretty::Disassembler;
 
 /// Reads an [`Instruction`] from a given [`std::io::Read`]er holding its binary
 /// representation.
-pub fn read_instruction<'a, R: Read>(
+///
+/// # Safety
+///
+/// Constructing an [`crate::Instruction`] is considered unsafe for reasons detailed
+/// there and thus the user is responsible for feeding valid Falcon machine code into
+/// this function.
+pub unsafe fn read_instruction<'a, R: Read>(
     reader: &mut R,
     pc: &mut u32,
 ) -> Result<Instruction, FalconError> {

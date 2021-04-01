@@ -6,7 +6,7 @@ use num_traits::{cast, FromPrimitive, PrimInt, WrappingSub};
 
 use crate::assembler::Token;
 use crate::bytes_ext::SaturatingCast;
-use crate::operands;
+use crate::operands::{self, Operand};
 
 // A trait that defines a quantity of a specific size that is stored at a
 // specific position in Falcon machine code.
@@ -42,9 +42,13 @@ pub trait MachineEncoding {
     // machine representation for a specific operand.
     fn matches(&self, token: &Token) -> bool;
 
-    // Writes the underlying output type from a value to a vector containing
+    // Writes the underlying output type from a value to a buffer containing
     // Falcon machine code bytes.
     fn write(&self, code: &mut [u8], element: Self::Output);
+
+    // Writes the value of an instruction operand to a buffer containing Falcon
+    // machine code bytes.
+    fn write_operand(&self, code: &mut [u8], element: Operand);
 }
 
 // A helper macro that is supposed to unwrap an `Argument` of a known kind into
@@ -901,6 +905,19 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub>
             }
         }
     }
+
+    fn write_operand(&self, code: &mut [u8], element: Operand) {
+        match element {
+            Operand::Flag(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::I8(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::U8(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::I16(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::U16(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::I32(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::U32(imm) => self.write(code, cast(imm).unwrap()),
+            _ => panic!("Cannot encode operand kind as immediate"),
+        }
+    }
 }
 
 // A CPU register in Falcon assembly.
@@ -968,6 +985,13 @@ impl MachineEncoding for Register {
             } else {
                 code[self.position] = code[self.position] & !0xF | element.1 as u8;
             }
+        }
+    }
+
+    fn write_operand(&self, code: &mut [u8], element: Operand) {
+        match element {
+            Operand::Register(reg) => self.write(code, reg),
+            _ => panic!("Cannot encode operand kind as register"),
         }
     }
 }
@@ -1106,6 +1130,13 @@ impl MachineEncoding for MemoryAccess {
                 _offset.write(code, offset);
             }
             _ => panic!("Attempted to write invalid memory access form"),
+        }
+    }
+
+    fn write_operand(&self, code: &mut [u8], element: Operand) {
+        match element {
+            Operand::Memory(mem) => self.write(code, mem),
+            _ => panic!("Cannot encode operand kind as memory access"),
         }
     }
 }

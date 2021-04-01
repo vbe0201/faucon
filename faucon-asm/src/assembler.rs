@@ -1,6 +1,6 @@
 //! Assembler for the Falcon ISA.
 
-mod codegen;
+pub(crate) mod codegen;
 mod context;
 pub mod error;
 mod lexer;
