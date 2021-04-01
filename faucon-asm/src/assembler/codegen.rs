@@ -281,8 +281,10 @@ fn lower_directive<'a>(output: &mut Vec<u8>, section: &mut Section<'a>, directiv
             section.counter += size_of::<u32>() as u32;
         }
         Directive::Size(size) => {
-            skip(output, size - section.counter, 0);
-            section.counter = size;
+            if section.counter < size {
+                skip(output, size - section.counter, 0);
+                section.counter = size;
+            }
         }
         Directive::Skip(size, value) => {
             skip(output, size, value.unwrap_or(0));
