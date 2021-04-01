@@ -29,6 +29,9 @@ pub enum Directive<'a> {
     Word(u32),
     // Declares a code section with a name and an optional start address.
     Section(SecurityMode, &'a str, Option<u32>),
+    // Skips bytes to set the program counter to the supplied value
+    // relative to the section.
+    Size(u32),
     // Skips the given amount of bytes in code and optionally fills them
     // with the supplied value.
     Skip(u32, Option<u8>),
@@ -208,6 +211,10 @@ pub fn parse_directive<'a, I: Iterator<Item = ParseSpan<Token<'a>>>>(
             let name = parse_next_token!(expr: iter)?;
             let addr = parse_next_token!(optint: iter => u32);
             Ok(Directive::Section(SecurityMode::HeavySecure, name, addr))
+        }
+        "size" => {
+            let size = parse_next_token!(int: iter => u32)?;
+            Ok(Directive::Size(size))
         }
         "skip" => {
             let skip = parse_next_token!(int: iter => u32)?;
