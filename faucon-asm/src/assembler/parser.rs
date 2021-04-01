@@ -1,3 +1,5 @@
+use std::ffi::OsStr;
+
 use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::character::complete::*;
@@ -11,12 +13,13 @@ use crate::isa::InstructionKind;
 use crate::opcode::OperandSize;
 use crate::operands::{MemoryAccess, MemorySpace, Register, RegisterKind};
 
-pub type LineSpan<'a> = nom_locate::LocatedSpan<&'a str>;
+pub type LineSpan<'a> = nom_locate::LocatedSpan<&'a str, &'a OsStr>;
 
 pub fn start<'a, T>(
+    file_name: &'a OsStr,
     mut parser: impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T>,
 ) -> impl FnMut(&'a str) -> IResult<LineSpan<'a>, T> {
-    move |s: &'a str| parser(LineSpan::new(s))
+    move |s: &'a str| parser(LineSpan::new_extra(s, file_name))
 }
 
 fn eol_comment(input: LineSpan) -> IResult<LineSpan, ()> {

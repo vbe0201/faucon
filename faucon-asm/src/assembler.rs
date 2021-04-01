@@ -7,6 +7,7 @@ mod lexer;
 mod parser;
 pub mod span;
 
+use std::ffi::OsString;
 use std::fs;
 use std::iter::Peekable;
 use std::path::Path;
@@ -103,25 +104,31 @@ impl<'a> Assembler<'a> {
     ///
     /// This file may include and utilize all symbols from source files in the
     /// internal include path.
-    pub fn assemble<P: 'a + AsRef<Path>>(mut self, file: P) -> Result<Vec<u8>, FalconError> {
+    pub fn assemble<P: 'a + AsRef<Path>>(self, file: P) -> Result<Vec<u8>, FalconError> {
         let file = file.as_ref();
         let source = fs::read_to_string(file).map_err(FalconError::IoError)?;
-        self.asm_context.set_context_name(
-            file.file_name()
-                .and_then(|s| Some(s.to_os_string()))
-                .unwrap(),
-        );
 
-        self.assemble_str(&source)
+        let context_name = file
+            .file_name()
+            .and_then(|s| Some(s.to_os_string()))
+            .unwrap();
+        self.assemble_str(&source, &context_name)
     }
 
     /// Consumes the assembler into building Falcon machine code out of the given
     /// Assembly source code string.
     ///
+    /// The `context_name` argument should ideally be the name of the source file to
+    /// assemble. If not present, pass `"<<main>>"` instead.
+    ///
     /// The code may include and utilize all symbols from source files in the
     /// internal include path.
-    pub fn assemble_str(mut self, source: &'a str) -> Result<Vec<u8>, FalconError> {
-        let tokens = lexer::tokenize(source)
+    pub fn assemble_str(
+        mut self,
+        source: &'a str,
+        context_name: &'a OsString,
+    ) -> Result<Vec<u8>, FalconError> {
+        let tokens = lexer::tokenize(source, context_name)
             .map_err(FalconError::ParseError)?
             .into_iter()
             .peekable();

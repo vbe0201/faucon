@@ -1,6 +1,7 @@
 //! A span type implementation providing line and position information for parsed
 //! tokens and error messages.
 
+use std::ffi::OsString;
 use std::str::from_utf8;
 
 use super::parser::LineSpan;
@@ -28,20 +29,22 @@ pub fn spanned<'a, T>(
 /// input source.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseSpan<T> {
+    // The file from which this span originates.
+    pub(super) file: OsString,
     // The contents of the line in which the spanned source element is.
-    line: String,
+    pub(super) line: String,
     // The line number in which the spanned source element is. Since the
     // line contents and the position of the token are already known, this
     // is mostly intended for debugging and formatting purposes.
-    lineno: usize,
+    pub(super) lineno: usize,
     // The offset into the source string where the spanned token begins.
-    offset: usize,
+    pub(super) offset: usize,
     // The width of the spanned token within the input source string. This
     // could also be referred to as the number of characters encapsulating
     // the source element.
-    width: usize,
+    pub(super) width: usize,
     // The spanned token object that has been parsed out of the input source.
-    token: T,
+    pub(super) token: T,
 }
 
 impl<T> ParseSpan<T> {
@@ -51,6 +54,7 @@ impl<T> ParseSpan<T> {
     /// This should never be called manually, refer to [`spanned`] instead.
     pub fn new<'a>(location_span: LineSpan<'a>, width: usize, token: T) -> Self {
         ParseSpan {
+            file: location_span.extra.to_owned(),
             line: from_utf8(location_span.get_line_beginning())
                 .unwrap_or("[cannot display line]")
                 .to_string(),

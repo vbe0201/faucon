@@ -1,3 +1,5 @@
+use std::ffi::{OsStr, OsString};
+
 use nom::branch::alt;
 use nom::combinator::{eof, map};
 use nom::multi::many_till;
@@ -59,15 +61,19 @@ impl<'a> Token<'a> {
 
 fn tokenize_impl<'a>(
     input: &'a str,
+    file_name: &'a OsStr,
 ) -> nom::IResult<parser::LineSpan<'a>, Vec<ParseSpan<Token<'a>>>> {
-    parser::start(map(
-        many_till(parser::ws1(Token::from_span), eof),
-        |(t, _)| t,
-    ))(input)
+    parser::start(
+        file_name,
+        map(many_till(parser::ws1(Token::from_span), eof), |(t, _)| t),
+    )(input)
 }
 
 // Tokenizes the given input until an EOF occurs.
-pub fn tokenize(input: &str) -> Result<Vec<ParseSpan<Token>>, ParseError> {
-    let result = tokenize_impl(input);
+pub fn tokenize<'a>(
+    input: &'a str,
+    file_name: &'a OsString,
+) -> Result<Vec<ParseSpan<Token<'a>>>, ParseError> {
+    let result = tokenize_impl(input, &file_name);
     Ok(ParseError::check_tokenization(result)?)
 }

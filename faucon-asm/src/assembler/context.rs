@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ffi::OsString;
 use std::iter::Peekable;
 
 use num_traits::{cast, NumCast};
@@ -231,8 +230,6 @@ pub fn parse_directive<'a, I: Iterator<Item = ParseSpan<Token<'a>>>>(
 
 #[derive(Debug)]
 pub struct Context<'a> {
-    pub context_name: OsString,
-
     directives: Vec<Directive<'a>>,
     symbols: HashMap<String, Symbol>,
     sections: Vec<Section<'a>>,
@@ -244,19 +241,10 @@ impl<'a> Context<'a> {
         sections.push(Section::default());
 
         Context {
-            context_name: OsString::from("<<main>>"),
             directives: Vec::with_capacity(15),
             symbols: HashMap::with_capacity(30),
             sections,
         }
-    }
-
-    // Sets the name of the current assembler context.
-    //
-    // If invoked, this ideally should be the name of the source
-    // file being processed.
-    pub fn set_context_name(&mut self, name: OsString) {
-        self.context_name = name;
     }
 
     // Adds a new directive to the end of the internal cache.

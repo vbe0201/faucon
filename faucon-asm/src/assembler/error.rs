@@ -22,6 +22,48 @@ pub enum ParseError {
 }
 
 impl ParseError {
+    /// Gets the reason behind the error.
+    pub fn reason(&self) -> &str {
+        match self {
+            ParseError::Tokenization(span) => span.token(),
+        }
+    }
+
+    /// Gets the filename where the error came from.
+    pub fn file(&self) -> &str {
+        match self {
+            ParseError::Tokenization(span) => span.file.to_str().unwrap_or("<unknown>"),
+        }
+    }
+
+    /// Gets the line number at which the error occurred.
+    pub fn line_number(&self) -> usize {
+        match self {
+            ParseError::Tokenization(span) => span.lineno,
+        }
+    }
+
+    /// Gets the contents of the line where the error occurred.
+    pub fn line(&self) -> &str {
+        match self {
+            ParseError::Tokenization(span) => &span.line,
+        }
+    }
+
+    /// Gets the position within the line at which the error occurred.
+    pub fn position(&self) -> usize {
+        match self {
+            ParseError::Tokenization(span) => span.offset,
+        }
+    }
+
+    /// Gets the width of the error span.
+    pub fn width(&self) -> usize {
+        match self {
+            ParseError::Tokenization(span) => span.width,
+        }
+    }
+
     // Consumes nom's IResult of the tokenization step and checks for potential errors.
     pub(crate) fn check_tokenization<'a>(
         result: nom::IResult<parser::LineSpan<'a>, Vec<ParseSpan<Token<'a>>>>,
@@ -40,7 +82,7 @@ impl ParseError {
 
                 Err(ParseError::Tokenization(ParseSpan::new(
                     span,
-                    1,
+                    span.chars().take_while(|c| !c.is_whitespace()).count(),
                     format!("Unparseable tokens detected.{}", extra),
                 )))
             }
@@ -49,8 +91,21 @@ impl ParseError {
 }
 
 impl fmt::Display for ParseError {
-    fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "error: {reason}\n{arrow:>6} {file}:{lineno}:{rpos}\n\n{lpadc:>lpad$}{line}\n{mark:>pos$}",
+            reason = self.reason(),
+            arrow = "-->",
+            file = self.file(),
+            lineno = self.line_number(),
+            rpos = self.position(),
+            lpadc = " ",
+            lpad = 10,
+            line = self.line(),
+            mark = "^".repeat(self.width()),
+            pos = 9 + self.position() + self.width(),
+        )
     }
 }
 
