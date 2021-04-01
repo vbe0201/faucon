@@ -60,10 +60,22 @@ fn resolve_symbol<'a>(context: &Context<'a>, symbol: &'a str) -> Option<Token<'a
         .and_then(|v| Some(Token::UnsignedInt(v)))
 }
 
-fn matches_operand_impl(arg: &Argument, t: &Token) -> bool {
+fn matches_operand_impl(arg: &Argument, pc: u32, t: &Token) -> bool {
     match arg {
-        Argument::PcRel8(_) => todo!(),
-        Argument::PcRel16(_) => todo!(),
+        Argument::PcRel8(imm) => match t {
+            Token::UnsignedInt(i) => imm.matches(&Token::SignedInt(i.wrapping_sub(&pc) as i32)),
+            Token::SignedInt(i) if !i.is_negative() => {
+                imm.matches(&Token::SignedInt(*i - pc as i32))
+            }
+            _ => false,
+        },
+        Argument::PcRel16(imm) => match t {
+            Token::UnsignedInt(i) => imm.matches(&Token::SignedInt(i.wrapping_sub(&pc) as i32)),
+            Token::SignedInt(i) if !i.is_negative() => {
+                imm.matches(&Token::SignedInt(*i - pc as i32))
+            }
+            _ => false,
+        },
 
         Argument::U8(imm) => imm.matches(t),
         Argument::I8(imm) => imm.matches(t),
@@ -94,14 +106,15 @@ fn matches_operand<'a>(
     }
 
     // Peek at the next code token and see if it matches the currently selected form.
+    let pc = section.base + section.counter;
     match section.peek_code_token().and_then(|s| Some(s.token())) {
         Some(Token::Symbol(s)) => {
             // When matching a symbol, we try to resolve its real value first. If this
             // fails e.g. because the instruction is a forward branch to a yet unresolved
             // symbol, we return `None` to signal that this operand cannot be matched yet.
             if let Some(symbol) = resolve_symbol(context, s) {
-                Some(matches_operand_impl(&arg, &symbol))
-            } else if matches_operand_impl(&arg, &Token::UnsignedInt(0)) {
+                Some(matches_operand_impl(&arg, pc, &symbol))
+            } else if matches_operand_impl(&arg, pc, &Token::UnsignedInt(0)) {
                 // Make sure that the argument describes an immediate operand at all by
                 // checking against a value of zero. If the operand resolves to anything
                 // else, symbols are not allowed in this context and the form should be
@@ -111,7 +124,7 @@ fn matches_operand<'a>(
                 Some(false)
             }
         }
-        Some(token) => Some(matches_operand_impl(&arg, token)),
+        Some(token) => Some(matches_operand_impl(&arg, pc, token)),
         None => Some(false),
     }
 }
@@ -138,6 +151,8 @@ fn select_instruction_form<'a>(
             })
     });
 
+    // SAFETY: Unwrapping the last operand in the flattened list is safe because if no operands
+    // are assigned to this instruction form, `full_match` can possibly never be `None`.
     full_match.or_else(|| {
         candidates
             .into_iter()
@@ -176,10 +191,18 @@ fn unwrap_memory_access(token: Token) -> MemoryAccess {
     }
 }
 
-fn lower_operand_impl(buffer: &mut [u8], _pc: u32, token: Token, arg: &Argument) {
+fn lower_operand_impl(buffer: &mut [u8], pc: u32, token: Token, arg: &Argument) {
     match arg {
-        Argument::PcRel8(_) => todo!(),
-        Argument::PcRel16(_) => todo!(),
+        Argument::PcRel8(imm) => match token {
+            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(pc) as i8),
+            Token::SignedInt(i) if !i.is_negative() => imm.write(buffer, (i - pc as i32) as i8),
+            _ => unreachable!(),
+        },
+        Argument::PcRel16(imm) => match token {
+            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(pc) as i16),
+            Token::SignedInt(i) if !i.is_negative() => imm.write(buffer, (i - pc as i32) as i16),
+            _ => unreachable!(),
+        },
 
         Argument::U8(imm) => imm.write(buffer, unwrap_immediate(token)),
         Argument::I8(imm) => imm.write(buffer, unwrap_immediate(token)),
@@ -364,7 +387,12 @@ pub fn build_context<'a>(mut context: Context<'a>) -> Result<Vec<u8>, ParseError
         let buffer = &mut output[rel.position as usize..];
         let symbol = resolve_symbol(&context, rel.symbol).unwrap();
 
-        lower_operand_impl(buffer, rel.address, symbol, &rel.argument);
+        if matches_operand_impl(&rel.argument, rel.address, &symbol) {
+            lower_operand_impl(buffer, rel.address, symbol, &rel.argument);
+        } else {
+            // TODO: Properly return an error here.
+            panic!("Failed to relocate");
+        }
     }
 
     Ok(output)
