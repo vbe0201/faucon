@@ -226,21 +226,12 @@ impl fmt::Display for MemoryAccess {
 pub enum Operand {
     /// A Falcon CPU register operand.
     Register(Register),
-    /// An immediate operand that represents a specific bit of the `$csw`/`$flags`
-    /// CPU register.
+    /// An immediate operand that represents a specific bit of the `$csw` register.
     Flag(u8),
-    /// An 8-bit-sized signed immediate.
-    I8(i8),
-    /// An 8-bit-sized unsigned immediate.
-    U8(u8),
-    /// A 16-bit-sized signed immediate.
-    I16(i16),
-    /// A 16-bit-sized unsigned immediate.
-    U16(u16),
-    /// A 32-bit-sized signed immediate.
-    I32(i32),
-    /// A 32-bit-sized unsigned immediate.
-    U32(u32),
+    /// A signed immediate.
+    Imm(i32),
+    /// An unsigned immediate.
+    UImm(u32),
     /// A direct access to a memory space at a given address.
     Memory(MemoryAccess),
 }
@@ -252,16 +243,16 @@ impl Operand {
             Argument::SizeConverter(_) => unreachable!(),
 
             // PC-relative branch offsets.
-            Argument::PcRel8(imm) => Operand::U32((pc + imm.read(insn) as i32) as u32),
-            Argument::PcRel16(imm) => Operand::U32((pc + imm.read(insn) as i32) as u32),
+            Argument::PcRel8(imm) => Operand::UImm((pc + imm.read(insn) as i32) as u32),
+            Argument::PcRel16(imm) => Operand::UImm((pc + imm.read(insn) as i32) as u32),
 
             // Immediate forms.
-            Argument::U8(imm) => Operand::U8(imm.read(insn)),
-            Argument::I8(imm) => Operand::I8(imm.read(insn)),
-            Argument::U16(imm) => Operand::U16(imm.read(insn)),
-            Argument::I16(imm) => Operand::I16(imm.read(insn)),
-            Argument::U32(imm) => Operand::U32(imm.read(insn)),
-            Argument::I32(imm) => Operand::I32(imm.read(insn)),
+            Argument::U8(imm) => Operand::UImm(imm.read(insn) as u32),
+            Argument::I8(imm) => Operand::Imm(imm.read(insn) as i32),
+            Argument::U16(imm) => Operand::UImm(imm.read(insn) as u32),
+            Argument::I16(imm) => Operand::Imm(imm.read(insn) as i32),
+            Argument::U32(imm) => Operand::UImm(imm.read(insn)),
+            Argument::I32(imm) => Operand::Imm(imm.read(insn)),
 
             // Register forms.
             Argument::Register(reg) => Operand::Register(reg.read(insn)),
@@ -274,12 +265,8 @@ impl Operand {
 
     pub(crate) fn subtract_pc(self, pc: u32) -> Self {
         match self {
-            Operand::U8(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
-            Operand::I8(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
-            Operand::U16(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
-            Operand::I16(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
-            Operand::U32(imm) => Operand::I32(imm.wrapping_sub(pc) as i32),
-            Operand::I32(imm) => Operand::I32((imm as u32).wrapping_sub(pc) as i32),
+            Operand::UImm(imm) => Operand::Imm(imm.wrapping_sub(pc) as i32),
+            Operand::Imm(imm) => Operand::Imm((imm as u32).wrapping_sub(pc) as i32),
             _ => self,
         }
     }
@@ -291,13 +278,8 @@ impl fmt::Display for Operand {
             Operand::Register(reg) => write!(f, "{}", reg),
             Operand::Flag(flag) => write!(f, "{}", get_flag_name(*flag as usize).unwrap_or("unk")),
 
-            Operand::I8(val) => display_signed_hex(val, f),
-            Operand::I16(val) => display_signed_hex(val, f),
-            Operand::I32(val) => display_signed_hex(val, f),
-
-            Operand::U8(val) => display_unsigned_hex(val, f),
-            Operand::U16(val) => display_unsigned_hex(val, f),
-            Operand::U32(val) => display_unsigned_hex(val, f),
+            Operand::Imm(val) => display_signed_hex(val, f),
+            Operand::UImm(val) => display_unsigned_hex(val, f),
 
             Operand::Memory(mem) => write!(f, "{}", mem),
         }

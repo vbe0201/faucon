@@ -826,8 +826,8 @@ impl<T> Positional for Immediate<T> {
     }
 }
 
-impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub>
-    MachineEncoding for Immediate<T>
+impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncoding
+    for Immediate<T>
 {
     type Output = T;
 
@@ -885,8 +885,8 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub>
         } else {
             // Calculate the upper boundary of the supported value range.
             // The lower boundary of `0` is enforced by Rust's design.
-            let max_value =
-                (T::zero().wrapping_sub(&T::one()) & self.get_mask()) << self.get_shift();
+            let nbits = (size_of::<T>() - self.width as usize) << 3;
+            let max_value = (T::zero().wrapping_sub(&T::one()) << nbits) >> nbits;
 
             value <= max_value
         }
@@ -909,12 +909,8 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub>
     fn write_operand(&self, code: &mut [u8], element: Operand) {
         match element {
             Operand::Flag(imm) => self.write(code, cast(imm).unwrap()),
-            Operand::I8(imm) => self.write(code, cast(imm).unwrap()),
-            Operand::U8(imm) => self.write(code, cast(imm).unwrap()),
-            Operand::I16(imm) => self.write(code, cast(imm).unwrap()),
-            Operand::U16(imm) => self.write(code, cast(imm).unwrap()),
-            Operand::I32(imm) => self.write(code, cast(imm).unwrap()),
-            Operand::U32(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::Imm(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::UImm(imm) => self.write(code, cast(imm).unwrap()),
             _ => panic!("Cannot encode operand kind as immediate"),
         }
     }

@@ -425,7 +425,7 @@ pub fn xbit(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let bit = match source2 {
         Operand::Register(reg) => cpu.registers[reg] & 0x1FF,
         Operand::Flag(flag) => flag as u32,
-        Operand::I8(imm) => imm as u32 & 0x1FF,
+        Operand::Imm(imm) => imm as u32 & 0x1FF,
         _ => unreachable!(),
     };
     cpu.registers[destination] = cpu.registers[source1] >> bit & 1;
@@ -453,7 +453,7 @@ pub fn bitop(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let bit = match source {
         Operand::Register(reg) => cpu.registers[reg] & 0x1FF,
         Operand::Flag(flag) => flag as u32,
-        Operand::I8(imm) => imm as u32 & 0x1FF,
+        Operand::Imm(imm) => imm as u32 & 0x1FF,
         _ => unreachable!(),
     };
 
