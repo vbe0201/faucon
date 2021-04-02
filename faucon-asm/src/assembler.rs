@@ -60,39 +60,43 @@ impl<'a> Assembler<'a> {
         self
     }
 
-    fn populate_main_context<I>(
-        &mut self,
-        mut iter: Peekable<I>,
-    ) -> Result<(), ParseSpan<Token<'a>>>
+    fn populate_main_context<I>(&mut self, mut iter: Peekable<I>) -> Result<(), ParseError>
     where
         I: Iterator<Item = ParseSpan<Token<'a>>>,
     {
         loop {
-            match iter.next() {
-                Some(span) => match span.token() {
-                    Token::Directive(d) => match context::parse_directive(d, &mut iter)
-                        .map_err(|e| e.unwrap_or(span.clone()))?
-                    {
-                        Directive::Equ(name, value) => {
-                            self.asm_context.add_declaration(name, value).unwrap();
+            if let Some(span) = iter.next() {
+                match span.token() {
+                    Token::Directive(d) => {
+                        match context::parse_directive(d, &mut iter).map_err(|e| {
+                            ParseError::build_unexpected_token_error(e.unwrap_or(span.clone()))
+                        })? {
+                            Directive::Equ(name, value) => {
+                                self.asm_context
+                                    .add_declaration(name, value)
+                                    .map_err(|_| ParseError::build_redefined_symbol_error(span))?;
+                            }
+                            Directive::Include(_) => todo!(),
+                            Directive::Section(mode, name, addr) => {
+                                self.asm_context.add_section(name, mode, addr);
+                            }
+                            dir => {
+                                self.asm_context.add_directive(dir);
+                                self.asm_context.current_section().add_code_token(span);
+                            }
                         }
-                        Directive::Include(_) => todo!(),
-                        Directive::Section(mode, name, addr) => {
-                            self.asm_context.add_section(name, mode, addr);
-                        }
-                        dir => {
-                            self.asm_context.add_directive(dir);
-                            self.asm_context.current_section().add_code_token(span);
-                        }
-                    },
+                    }
                     t => {
                         if let Token::Label(l) = t {
-                            self.asm_context.add_label(l).unwrap();
+                            self.asm_context.add_label(l).map_err(|_| {
+                                ParseError::build_redefined_symbol_error(span.clone())
+                            })?;
                         }
                         self.asm_context.current_section().add_code_token(span);
                     }
-                },
-                None => break,
+                }
+            } else {
+                break;
             }
         }
 
@@ -133,7 +137,8 @@ impl<'a> Assembler<'a> {
             .into_iter()
             .peekable();
 
-        self.populate_main_context(tokens).unwrap(); // XXX: Don't unwrap!
+        self.populate_main_context(tokens)
+            .map_err(FalconError::ParseError)?;
 
         codegen::build_context(self.asm_context).map_err(FalconError::ParseError)
     }

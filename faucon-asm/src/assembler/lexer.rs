@@ -65,6 +65,7 @@ fn tokenize_impl<'a>(
 ) -> nom::IResult<parser::LineSpan<'a>, Vec<ParseSpan<Token<'a>>>> {
     parser::start(
         file_name,
+        input,
         map(many_till(parser::ws1(Token::from_span), eof), |(t, _)| t),
     )(input)
 }

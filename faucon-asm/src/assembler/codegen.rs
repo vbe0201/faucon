@@ -243,19 +243,19 @@ fn lower_operand<'a>(
     let token = {
         // SAFETY: From the previous instruction form selection step, we already peeked
         // at the required tokens and know for a fact that we can safely unwrap here.
-        let token = section.get_code_token().unwrap().unwrap();
+        let span = section.get_code_token().unwrap();
 
         // If the token is a symbol, try to evaluate it or create a new relocation to be
         // evaluated and patched at a later time in the assembler pipeline.
-        if let Token::Symbol(s) = token {
+        if let Token::Symbol(s) = span.token() {
             if let Some(real_token) = resolve_symbol(context, s) {
                 real_token
             } else {
-                relocations.push(Relocation::new(pc, s, arg, size));
+                relocations.push(Relocation::new(pc, span.clone(), s, arg, size));
                 Token::UnsignedInt(0)
             }
         } else {
-            token
+            span.unwrap()
         }
     };
     lower_operand_impl(buffer, section.base + pc, token, arg)
@@ -348,15 +348,15 @@ fn first_pass_assemble_section<'a>(
             Token::Label(label) => {
                 context
                     .set_label_address(label, section.base + section.counter)
-                    .unwrap();
+                    .map_err(|_| ParseError::build_undefined_symbol_error(span))?;
             }
             Token::Mnemonic((kind, size)) => {
                 let instruction_forms = kind.get_forms();
                 let form = select_instruction_form(context, &mut section, &instruction_forms, size)
-                    .unwrap();
+                    .ok_or(ParseError::build_instruction_selection_error(span.clone()))?;
                 lower_instruction(context, &mut output, &mut section, form, size, relocations);
             }
-            _ => unreachable!(),
+            _ => return Err(ParseError::build_tokenization_error(span)),
         }
     }
 
@@ -391,14 +391,14 @@ pub fn build_context<'a>(mut context: Context<'a>) -> Result<Vec<u8>, ParseError
     // code offsets where a value of `0` has been inserted as a placeholder.
     for rel in relocations {
         let buffer = &mut output[rel.position as usize..];
-        let symbol = resolve_symbol(&context, rel.symbol).unwrap();
+        let symbol = resolve_symbol(&context, rel.symbol)
+            .ok_or(ParseError::build_undefined_symbol_error(rel.span.clone()))?;
 
-        if matches_operand_impl(&rel.argument, rel.address, &symbol) {
-            lower_operand_impl(buffer, rel.address, symbol, &rel.argument);
-        } else {
-            // TODO: Properly return an error here.
-            panic!("Failed to relocate");
+        if !matches_operand_impl(&rel.argument, rel.address, &symbol) {
+            return Err(ParseError::build_relocation_error(rel.span));
         }
+
+        lower_operand_impl(buffer, rel.address, symbol, &rel.argument);
     }
 
     Ok(output)

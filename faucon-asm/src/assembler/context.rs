@@ -60,11 +60,13 @@ pub struct Relocation<'a> {
     // The argument that will be used to patch the emitted code with the real
     // address of the relocation later on.
     pub argument: Argument,
+    // The span of the identifier that triggered this relocation.
+    pub span: ParseSpan<Token<'a>>
 }
 
 impl<'a> Relocation<'a> {
     // Initializes a relocation for a new symbol.
-    pub fn new(address: u32, symbol: &'a str, arg: &Argument, size: &OperandSize) -> Self {
+    pub fn new(address: u32, span: ParseSpan<Token<'a>>, symbol: &'a str, arg: &Argument, size: &OperandSize) -> Self {
         let argument = if let Argument::SizeConverter(c) = arg {
             c(size.value())
         } else {
@@ -77,6 +79,7 @@ impl<'a> Relocation<'a> {
             is_patched: false,
             symbol,
             argument,
+            span,
         }
     }
 
@@ -316,10 +319,6 @@ impl<'a> Context<'a> {
 
     // Adds a new declaration to the end of the internal symbol cache given its
     // name and value.
-    //
-    // If this does not return None, a symbol of the same name has been declared
-    // previously and the assembler should abort due to multiple definitions of
-    // the same name.
     pub fn add_declaration(&mut self, name: &'a str, value: u32) -> Result<(), ()> {
         self.symbols
             .insert(name.to_owned(), Symbol(value, true))

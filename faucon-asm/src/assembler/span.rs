@@ -2,7 +2,8 @@
 //! tokens and error messages.
 
 use std::ffi::OsString;
-use std::str::from_utf8;
+
+use nom::Slice;
 
 use super::parser::LineSpan;
 
@@ -54,10 +55,21 @@ impl<T> ParseSpan<T> {
     /// This should never be called manually, refer to [`spanned`] instead.
     pub fn new<'a>(location_span: LineSpan<'a>, width: usize, token: T) -> Self {
         ParseSpan {
-            file: location_span.extra.to_owned(),
-            line: from_utf8(location_span.get_line_beginning())
-                .unwrap_or("[cannot display line]")
-                .to_string(),
+            file: location_span.extra.0.to_owned(),
+            line: {
+                let full_source = location_span.extra.1;
+                let offset = location_span.location_offset();
+
+                let start = full_source.slice(..offset).rfind('\n').map_or(0, |x| x + 1);
+                full_source
+                    .slice(offset..)
+                    .find('\n')
+                    .map_or_else(
+                        || full_source.slice(start..),
+                        |end| full_source.slice(start..(offset + end)),
+                    )
+                    .to_owned()
+            },
             lineno: location_span.location_line() as usize,
             offset: location_span.naive_get_utf8_column(),
             width,
