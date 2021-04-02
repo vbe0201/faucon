@@ -614,6 +614,7 @@ pub enum InstructionKind {
     /// The IORDS instruction.
     ///
     /// Synchronously reads a word from the I/O space of the microprocessor.
+    #[insn(opcode = 0xCF, subopcode = 0x0E, operands(R1, IORI))]
     #[insn(opcode = 0xFF, subopcode = 0x0E, operands(R3, IORR))]
     IORDS,
 }
