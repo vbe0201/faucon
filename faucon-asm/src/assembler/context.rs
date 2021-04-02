@@ -57,16 +57,26 @@ pub struct Relocation<'a> {
     is_patched: bool,
     // The name of the symbol that is associated with this relocation.
     pub symbol: &'a str,
+    // Whether this relocation should be resolved to a physical address instead
+    // of a virtual address.
+    pub is_physical: bool,
     // The argument that will be used to patch the emitted code with the real
     // address of the relocation later on.
     pub argument: Argument,
     // The span of the identifier that triggered this relocation.
-    pub span: ParseSpan<Token<'a>>
+    pub span: ParseSpan<Token<'a>>,
 }
 
 impl<'a> Relocation<'a> {
     // Initializes a relocation for a new symbol.
-    pub fn new(address: u32, span: ParseSpan<Token<'a>>, symbol: &'a str, arg: &Argument, size: &OperandSize) -> Self {
+    pub fn new(
+        address: u32,
+        span: ParseSpan<Token<'a>>,
+        symbol: &'a str,
+        is_physical: bool,
+        arg: &Argument,
+        size: &OperandSize,
+    ) -> Self {
         let argument = if let Argument::SizeConverter(c) = arg {
             c(size.value())
         } else {
@@ -78,6 +88,7 @@ impl<'a> Relocation<'a> {
             position: address,
             is_patched: false,
             symbol,
+            is_physical,
             argument,
             span,
         }
@@ -116,9 +127,9 @@ fn try_extract_integer_optional<'a, I: NumCast>(span: &ParseSpan<Token<'a>>) -> 
 #[inline]
 fn try_extract_symbol_ident<'a>(
     span: ParseSpan<Token<'a>>,
-) -> Result<&'a str, ParseSpan<Token<'a>>> {
+) -> Result<(&'a str, bool), ParseSpan<Token<'a>>> {
     match span.token() {
-        Token::Symbol(s) => Ok(s),
+        Token::Symbol((s, p)) => Ok((s, *p)),
         _ => Err(span),
     }
 }
@@ -185,7 +196,7 @@ pub fn parse_directive<'a, I: Iterator<Item = ParseSpan<Token<'a>>>>(
         "equ" => {
             let symbol = parse_next_token!(expr: iter)?;
             let value = parse_next_token!(int: iter => u32)?;
-            Ok(Directive::Equ(symbol, value))
+            Ok(Directive::Equ(symbol.0, value))
         }
         "halfword" => {
             let halfword = parse_next_token!(int: iter => u16)?;
@@ -202,17 +213,17 @@ pub fn parse_directive<'a, I: Iterator<Item = ParseSpan<Token<'a>>>>(
         "nsection" => {
             let name = parse_next_token!(expr: iter)?;
             let addr = parse_next_token!(optint: iter => u32);
-            Ok(Directive::Section(SecurityMode::NoSecure, name, addr))
+            Ok(Directive::Section(SecurityMode::NoSecure, name.0, addr))
         }
         "lsection" => {
             let name = parse_next_token!(expr: iter)?;
             let addr = parse_next_token!(optint: iter => u32);
-            Ok(Directive::Section(SecurityMode::LightSecure, name, addr))
+            Ok(Directive::Section(SecurityMode::LightSecure, name.0, addr))
         }
         "hsection" => {
             let name = parse_next_token!(expr: iter)?;
             let addr = parse_next_token!(optint: iter => u32);
-            Ok(Directive::Section(SecurityMode::HeavySecure, name, addr))
+            Ok(Directive::Section(SecurityMode::HeavySecure, name.0, addr))
         }
         "size" => {
             let size = parse_next_token!(int: iter => u32)?;
@@ -306,31 +317,39 @@ impl<'a> Context<'a> {
     //
     // Returns the address of the label on success, or an empty error if the label
     // could not be found in the internal symbol cache.
-    pub fn set_label_address(&mut self, name: &'a str, new_addr: u32) -> Result<u32, ()> {
-        self.symbols
+    pub fn set_label_address(
+        &mut self,
+        name: &'a str,
+        new_virt: u32,
+        new_phys: u32,
+    ) -> Result<(), ()> {
+        let symbol = self
+            .symbols
             .get_mut(name)
-            .and_then(|e| {
-                e.0 = new_addr;
-                e.1 = true;
-                Some(new_addr)
-            })
-            .ok_or_else(|| ())
+            .and_then(|s| if s.2 { None } else { Some(s) })
+            .ok_or(())?;
+
+        symbol.0 = new_virt;
+        symbol.1 = new_phys;
+        symbol.2 = true;
+
+        Ok(())
     }
 
     // Adds a new declaration to the end of the internal symbol cache given its
     // name and value.
     pub fn add_declaration(&mut self, name: &'a str, value: u32) -> Result<(), ()> {
         self.symbols
-            .insert(name.to_owned(), Symbol(value, true))
+            .insert(name.to_owned(), Symbol(value, value, true))
             .map_or_else(|| Ok(()), |_| Err(()))
     }
 
     // Attempts to look up a symbol from the internal cache by name and returns its
     // value, if present.
-    pub fn find_symbol(&self, name: &'a str) -> Option<u32> {
+    pub fn find_symbol(&self, name: &'a str) -> Option<&Symbol> {
         self.symbols
             .get(name)
-            .and_then(|s| if s.1 { Some(s.0) } else { None })
+            .and_then(|s| if s.2 { Some(s) } else { None })
     }
 }
 
@@ -435,13 +454,14 @@ pub enum SecurityMode {
 // An assembly symbol that is either a label or a declaration through the `EQU`
 // directive.
 //
-// In either case, a symbol has a value assigned to it and tracks if said value
-// has been resolved already via the second field.
+// In either case, a symbol either has a value (twice) assigned to it or alternatively
+// stores the physical and virtual addresses of a label and tracks if said value has
+// been resolved already via the third field.
 #[derive(Clone, Copy, Debug)]
-pub struct Symbol(pub u32, pub bool);
+pub struct Symbol(pub u32, pub u32, pub bool);
 
 impl Default for Symbol {
     fn default() -> Self {
-        Symbol(0, false)
+        Symbol(0, 0, false)
     }
 }

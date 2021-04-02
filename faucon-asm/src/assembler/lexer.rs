@@ -18,7 +18,10 @@ pub enum Token<'a> {
     Directive(&'a str),
     // A symbol that evaluates either to a declared value or to the address of a
     // label.
-    Symbol(&'a str),
+    //
+    // For labels, the second field indicates whether the symbol should be resolved
+    // to its physical address instead of its virtual address.
+    Symbol((&'a str, bool)),
     // A label declaration that can be referred to by expressions.
     Label(&'a str),
     // An assembly mnemonic with its corresponding instruction sizing.
@@ -46,7 +49,7 @@ impl<'a> Token<'a> {
     ) -> nom::IResult<parser::LineSpan<'a>, ParseSpan<Self>> {
         spanned(alt((
             map(parser::directive, |d| Token::Directive(d)),
-            map(parser::symbol, |e| Token::Symbol(e)),
+            map(parser::symbol, |(e, p)| Token::Symbol((e, p))),
             map(parser::register, |r| Token::Register(r)),
             map(parser::flag, |f| Token::Flag(f)),
             map(parser::memory_access, |m| Token::Memory(m)),

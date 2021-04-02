@@ -54,10 +54,14 @@ fn matches_size(form: &InstructionMeta, size: &OperandSize) -> bool {
     }
 }
 
-fn resolve_symbol<'a>(context: &Context<'a>, symbol: &'a str) -> Option<Token<'a>> {
+fn resolve_symbol<'a>(
+    context: &Context<'a>,
+    symbol: &'a str,
+    is_virtual: bool,
+) -> Option<Token<'a>> {
     context
         .find_symbol(symbol)
-        .and_then(|v| Some(Token::UnsignedInt(v)))
+        .and_then(|s| Some(Token::UnsignedInt(if is_virtual { s.0 } else { s.1 })))
 }
 
 fn matches_operand_impl(arg: &Argument, pc: u32, t: &Token) -> bool {
@@ -108,11 +112,11 @@ fn matches_operand<'a>(
     // Peek at the next code token and see if it matches the currently selected form.
     let pc = section.base + section.counter;
     match section.peek_code_token().and_then(|s| Some(s.token())) {
-        Some(Token::Symbol(s)) => {
+        Some(Token::Symbol((s, p))) => {
             // When matching a symbol, we try to resolve its real value first. If this
             // fails e.g. because the instruction is a forward branch to a yet unresolved
             // symbol, we return `None` to signal that this operand cannot be matched yet.
-            if let Some(symbol) = resolve_symbol(context, s) {
+            if let Some(symbol) = resolve_symbol(context, s, !p) {
                 Some(matches_operand_impl(&arg, pc, &symbol))
             } else if matches_operand_impl(&arg, pc, &Token::UnsignedInt(0)) {
                 // Make sure that the argument describes an immediate operand at all by
@@ -247,11 +251,11 @@ fn lower_operand<'a>(
 
         // If the token is a symbol, try to evaluate it or create a new relocation to be
         // evaluated and patched at a later time in the assembler pipeline.
-        if let Token::Symbol(s) = span.token() {
-            if let Some(real_token) = resolve_symbol(context, s) {
+        if let Token::Symbol((s, p)) = span.token() {
+            if let Some(real_token) = resolve_symbol(context, s, !p) {
                 real_token
             } else {
-                relocations.push(Relocation::new(pc, span.clone(), s, arg, size));
+                relocations.push(Relocation::new(pc, span.clone(), s, *p, arg, size));
                 Token::UnsignedInt(0)
             }
         } else {
@@ -335,6 +339,8 @@ fn first_pass_assemble_section<'a>(
     context: &mut Context<'a>,
     mut section: Section<'a>,
     relocations: &mut Vec<Relocation<'a>>,
+    physical_base: u32,
+    virtual_base: u32,
 ) -> Result<Vec<u8>, ParseError> {
     // Generously allocate one code page for the section to reduce allocations.
     let mut output = Vec::with_capacity(0x100);
@@ -347,7 +353,11 @@ fn first_pass_assemble_section<'a>(
             }
             Token::Label(label) => {
                 context
-                    .set_label_address(label, section.base + section.counter)
+                    .set_label_address(
+                        label,
+                        virtual_base + section.counter,
+                        physical_base + section.counter,
+                    )
                     .map_err(|_| ParseError::build_undefined_symbol_error(span))?;
             }
             Token::Mnemonic((kind, size)) => {
@@ -372,17 +382,19 @@ pub fn build_context<'a>(mut context: Context<'a>) -> Result<Vec<u8>, ParseError
     // First pass: Assemble all sections into machine code and store relocation
     // information to evaluate label symbols into immediate values later on.
     while let Some(section) = context.get_section() {
-        let address_base = section.base;
-        let position_base = output.len() as u32;
+        let physical_base = output.len() as u32;
+        let virtual_base = section.base;
 
         output.extend(first_pass_assemble_section(
             &mut context,
             section,
             &mut relocations,
+            physical_base,
+            virtual_base,
         )?);
 
         for rel in relocations.iter_mut() {
-            rel.patch(address_base, position_base);
+            rel.patch(virtual_base, physical_base);
         }
     }
 
@@ -391,7 +403,7 @@ pub fn build_context<'a>(mut context: Context<'a>) -> Result<Vec<u8>, ParseError
     // code offsets where a value of `0` has been inserted as a placeholder.
     for rel in relocations {
         let buffer = &mut output[rel.position as usize..];
-        let symbol = resolve_symbol(&context, rel.symbol)
+        let symbol = resolve_symbol(&context, rel.symbol, !rel.is_physical)
             .ok_or(ParseError::build_undefined_symbol_error(rel.span.clone()))?;
 
         if !matches_operand_impl(&rel.argument, rel.address, &symbol) {

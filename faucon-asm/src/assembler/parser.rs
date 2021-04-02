@@ -257,9 +257,9 @@ pub fn memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
     delimited(tag("["), ws0(alt((reg_imm, reg_reg, reg))), tag("]"))(input)
 }
 
-pub fn symbol(input: LineSpan) -> IResult<LineSpan, &str> {
-    let (ls, ident) = preceded(char('#'), identifier)(input)?;
-    Ok((ls, &ident))
+pub fn symbol(input: LineSpan) -> IResult<LineSpan, (&str, bool)> {
+    let (ls, (_, is_physical, ident)) = tuple((char('#'), opt(char('#')), identifier))(input)?;
+    Ok((ls, (ident, is_physical.is_some())))
 }
 
 pub fn label_definition(input: LineSpan) -> IResult<LineSpan, &str> {
