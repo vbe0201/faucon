@@ -24,7 +24,7 @@ pub fn start<'a, T>(
 }
 
 fn eol_comment(input: LineSpan) -> IResult<LineSpan, ()> {
-    value((), tuple((tag("//"), none_of("/"), is_not("\n\r"))))(input)
+    value((), pair(tag("//"), is_not("\n\r")))(input)
 }
 
 fn pinline_comment(input: LineSpan) -> IResult<LineSpan, ()> {
