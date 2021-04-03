@@ -126,6 +126,14 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF9, subopcode = 0x01, operands(SP, R2))]
     ADDSP,
 
+    /// The CCR instruction.
+    ///
+    /// Configures a DMA override for the Secure Co-Processor inside the `$ccr`
+    /// register based on the supplied immediate value.
+    #[insn(opcode = 0xF4, subopcode = 0x3C, operands(I8ZX16))]
+    #[insn(opcode = 0xF5, subopcode = 0x3C, operands(I16))]
+    CCR,
+
     /// The ADC instruction.
     ///
     /// Computes the sum of two operands with a carry and stores the result.
@@ -634,6 +642,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CMP => "cmp",
             InstructionKind::ADD => "add",
             InstructionKind::ADDSP => "addsp",
+            InstructionKind::CCR => "ccr",
             InstructionKind::ADC => "adc",
             InstructionKind::SUB => "sub",
             InstructionKind::SBB => "sbb",
