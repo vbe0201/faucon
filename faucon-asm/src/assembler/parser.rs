@@ -117,7 +117,7 @@ pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandS
                 value(InstructionKind::MPOPADDRET, tag_no_case("mpopaddret")),
                 value(InstructionKind::CALL, tag_no_case("call")),
                 value(InstructionKind::LCALL, tag_no_case("lcall")),
-                value(InstructionKind::BRA, tag_no_case("bra")),
+                value(InstructionKind::JMP, tag_no_case("jmp")),
                 value(InstructionKind::BC, tag_no_case("bc")),
                 value(InstructionKind::BO, tag_no_case("bo")),
                 value(InstructionKind::BS, tag_no_case("bs")),

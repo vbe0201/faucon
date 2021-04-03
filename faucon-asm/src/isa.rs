@@ -483,12 +483,11 @@ pub enum InstructionKind {
 
     /// The BRA instruction.
     ///
-    /// Performs an unconditional branch to an absolute or PC-relative
-    /// address.
+    /// Performs an unconditional branch to an absolute address.
     #[insn(opcode = 0xF4, subopcode = 0x20, operands(I8ZX32))]
     #[insn(opcode = 0xF5, subopcode = 0x20, operands(I16ZX32))]
     #[insn(opcode = 0xF9, subopcode = 0x04, operands(R2))]
-    BRA,
+    JMP,
 
     /// The BC instruction.
     ///
@@ -712,7 +711,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::MPOPADDRET => "mpopaddret",
             InstructionKind::CALL => "call",
             InstructionKind::LCALL => "lcall",
-            InstructionKind::BRA => "bra",
+            InstructionKind::JMP => "jmp",
             InstructionKind::BC => "bc",
             InstructionKind::BO => "bo",
             InstructionKind::BS => "bs",
