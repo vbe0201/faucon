@@ -208,14 +208,14 @@ pub enum InstructionKind {
     ///
     /// Flips all bits in a value.
     #[insn(opcode = 0x39, subopcode = 0x00, operands(R1, R2))]
-    #[insn(opcode = 0x3D, subopcode = 0x01, operands(R2))]
+    #[insn(opcode = 0x3D, subopcode = 0x00, operands(R2))]
     NOT,
 
     /// The NEG instruction.
     ///
     /// Negates a value
     #[insn(opcode = 0x39, subopcode = 0x01, operands(R1, R2))]
-    #[insn(opcode = 0x3D, subopcode = 0x00, operands(R2))]
+    #[insn(opcode = 0x3D, subopcode = 0x01, operands(R2))]
     NEG,
 
     /// The HSWAP instruction.
