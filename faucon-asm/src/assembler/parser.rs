@@ -132,11 +132,12 @@ pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandS
                 value(InstructionKind::BG, tag_no_case("bg")),
                 value(InstructionKind::BLE, tag_no_case("ble")),
                 value(InstructionKind::BL, tag_no_case("bl")),
+                value(InstructionKind::BGE, tag_no_case("bge")),
                 value(InstructionKind::LBRA, tag_no_case("lbra")),
                 value(InstructionKind::RET, tag_no_case("ret")),
-                value(InstructionKind::EXIT, tag_no_case("exit")),
             )),
             alt((
+                value(InstructionKind::EXIT, tag_no_case("exit")),
                 value(InstructionKind::SLEEP, tag_no_case("sleep")),
                 value(InstructionKind::PTLB, tag_no_case("ptlb")),
                 value(InstructionKind::VTLB, tag_no_case("vtlb")),
