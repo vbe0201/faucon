@@ -533,6 +533,13 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF5, subopcode = 0x0D, operands(PC16))]
     BNA,
 
+    /// The BRA instruction.
+    ///
+    /// Branches to the PC-relative target unconditionally.
+    #[insn(opcode = 0xF4, subopcode = 0x0E, operands(PC8))]
+    #[insn(opcode = 0xF5, subopcode = 0x0E, operands(PC16))]
+    BRA,
+
     /// The LBRA instruction.
     ///
     /// Performs an unconditional long branch to an absolute address.
@@ -718,6 +725,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::BZ => "bz",
             InstructionKind::BA => "ba",
             InstructionKind::BNA => "bna",
+            InstructionKind::BRA => "bra",
             InstructionKind::LBRA => "lbra",
             InstructionKind::RET => "ret",
             InstructionKind::EXIT => "exit",
