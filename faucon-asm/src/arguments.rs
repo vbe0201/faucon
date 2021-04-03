@@ -369,6 +369,18 @@ pub const PC8: Argument = Argument::PcRel8(unwrap!(I8S, Argument::I8(i) => i));
 // These are used for branches.
 pub const PC16: Argument = Argument::PcRel16(unwrap!(I16S, Argument::I16(i) => i));
 
+// A bitfield within an 8-bit-range.
+//
+// Bitfields are used for specific bitfield manipulation instructions and denote
+// the lower bit index and its size subtracted by 1.
+pub const BITF8: Argument = Argument::Bitfield(unwrap!(I8ZX32, Argument::U32(i) => i));
+
+// A bitfield within a 16-bit-range.
+//
+// Bitfields are used for specific bitfield manipulation instructions and denote
+// the lower bit index and its size subtracted by 1.
+pub const BITF16: Argument = Argument::Bitfield(unwrap!(I16ZX32, Argument::U32(i) => i));
+
 // A Falcon general-purpose register, encoded in the low 4 bits of the first
 // instruction byte.
 pub const R0: Argument = Argument::Register(Register {
@@ -757,6 +769,9 @@ pub enum Argument {
     // A signed 32-bit immediate.
     I32(Immediate<i32>),
 
+    // A bitfield range encoded as an immediate.
+    Bitfield(Immediate<u32>),
+
     // A CPU register.
     Register(Register),
     // A flag bit in the `$csw` register.
@@ -775,6 +790,7 @@ impl Positional for Argument {
             Argument::I16(imm) => imm.position(),
             Argument::U32(imm) => imm.position(),
             Argument::I32(imm) => imm.position(),
+            Argument::Bitfield(imm) => imm.position(),
             Argument::Register(reg) => reg.position(),
             Argument::Flag(imm) => imm.position(),
             Argument::Memory(mem) => mem.position(),
@@ -792,6 +808,7 @@ impl Positional for Argument {
             Argument::I16(imm) => imm.width(),
             Argument::U32(imm) => imm.width(),
             Argument::I32(imm) => imm.width(),
+            Argument::Bitfield(imm) => imm.width(),
             Argument::Register(reg) => reg.width(),
             Argument::Flag(imm) => imm.width(),
             Argument::Memory(mem) => mem.width(),
@@ -874,6 +891,7 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
             Token::Flag(_) => return true,
             Token::SignedInt(imm) => cast::<i32, T>(*imm),
             Token::UnsignedInt(imm) => cast::<u32, T>(*imm),
+            Token::Bitfield((i, n)) => cast::<u32, T>((*n - *i) << 5 | *i),
             _ => return false,
         } {
             value
@@ -924,6 +942,7 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
             Operand::Flag(imm) => self.write(code, cast(imm).unwrap()),
             Operand::Imm(imm) => self.write(code, cast(imm).unwrap()),
             Operand::UImm(imm) => self.write(code, cast(imm).unwrap()),
+            Operand::Bitfield(i, n) => self.write(code, cast(n << 5 | i).unwrap()),
             _ => panic!("Cannot encode operand kind as immediate"),
         }
     }

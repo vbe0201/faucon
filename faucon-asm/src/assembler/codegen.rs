@@ -88,6 +88,8 @@ fn matches_operand_impl(arg: &Argument, pc: u32, t: &Token) -> bool {
         Argument::U32(imm) => imm.matches(t),
         Argument::I32(imm) => imm.matches(t),
 
+        Argument::Bitfield(imm) => imm.matches(t),
+
         Argument::Register(reg) => reg.matches(t),
         Argument::Flag(imm) => imm.matches(t),
 
@@ -175,6 +177,7 @@ fn unwrap_immediate<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSu
         Token::Flag(imm) => cast(imm).unwrap(),
         Token::SignedInt(imm) => cast(imm).unwrap(),
         Token::UnsignedInt(imm) => cast(imm).unwrap(),
+        Token::Bitfield((i, n)) => cast((n - i) << 5 | i).unwrap(),
         _ => unreachable!(),
     }
 }
@@ -214,6 +217,8 @@ fn lower_operand_impl(buffer: &mut [u8], pc: u32, token: Token, arg: &Argument) 
         Argument::I16(imm) => imm.write(buffer, unwrap_immediate(token)),
         Argument::U32(imm) => imm.write(buffer, unwrap_immediate(token)),
         Argument::I32(imm) => imm.write(buffer, unwrap_immediate(token)),
+
+        Argument::Bitfield(imm) => imm.write(buffer, unwrap_immediate(token)),
 
         Argument::Register(reg) => reg.write(buffer, unwrap_register(token)),
         Argument::Flag(imm) => imm.write(buffer, unwrap_immediate(token)),

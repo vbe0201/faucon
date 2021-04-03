@@ -232,6 +232,9 @@ pub enum Operand {
     Imm(i32),
     /// An unsigned immediate.
     UImm(u32),
+    /// An immediate operand that denotes a bitfield starting from the lower bit index
+    /// and covering a specific amount of bits.
+    Bitfield(u32, u32),
     /// A direct access to a memory space at a given address.
     Memory(MemoryAccess),
 }
@@ -253,6 +256,12 @@ impl Operand {
             Argument::I16(imm) => Operand::Imm(imm.read(insn) as i32),
             Argument::U32(imm) => Operand::UImm(imm.read(insn)),
             Argument::I32(imm) => Operand::Imm(imm.read(insn)),
+
+            // Bitfields.
+            Argument::Bitfield(imm) => {
+                let value = imm.read(insn);
+                Operand::Bitfield(value & 0x1F, value >> 5 & 0x1F)
+            }
 
             // Register forms.
             Argument::Register(reg) => Operand::Register(reg.read(insn)),
@@ -280,6 +289,8 @@ impl fmt::Display for Operand {
 
             Operand::Imm(val) => display_signed_hex(val, f),
             Operand::UImm(val) => display_unsigned_hex(val, f),
+
+            Operand::Bitfield(i, n) => write!(f, "{}:{}", i, i + n),
 
             Operand::Memory(mem) => write!(f, "{}", mem),
         }

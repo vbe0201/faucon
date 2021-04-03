@@ -40,6 +40,8 @@ pub enum Token<'a> {
     // An unsigned integer literal either represented as binary, decimal, hexadecimal
     // or octal.
     UnsignedInt(u32),
+    // A bitfield denoting a lower starting index and a number of bits to cover.
+    Bitfield((u32, u32)),
 }
 
 impl<'a> Token<'a> {
@@ -53,6 +55,7 @@ impl<'a> Token<'a> {
             map(parser::register, |r| Token::Register(r)),
             map(parser::flag, |f| Token::Flag(f)),
             map(parser::memory_access, |m| Token::Memory(m)),
+            map(parser::bitfield, |(i, n)| Token::Bitfield((i, n))),
             map(parser::unsigned_integer, |i: u32| Token::UnsignedInt(i)),
             map(parser::signed_integer, |i: i32| Token::SignedInt(i)),
             map(parser::label_definition, |l| Token::Label(l)),

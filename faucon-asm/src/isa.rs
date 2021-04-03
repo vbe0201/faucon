@@ -376,6 +376,30 @@ pub enum InstructionKind {
     #[insn(opcode = 0xFA, subopcode = 0x08, operands(R1, R2))]
     SETP,
 
+    /// The EXTR instruction.
+    ///
+    /// Extracts an unsigned bitfield from a supplied value.
+    #[insn(opcode = 0xC7, subopcode = 0x07, operands(R1, R2, BITF8))]
+    #[insn(opcode = 0xE7, subopcode = 0x07, operands(R1, R2, BITF16))]
+    #[insn(opcode = 0xFF, subopcode = 0x07, operands(R3, R2, R1))]
+    EXTR,
+
+    /// The EXTRS instruction.
+    ///
+    /// Extracts a signed bitfield from a supplied value.
+    #[insn(opcode = 0xC3, subopcode = 0x03, operands(R1, R2, BITF8))]
+    #[insn(opcode = 0xE3, subopcode = 0x03, operands(R1, R2, BITF16))]
+    #[insn(opcode = 0xFF, subopcode = 0x03, operands(R3, R2, R1))]
+    EXTRS,
+
+    /// The INS instruction.
+    ///
+    /// Inserts an unsigned bitfield from a source register into a
+    /// destination register.
+    #[insn(opcode = 0xCB, subopcode = 0x0B, operands(R1, R2, BITF8))]
+    #[insn(opcode = 0xEB, subopcode = 0x0B, operands(R1, R2, BITF16))]
+    INS,
+
     /// The MOV instruction.
     ///
     /// Moves values of immediates or registers to other registers.
@@ -808,6 +832,9 @@ impl fmt::Display for InstructionKind {
             InstructionKind::DIV => "div",
             InstructionKind::MOD => "mod",
             InstructionKind::SETP => "setp",
+            InstructionKind::EXTR => "extr",
+            InstructionKind::EXTRS => "extrs",
+            InstructionKind::INS => "ins",
             InstructionKind::MOV => "mov",
             InstructionKind::LD => "ld",
             InstructionKind::ST => "st",

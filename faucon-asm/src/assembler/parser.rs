@@ -103,17 +103,20 @@ pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandS
                 value(InstructionKind::DIV, tag_no_case("div")),
                 value(InstructionKind::MOD, tag_no_case("mod")),
                 value(InstructionKind::SETP, tag_no_case("setp")),
+                value(InstructionKind::EXTRS, tag_no_case("extrs")),
+                value(InstructionKind::EXTR, tag_no_case("extr")),
+                value(InstructionKind::INS, tag_no_case("ins")),
                 value(InstructionKind::MOV, tag_no_case("mov")),
                 value(InstructionKind::LD, tag_no_case("ld")),
                 value(InstructionKind::ST, tag_no_case("st")),
                 value(InstructionKind::PUSH, tag_no_case("push")),
                 value(InstructionKind::POP, tag_no_case("pop")),
                 value(InstructionKind::MPUSH, tag_no_case("mpush")),
+            )),
+            alt((
                 value(InstructionKind::MPOP, tag_no_case("mpop")),
                 value(InstructionKind::MPOPADD, tag_no_case("mpopadd")),
                 value(InstructionKind::MPOPRET, tag_no_case("mpopret")),
-            )),
-            alt((
                 value(InstructionKind::MPOPADDRET, tag_no_case("mpopaddret")),
                 value(InstructionKind::CALL, tag_no_case("call")),
                 value(InstructionKind::LCALL, tag_no_case("lcall")),
@@ -132,11 +135,11 @@ pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandS
                 value(InstructionKind::BNS, tag_no_case("bns")),
                 value(InstructionKind::BNZ, tag_no_case("bnz")),
                 value(InstructionKind::BGE, tag_no_case("bge")),
+            )),
+            alt((
                 value(InstructionKind::BG, tag_no_case("bg")),
                 value(InstructionKind::BLE, tag_no_case("ble")),
                 value(InstructionKind::BL, tag_no_case("bl")),
-            )),
-            alt((
                 value(InstructionKind::LBRA, tag_no_case("lbra")),
                 value(InstructionKind::RET, tag_no_case("ret")),
                 value(InstructionKind::HALT, tag_no_case("halt")),
@@ -155,8 +158,8 @@ pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandS
                 value(InstructionKind::IORD, tag_no_case("iord")),
                 value(InstructionKind::IORDS, tag_no_case("iords")),
                 value(InstructionKind::IOWR, tag_no_case("iowr")),
-                value(InstructionKind::IOWRS, tag_no_case("iowrs")),
             )),
+            value(InstructionKind::IOWRS, tag_no_case("iowrs")),
         )),
         map(
             opt(preceded(char('.'), one_of("bhwBHW"))),
@@ -287,6 +290,14 @@ pub fn label_definition(input: LineSpan) -> IResult<LineSpan, &str> {
 pub fn directive(input: LineSpan) -> IResult<LineSpan, &str> {
     let (ls, ident) = preceded(tag("."), identifier)(input)?;
     Ok((ls, &ident))
+}
+
+pub fn bitfield<T>(input: LineSpan) -> IResult<LineSpan, (T, T)>
+where
+    T: PrimInt + Unsigned,
+{
+    let (ls, (index, _, nbits)) = tuple((unsigned_integer, char(':'), unsigned_integer))(input)?;
+    Ok((ls, (index, nbits)))
 }
 
 pub fn signed_integer<T>(input: LineSpan) -> IResult<LineSpan, T>

@@ -301,6 +301,8 @@ impl Instruction {
             Argument::U32(imm) => imm.write_operand(output, operand),
             Argument::I32(imm) => imm.write_operand(output, operand),
 
+            Argument::Bitfield(imm) => imm.write_operand(output, operand),
+
             Argument::Register(reg) => reg.write_operand(output, operand),
             Argument::Flag(imm) => imm.write_operand(output, operand),
 
