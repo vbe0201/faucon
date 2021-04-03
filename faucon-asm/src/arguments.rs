@@ -704,7 +704,7 @@ fn sign_extend<T>(value: T, numbits: usize) -> T
 where
     T: FromPrimitive + PrimInt,
 {
-    if size_of::<T>() == size_of::<i8>() {
+    if size_of::<T>() == (numbits >> 3) {
         return value;
     }
 
