@@ -728,44 +728,44 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF8, subopcode = 0x0B, operands(TRAP))]
     TRAP,
 
-    /// The XCLD instruction.
+    /// The IMLD instruction.
     ///
     /// Submits a DMA transfer request to load code from external memory.
     #[insn(opcode = 0xFA, subopcode = 0x04, operands(R2, R1))]
-    XCLD,
+    IMLD,
 
-    /// The XDLD instruction.
+    /// The DMLD instruction.
     ///
     /// Submits a DMA transfer request to load data from external memory.
     #[insn(opcode = 0xFA, subopcode = 0x05, operands(R2, R1))]
-    XDLD,
+    DMLD,
 
-    /// The XDST instruction.
+    /// The DMST instruction.
     ///
     /// Submits a DMA transfer request to store local Falcon data in external
     /// memory.
     #[insn(opcode = 0xFA, subopcode = 0x06, operands(R2, R1))]
-    XDST,
+    DMST,
 
-    /// The XCWAIT instruction.
+    /// The IMWAIT instruction.
     ///
     /// Waits for all DMA code load transfers to complete.
     #[insn(opcode = 0xF8, subopcode = 0x07, operands())]
-    XCWAIT,
+    IMWAIT,
 
-    /// The XDWAIT instruction.
+    /// The DMWAIT instruction.
     ///
     /// Waits for all DMA data load/store transfers to complete.
     #[insn(opcode = 0xF8, subopcode = 0x03, operands())]
-    XDWAIT,
+    DMWAIT,
 
-    /// The XDFENCE instruction.
+    /// The DMFENCE instruction.
     ///
     /// Constructs a memory barrier for DMA data transfers, ensuring that
     /// all transfers queried prior to constructing the barrier will be
     /// finished before the ones after it.
     #[insn(opcode = 0xF8, subopcode = 0x06, operands())]
-    XDFENCE,
+    DMFENCE,
 
     /// The IOWR instruction.
     ///
@@ -874,12 +874,12 @@ impl fmt::Display for InstructionKind {
             InstructionKind::IMINV => "iminv",
             InstructionKind::IRET => "iret",
             InstructionKind::TRAP => "trap",
-            InstructionKind::XCLD => "xcld",
-            InstructionKind::XDLD => "xdld",
-            InstructionKind::XDST => "xdst",
-            InstructionKind::XCWAIT => "xcwait",
-            InstructionKind::XDWAIT => "xdwait",
-            InstructionKind::XDFENCE => "xdfence",
+            InstructionKind::IMLD => "imld",
+            InstructionKind::DMLD => "dmld",
+            InstructionKind::DMST => "dmst",
+            InstructionKind::IMWAIT => "imwait",
+            InstructionKind::DMWAIT => "dmwait",
+            InstructionKind::DMFENCE => "dmfence",
             InstructionKind::IOWR => "iowr",
             InstructionKind::IOWRS => "iowrs",
             InstructionKind::IORD => "iord",
