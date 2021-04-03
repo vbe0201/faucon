@@ -276,7 +276,7 @@ impl fmt::Display for Operand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Operand::Register(reg) => write!(f, "{}", reg),
-            Operand::Flag(flag) => write!(f, "{}", get_flag_name(*flag as usize).unwrap_or("unk")),
+            Operand::Flag(flag) => write!(f, "${}", get_flag_name(*flag as usize).unwrap_or("unk")),
 
             Operand::Imm(val) => display_signed_hex(val, f),
             Operand::UImm(val) => display_unsigned_hex(val, f),
