@@ -519,16 +519,16 @@ pub enum InstructionKind {
 
     /// The BA instruction.
     ///
-    /// Branches to the PC-relative target when the value is bigger
-    /// than another value when treated as unsigned.
+    /// Branches to the PC-relative target when unsigned greater holds
+    /// true.
     #[insn(opcode = 0xF4, subopcode = 0x0C, operands(PC8))]
     #[insn(opcode = 0xF5, subopcode = 0x0C, operands(PC16))]
     BA,
 
     /// The BNA instruction.
     ///
-    /// Branches to the PC-relative target when the value is smaller
-    /// or equal than another value when treated as unsigned.
+    /// Branches to the PC-relative target when unsigned smaller or
+    /// equal holds true.
     #[insn(opcode = 0xF4, subopcode = 0x0D, operands(PC8))]
     #[insn(opcode = 0xF5, subopcode = 0x0D, operands(PC16))]
     BNA,
@@ -567,6 +567,13 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF4, subopcode = 0x1B, operands(PC8))]
     #[insn(opcode = 0xF5, subopcode = 0x1B, operands(PC16))]
     BNZ,
+
+    /// The BG instruction.
+    ///
+    /// Branches to the PC-relative target when signed greater holds true.
+    #[insn(opcode = 0xF4, subopcode = 0x1C, operands(PC8))]
+    #[insn(opcode = 0xF5, subopcode = 0x1C, operands(PC16))]
+    BG,
 
     /// The LBRA instruction.
     ///
@@ -758,6 +765,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::BNO => "bno",
             InstructionKind::BNS => "bns",
             InstructionKind::BNZ => "bnz",
+            InstructionKind::BG => "bg",
             InstructionKind::LBRA => "lbra",
             InstructionKind::RET => "ret",
             InstructionKind::EXIT => "exit",
