@@ -668,26 +668,26 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF4, subopcode = 0x28, operands(FLAG))]
     SLEEP,
 
-    /// The PTLB instruction.
+    /// The IMBLK instruction.
     ///
     /// Loads the TLB that covers a given physical page into a destination
     /// register.
     #[insn(opcode = 0xFE, subopcode = 0x02, operands(R1, R2))]
-    PTLB,
+    IMBLK,
 
-    /// The VTLB instruction.
+    /// The IMTAG instruction.
     ///
     /// Loads the TLB that covers a given virtual address into a destination
     /// register.
     #[insn(opcode = 0xFE, subopcode = 0x03, operands(R1, R2))]
-    VTLB,
+    IMTAG,
 
-    /// The ITLB instruction.
+    /// The IMINV instruction.
     ///
-    /// Clears a non-secret TLB entry corresponding to a specified physical
+    /// Invalidates a non-secret TLB entry corresponding to a specified physical
     /// page.
     #[insn(opcode = 0xF9, subopcode = 0x08, operands(R2))]
-    ITLB,
+    IMINV,
 
     /// The IRET instruction.
     ///
@@ -842,9 +842,9 @@ impl fmt::Display for InstructionKind {
             InstructionKind::RET => "ret",
             InstructionKind::HALT => "halt",
             InstructionKind::SLEEP => "sleep",
-            InstructionKind::PTLB => "ptlb",
-            InstructionKind::VTLB => "vtlb",
-            InstructionKind::ITLB => "itlb",
+            InstructionKind::IMBLK => "imblk",
+            InstructionKind::IMTAG => "imtag",
+            InstructionKind::IMINV => "iminv",
             InstructionKind::IRET => "iret",
             InstructionKind::TRAP => "trap",
             InstructionKind::XCLD => "xcld",
