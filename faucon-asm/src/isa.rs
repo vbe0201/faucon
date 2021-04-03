@@ -654,12 +654,12 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF8, subopcode = 0x00, operands())]
     RET,
 
-    /// The EXIT instruction.
+    /// The HALT instruction.
     ///
-    /// Halts microcode execution and triggers the EXIT interrupt so that the
+    /// Halts microcode execution and triggers the exit interrupt so that the
     /// processor can only be restarted by the host machine.
     #[insn(opcode = 0xF8, subopcode = 0x02, operands())]
-    EXIT,
+    HALT,
 
     /// The SLEEP instruction.
     ///
@@ -840,7 +840,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::BGE => "bge",
             InstructionKind::LBRA => "lbra",
             InstructionKind::RET => "ret",
-            InstructionKind::EXIT => "exit",
+            InstructionKind::HALT => "halt",
             InstructionKind::SLEEP => "sleep",
             InstructionKind::PTLB => "ptlb",
             InstructionKind::VTLB => "vtlb",

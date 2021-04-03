@@ -63,7 +63,7 @@ fn get_handler(insn: &Instruction) -> impl FnOnce(&mut Cpu, &Instruction) -> usi
         InstructionKind::MPOPADD => data::mpopadd,
         InstructionKind::MPOPRET => data::mpopret,
         InstructionKind::MPOPADDRET => data::mpopaddret,
-        InstructionKind::EXIT => control::exit,
+        InstructionKind::HALT => control::exit,
         InstructionKind::SLEEP => control::sleep,
         InstructionKind::PTLB => vm::ptlb,
         InstructionKind::VTLB => vm::vtlb,
