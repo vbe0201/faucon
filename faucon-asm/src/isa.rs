@@ -238,6 +238,13 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3D, subopcode = 0x04, operands(R2))]
     CLEAR,
 
+    /// The TEST instruction.
+    ///
+    /// Sets some flags in `$csw` based on the value inside the operand
+    /// register.
+    #[insn(opcode = 0x3D, subopcode = 0x05, operands(R2))]
+    TEST,
+
     /// THE MULU instruction.
     ///
     /// Performs an unsigned multiplication and stores the result.
@@ -640,6 +647,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::HSWAP => "hswap",
             InstructionKind::SETHI => "sethi",
             InstructionKind::CLEAR => "clear",
+            InstructionKind::TEST => "test",
             InstructionKind::MULU => "mulu",
             InstructionKind::MULS => "muls",
             InstructionKind::SEXT => "sext",
