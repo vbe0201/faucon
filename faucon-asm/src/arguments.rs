@@ -418,16 +418,16 @@ pub const SP: Argument = Argument::Register(Register {
 
 // The CPU flags register.
 //
-// It is used for instructions that operate on $flags by default, without
+// It is used for instructions that operate on $csw by default, without
 // encoding its value in the instruction bytes.
-pub const FLAGS: Argument = Argument::Register(Register {
+pub const CSW: Argument = Argument::Register(Register {
     kind: operands::RegisterKind::Spr,
     position: 0,
     high: false,
     raw_value: Some(8),
 });
 
-// A selected bit in the Falcon $flags register.
+// A selected bit in the Falcon $csw register.
 //
 // Treated as an 8-bit immediate by the hardware, used for miscellaneous
 // instructions that operate on the flag bits.
@@ -437,6 +437,19 @@ pub const FLAG: Argument = Argument::Flag(Immediate {
     sign: false,
     shift: None,
     mask: Some(0x1F),
+    raw_value: None,
+});
+
+// A selected predicate bit in the Falcon $csw register.
+//
+// Treated actually as a part of the subopcodes for `BP`/`BNP` instructions,
+// this decides which bit of the CSW register should be checked.
+pub const PRED: Argument = Argument::Flag(Immediate {
+    position: 1,
+    width: 1,
+    sign: false,
+    shift: None,
+    mask: Some(0b111),
     raw_value: None,
 });
 

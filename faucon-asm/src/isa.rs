@@ -321,8 +321,8 @@ pub enum InstructionKind {
     /// bit of the destination register, setting all other bits to 0.
     #[insn(opcode = 0xC8, subopcode = 0x08, operands(R1, R2, I8))]
     #[insn(opcode = 0xFF, subopcode = 0x08, operands(R3, R2, R1))]
-    #[insn(opcode = 0xF0, subopcode = 0x0C, operands(R2, FLAGS, FLAG))]
-    #[insn(opcode = 0xFE, subopcode = 0x0C, operands(R1, FLAGS, R2))]
+    #[insn(opcode = 0xF0, subopcode = 0x0C, operands(R2, CSW, FLAG))]
+    #[insn(opcode = 0xFE, subopcode = 0x0C, operands(R1, CSW, R2))]
     XBIT,
 
     /// The BSET instruction.
@@ -330,8 +330,8 @@ pub enum InstructionKind {
     /// Sets a specific bit in a given register.
     #[insn(opcode = 0xF0, subopcode = 0x09, operands(R2, I8))]
     #[insn(opcode = 0xFD, subopcode = 0x09, operands(R2, R1))]
-    #[insn(opcode = 0xF4, subopcode = 0x31, operands(FLAGS, FLAG))]
-    #[insn(opcode = 0xF9, subopcode = 0x09, operands(FLAGS, R2))]
+    #[insn(opcode = 0xF4, subopcode = 0x31, operands(CSW, FLAG))]
+    #[insn(opcode = 0xF9, subopcode = 0x09, operands(CSW, R2))]
     BSET,
 
     /// The BCLR instruction.
@@ -339,8 +339,8 @@ pub enum InstructionKind {
     /// Clears a specific bit in a given register.
     #[insn(opcode = 0xF0, subopcode = 0x0A, operands(R2, I8))]
     #[insn(opcode = 0xFD, subopcode = 0x0A, operands(R2, R1))]
-    #[insn(opcode = 0xF4, subopcode = 0x32, operands(FLAGS, FLAG))]
-    #[insn(opcode = 0xF9, subopcode = 0x0A, operands(FLAGS, R2))]
+    #[insn(opcode = 0xF4, subopcode = 0x32, operands(CSW, FLAG))]
+    #[insn(opcode = 0xF9, subopcode = 0x0A, operands(CSW, R2))]
     BCLR,
 
     /// The BTGL instruction.
@@ -348,8 +348,8 @@ pub enum InstructionKind {
     /// Toggles (flips) a specific bit in a given register.
     #[insn(opcode = 0xF0, subopcode = 0x0B, operands(R2, I8))]
     #[insn(opcode = 0xFD, subopcode = 0x0B, operands(R2, R1))]
-    #[insn(opcode = 0xF4, subopcode = 0x33, operands(FLAGS, FLAG))]
-    #[insn(opcode = 0xF9, subopcode = 0x0B, operands(FLAGS, R2))]
+    #[insn(opcode = 0xF4, subopcode = 0x33, operands(CSW, FLAG))]
+    #[insn(opcode = 0xF9, subopcode = 0x0B, operands(CSW, R2))]
     BTGL,
 
     /// The DIV instruction.
@@ -489,6 +489,28 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF9, subopcode = 0x04, operands(R2))]
     JMP,
 
+    /// The BP instruction.
+    ///
+    /// Branches to the PC-relative target when the given predicate
+    /// is true.
+    #[insn(opcode = 0xF4, subopcode = 0x00, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x01, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x02, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x03, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x04, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x05, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x06, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x07, operands(PRED, PC8))]
+    #[insn(opcode = 0xF5, subopcode = 0x00, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x01, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x02, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x03, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x04, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x05, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x06, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x07, operands(PRED, PC16))]
+    BP,
+
     /// The BC instruction.
     ///
     /// Branches to the PC-relative target when the carry bit is set.
@@ -539,6 +561,28 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF4, subopcode = 0x0E, operands(PC8))]
     #[insn(opcode = 0xF5, subopcode = 0x0E, operands(PC16))]
     BRA,
+
+    /// The BNP instruction.
+    ///
+    /// Branches to the PC-relative target when the given predicate
+    /// is false.
+    #[insn(opcode = 0xF4, subopcode = 0x10, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x11, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x12, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x13, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x14, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x15, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x16, operands(PRED, PC8))]
+    #[insn(opcode = 0xF4, subopcode = 0x17, operands(PRED, PC8))]
+    #[insn(opcode = 0xF5, subopcode = 0x10, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x11, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x12, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x13, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x14, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x15, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x16, operands(PRED, PC16))]
+    #[insn(opcode = 0xF5, subopcode = 0x17, operands(PRED, PC16))]
+    BNP,
 
     /// The BNC instruction.
     ///
@@ -777,6 +821,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::CALL => "call",
             InstructionKind::LCALL => "lcall",
             InstructionKind::JMP => "jmp",
+            InstructionKind::BP => "bp",
             InstructionKind::BC => "bc",
             InstructionKind::BO => "bo",
             InstructionKind::BS => "bs",
@@ -784,6 +829,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::BA => "ba",
             InstructionKind::BNA => "bna",
             InstructionKind::BRA => "bra",
+            InstructionKind::BNP => "bnp",
             InstructionKind::BNC => "bnc",
             InstructionKind::BNO => "bno",
             InstructionKind::BNS => "bns",
