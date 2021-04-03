@@ -127,6 +127,7 @@ pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandS
                 value(InstructionKind::BRA, tag_no_case("bra")),
                 value(InstructionKind::BNC, tag_no_case("bnc")),
                 value(InstructionKind::BNO, tag_no_case("bno")),
+                value(InstructionKind::BNS, tag_no_case("bns")),
                 value(InstructionKind::LBRA, tag_no_case("lbra")),
                 value(InstructionKind::RET, tag_no_case("ret")),
                 value(InstructionKind::EXIT, tag_no_case("exit")),
@@ -134,9 +135,9 @@ pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandS
                 value(InstructionKind::PTLB, tag_no_case("ptlb")),
                 value(InstructionKind::VTLB, tag_no_case("vtlb")),
                 value(InstructionKind::ITLB, tag_no_case("itlb")),
-                value(InstructionKind::IRET, tag_no_case("iret")),
             )),
             alt((
+                value(InstructionKind::IRET, tag_no_case("iret")),
                 value(InstructionKind::TRAP, tag_no_case("trap")),
                 value(InstructionKind::XCLD, tag_no_case("xcld")),
                 value(InstructionKind::XDLD, tag_no_case("xdld")),
