@@ -518,6 +518,14 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF5, subopcode = 0x0B, operands(PC16))]
     BZ,
 
+    /// The BA instruction.
+    ///
+    /// Branches to the PC-relative target when the value is bigger
+    /// than another value when treated as unsigned.
+    #[insn(opcode = 0xF4, subopcode = 0x0C, operands(PC8))]
+    #[insn(opcode = 0xF5, subopcode = 0x0C, operands(PC16))]
+    BA,
+
     /// The LBRA instruction.
     ///
     /// Performs an unconditional long branch to an absolute address.
@@ -701,6 +709,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::BO => "bo",
             InstructionKind::BS => "bs",
             InstructionKind::BZ => "bz",
+            InstructionKind::BA => "ba",
             InstructionKind::LBRA => "lbra",
             InstructionKind::RET => "ret",
             InstructionKind::EXIT => "exit",
