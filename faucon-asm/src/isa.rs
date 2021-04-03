@@ -547,6 +547,13 @@ pub enum InstructionKind {
     #[insn(opcode = 0xF5, subopcode = 0x18, operands(PC16))]
     BNC,
 
+    /// The BNO instruction.
+    ///
+    /// Branches to the PC-relative target when the overflow bit is not set.
+    #[insn(opcode = 0xF4, subopcode = 0x19, operands(PC8))]
+    #[insn(opcode = 0xF5, subopcode = 0x19, operands(PC16))]
+    BNO,
+
     /// The LBRA instruction.
     ///
     /// Performs an unconditional long branch to an absolute address.
@@ -734,6 +741,7 @@ impl fmt::Display for InstructionKind {
             InstructionKind::BNA => "bna",
             InstructionKind::BRA => "bra",
             InstructionKind::BNC => "bnc",
+            InstructionKind::BNO => "bno",
             InstructionKind::LBRA => "lbra",
             InstructionKind::RET => "ret",
             InstructionKind::EXIT => "exit",
