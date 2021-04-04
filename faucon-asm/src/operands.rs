@@ -4,7 +4,7 @@ use std::fmt;
 
 use num_traits::{PrimInt, Signed, Unsigned};
 
-use crate::arguments::{Argument, MachineEncoding};
+use crate::arguments::{self, Argument, MachineEncoding};
 
 fn display_signed_hex<I>(immediate: &I, f: &mut fmt::Formatter<'_>) -> fmt::Result
 where
@@ -259,8 +259,8 @@ impl Operand {
 
             // Bitfields.
             Argument::Bitfield(imm) => {
-                let value = imm.read(insn);
-                Operand::Bitfield(value & 0x1F, value >> 5 & 0x1F)
+                let field = arguments::dissect_bitfield(imm.read(insn));
+                Operand::Bitfield(field.0, field.1)
             }
 
             // Register forms.

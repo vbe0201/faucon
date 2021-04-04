@@ -81,9 +81,4 @@ impl<T> ParseSpan<T> {
     pub fn token(&self) -> &T {
         &self.token
     }
-
-    /// Unwraps the `ParseSpan` into the encapsulated token object.
-    pub fn unwrap(self) -> T {
-        self.token
-    }
 }

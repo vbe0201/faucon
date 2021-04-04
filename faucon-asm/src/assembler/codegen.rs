@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use num_traits::{cast, FromPrimitive, PrimInt, WrappingSub};
 
-use crate::arguments::{Argument, MachineEncoding, Positional};
+use crate::arguments::{self, Argument, MachineEncoding, Positional};
 use crate::assembler::context::{Context, Directive, Relocation, Section};
 use crate::assembler::error::ParseError;
 use crate::assembler::lexer::Token;
@@ -170,63 +170,88 @@ fn select_instruction_form<'a>(
 }
 
 #[inline]
-fn unwrap_immediate<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub>(
-    token: Token,
-) -> T {
+fn unwrap_immediate<T>(token: &Token) -> Option<T>
+where
+    T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub,
+{
     match token {
-        Token::Flag(imm) => cast(imm).unwrap(),
-        Token::SignedInt(imm) => cast(imm).unwrap(),
-        Token::UnsignedInt(imm) => cast(imm).unwrap(),
-        Token::Bitfield((i, n)) => cast((n - i) << 5 | i).unwrap(),
-        _ => unreachable!(),
+        Token::SignedInt(imm) => cast(*imm),
+        Token::UnsignedInt(imm) => cast(*imm),
+        _ => None,
     }
 }
 
 #[inline]
-fn unwrap_register(token: Token) -> Register {
+fn unwrap_flag<T>(token: &Token) -> Option<T>
+where
+    T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub,
+{
     match token {
-        Token::Register(reg) => reg,
-        _ => unreachable!(),
+        Token::Flag(imm) => cast(*imm),
+        Token::SignedInt(imm) => cast(*imm),
+        Token::UnsignedInt(imm) => cast(*imm),
+        _ => None,
     }
 }
 
 #[inline]
-fn unwrap_memory_access(token: Token) -> MemoryAccess {
+fn unwrap_bitfield<T>(token: &Token) -> Option<T>
+where
+    T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub,
+{
     match token {
-        Token::Memory(mem) => mem,
-        _ => unreachable!(),
+        Token::Bitfield((start, end)) => cast(arguments::build_bitfield(*start, *end)),
+        _ => None,
     }
 }
 
-fn lower_operand_impl(buffer: &mut [u8], pc: u32, token: Token, arg: &Argument) {
+#[inline]
+fn unwrap_register(token: &Token) -> Option<Register> {
+    match token {
+        Token::Register(reg) => Some(*reg),
+        _ => None,
+    }
+}
+
+#[inline]
+fn unwrap_memory_access(token: &Token) -> Option<MemoryAccess> {
+    match token {
+        Token::Memory(mem) => Some(*mem),
+        _ => None,
+    }
+}
+
+fn lower_operand_impl(buffer: &mut [u8], pc: u32, token: &Token, arg: &Argument) -> Result<(), ()> {
     match arg {
         Argument::PcRel8(imm) => match token {
-            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(pc) as i8),
+            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(&pc) as i8),
             Token::SignedInt(i) if !i.is_negative() => imm.write(buffer, (i - pc as i32) as i8),
-            _ => unreachable!(),
+            _ => return Err(()),
         },
         Argument::PcRel16(imm) => match token {
-            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(pc) as i16),
+            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(&pc) as i16),
             Token::SignedInt(i) if !i.is_negative() => imm.write(buffer, (i - pc as i32) as i16),
-            _ => unreachable!(),
+            _ => return Err(()),
         },
 
-        Argument::U8(imm) => imm.write(buffer, unwrap_immediate(token)),
-        Argument::I8(imm) => imm.write(buffer, unwrap_immediate(token)),
-        Argument::U16(imm) => imm.write(buffer, unwrap_immediate(token)),
-        Argument::I16(imm) => imm.write(buffer, unwrap_immediate(token)),
-        Argument::U32(imm) => imm.write(buffer, unwrap_immediate(token)),
-        Argument::I32(imm) => imm.write(buffer, unwrap_immediate(token)),
+        Argument::U8(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
+        Argument::I8(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
+        Argument::U16(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
+        Argument::I16(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
+        Argument::U32(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
+        Argument::I32(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
 
-        Argument::Bitfield(imm) => imm.write(buffer, unwrap_immediate(token)),
+        Argument::Bitfield(imm) => imm.write(buffer, unwrap_bitfield(token).ok_or(())?),
 
-        Argument::Register(reg) => reg.write(buffer, unwrap_register(token)),
-        Argument::Flag(imm) => imm.write(buffer, unwrap_immediate(token)),
+        Argument::Register(reg) => reg.write(buffer, unwrap_register(token).ok_or(())?),
+        Argument::Flag(imm) => imm.write(buffer, unwrap_flag(token).ok_or(())?),
 
-        Argument::Memory(mem) => mem.write(buffer, unwrap_memory_access(token)),
+        Argument::Memory(mem) => mem.write(buffer, unwrap_memory_access(token).ok_or(())?),
 
-        Argument::SizeConverter(_) => unreachable!(),
+        Argument::SizeConverter(_) => return Err(()),
     }
+
+    Ok(())
 }
 
 fn lower_operand<'a>(
@@ -237,7 +262,7 @@ fn lower_operand<'a>(
     section: &mut Section<'a>,
     size: &OperandSize,
     arg: &Argument,
-) {
+) -> Result<(), ParseError> {
     // If necessary, evaluate the converter to a real argument and re-call the function.
     if let Argument::SizeConverter(c) = arg {
         let real_arg = c(size.value());
@@ -249,25 +274,23 @@ fn lower_operand<'a>(
 
     // Lower the value of the operand into machine code and write it to the buffer.
     let buffer = &mut output[pc as usize..];
+    // SAFETY: From the previous instruction form selection step, we already peeked
+    // at the required tokens and know for a fact that we can safely unwrap here.
+    let span = section.get_code_token().unwrap();
     let token = {
-        // SAFETY: From the previous instruction form selection step, we already peeked
-        // at the required tokens and know for a fact that we can safely unwrap here.
-        let span = section.get_code_token().unwrap();
-
         // If the token is a symbol, try to evaluate it or create a new relocation to be
         // evaluated and patched at a later time in the assembler pipeline.
         if let Token::Symbol((s, p)) = span.token() {
-            if let Some(real_token) = resolve_symbol(context, s, !p) {
-                real_token
-            } else {
+            resolve_symbol(context, s, !p).unwrap_or_else(|| {
                 relocations.push(Relocation::new(pc, span.clone(), s, *p, arg, size));
                 Token::UnsignedInt(0)
-            }
+            })
         } else {
-            span.unwrap()
+            span.token().to_owned()
         }
     };
-    lower_operand_impl(buffer, section.base + pc, token, arg)
+    lower_operand_impl(buffer, section.base + pc, &token, arg)
+        .map_err(|_| ParseError::build_unexpected_token_error(span))
 }
 
 fn lower_directive<'a>(output: &mut Vec<u8>, section: &mut Section<'a>, directive: Directive<'a>) {
@@ -316,7 +339,7 @@ fn lower_instruction<'a>(
     form: &InstructionMeta,
     size: &OperandSize,
     relocations: &mut Vec<Relocation<'a>>,
-) {
+) -> Result<(), ParseError> {
     let pc = section.counter;
 
     // Construct and write the instruction opcode.
@@ -333,11 +356,13 @@ fn lower_instruction<'a>(
 
     // Lower the values of the operands into machine code.
     for arg in form.operands.iter().flatten() {
-        lower_operand(context, output, pc, relocations, section, size, arg);
+        lower_operand(context, output, pc, relocations, section, size, arg)?;
     }
 
     // Increment the internal counter to point to the next instruction.
     section.counter += output[pc as usize..].len() as u32;
+
+    Ok(())
 }
 
 fn first_pass_assemble_section<'a>(
@@ -369,7 +394,7 @@ fn first_pass_assemble_section<'a>(
                 let instruction_forms = kind.get_forms();
                 let form = select_instruction_form(context, &mut section, &instruction_forms, size)
                     .ok_or(ParseError::build_instruction_selection_error(span.clone()))?;
-                lower_instruction(context, &mut output, &mut section, form, size, relocations);
+                lower_instruction(context, &mut output, &mut section, form, size, relocations)?;
             }
             _ => return Err(ParseError::build_tokenization_error(span)),
         }
@@ -415,7 +440,8 @@ pub fn build_context<'a>(mut context: Context<'a>) -> Result<Vec<u8>, ParseError
             return Err(ParseError::build_relocation_error(rel.span));
         }
 
-        lower_operand_impl(buffer, rel.address, symbol, &rel.argument);
+        lower_operand_impl(buffer, rel.address, &symbol, &rel.argument)
+            .map_err(|_| ParseError::build_unexpected_token_error(rel.span))?;
     }
 
     Ok(output)

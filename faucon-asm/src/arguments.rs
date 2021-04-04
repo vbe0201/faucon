@@ -724,6 +724,30 @@ pub const IORI: Argument = Argument::Memory(MemoryAccess::RegImm(
     unwrap!(I8ZX32S2, Argument::U32(imm) => imm),
 ));
 
+// Dissects a bitfield given its encoding as an immediate.
+//
+// An encoded bitfield is either a 10-bit or 8-bit immediate which encodes
+// the lower start index of the field in its low 5 bits. The high 3 or 5 bits,
+// respectively, encode the amount of bits to extract subtracted by one.
+#[inline]
+pub const fn dissect_bitfield(imm: u32) -> (u32, u32) {
+    (imm & 0x1F, imm >> 5 & 0x1F)
+}
+
+#[inline]
+const fn build_raw_bitfield(n: u32, i: u32) -> u32 {
+    n << 5 | i
+}
+
+// Builds a bitfield immediate encoding based on the supplied information.
+//
+// `i` is the lower start index of the bitfield, whereas `n` is the higher
+// boundary of bits to cover.
+#[inline]
+pub const fn build_bitfield(start: u32, end: u32) -> u32 {
+    build_raw_bitfield(end - start, start)
+}
+
 #[inline]
 fn sign_extend<T>(value: T, numbits: usize) -> T
 where
@@ -889,9 +913,9 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
         // fails, we can assume that the value would not produce a match anyway.
         let value = if let Some(value) = match token {
             Token::Flag(_) => return true,
-            Token::SignedInt(imm) => cast::<i32, T>(*imm),
-            Token::UnsignedInt(imm) => cast::<u32, T>(*imm),
-            Token::Bitfield((i, n)) => cast::<u32, T>((*n - *i) << 5 | *i),
+            Token::SignedInt(imm) => cast(*imm),
+            Token::UnsignedInt(imm) => cast(*imm),
+            Token::Bitfield((start, end)) => cast(build_bitfield(*start, *end)),
             _ => return false,
         } {
             value
@@ -942,7 +966,7 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
             Operand::Flag(imm) => self.write(code, cast(imm).unwrap()),
             Operand::Imm(imm) => self.write(code, cast(imm).unwrap()),
             Operand::UImm(imm) => self.write(code, cast(imm).unwrap()),
-            Operand::Bitfield(i, n) => self.write(code, cast(n << 5 | i).unwrap()),
+            Operand::Bitfield(i, n) => self.write(code, cast(build_raw_bitfield(n, i)).unwrap()),
             _ => panic!("Cannot encode operand kind as immediate"),
         }
     }
