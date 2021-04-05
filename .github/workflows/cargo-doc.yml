@@ -2,7 +2,7 @@ name: Cargo Doc
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   publish:
@@ -31,6 +31,6 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@2.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BASE_BRANCH: master
+          BASE_BRANCH: main
           BRANCH: gh-pages
           FOLDER: target/doc
