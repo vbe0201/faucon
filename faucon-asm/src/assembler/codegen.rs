@@ -6,7 +6,7 @@ use crate::arguments::{self, Argument, MachineEncoding, Positional};
 use crate::assembler::context::{Context, Directive, Relocation, Section};
 use crate::assembler::error::ParseError;
 use crate::assembler::lexer::Token;
-use crate::bytes_ext::SaturatingCast;
+use crate::bytes_ext::ByteEncoding;
 use crate::isa::InstructionMeta;
 use crate::opcode::{build_opcode_form, OperandSize};
 use crate::operands::{MemoryAccess, Register};
@@ -172,7 +172,7 @@ fn select_instruction_form<'a>(
 #[inline]
 fn unwrap_immediate<T>(token: &Token) -> Option<T>
 where
-    T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub,
+    T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub,
 {
     match token {
         Token::SignedInt(imm) => cast(*imm),
@@ -184,7 +184,7 @@ where
 #[inline]
 fn unwrap_flag<T>(token: &Token) -> Option<T>
 where
-    T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub,
+    T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub,
 {
     match token {
         Token::Flag(imm) => cast(*imm),
@@ -197,7 +197,7 @@ where
 #[inline]
 fn unwrap_bitfield<T>(token: &Token) -> Option<T>
 where
-    T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub,
+    T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub,
 {
     match token {
         Token::Bitfield((start, end)) => cast(arguments::build_bitfield(*start, *end)),

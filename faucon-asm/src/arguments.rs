@@ -5,7 +5,7 @@ use std::ops::Range;
 use num_traits::{cast, FromPrimitive, PrimInt, WrappingSub};
 
 use crate::assembler::Token;
-use crate::bytes_ext::SaturatingCast;
+use crate::bytes_ext::ByteEncoding;
 use crate::operands::{self, Operand};
 
 // A trait that defines a quantity of a specific size that is stored at a
@@ -880,7 +880,7 @@ impl<T> Positional for Immediate<T> {
     }
 }
 
-impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncoding
+impl<T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub> MachineEncoding
     for Immediate<T>
 {
     type Output = T;
@@ -891,21 +891,11 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
             return value;
         }
 
-        let mut result = T::zero();
-
-        // Read out all the bytes and build the immediate value.
-        for (i, b) in instruction[self.as_range()].iter().enumerate() {
-            let byte = T::from_u8(*b).or(T::from_i8(*b as i8)).unwrap();
-            result = result | byte << (i << 3);
+        let mut result = T::read_from_bytes(&instruction[self.as_range()], self.width());
+        if let Some(mask) = self.mask {
+            result = result & mask;
         }
-
-        // If the immediate is signed, handle sign-extension correctly.
-        if self.sign {
-            result = sign_extend(result, self.width() << 3);
-        }
-
-        // Lastly, mask and shift the value appropriately, if necessary.
-        (result & self.get_mask()) << self.get_shift()
+        result << self.get_shift()
     }
 
     fn matches(&self, token: &Token) -> bool {
@@ -949,15 +939,11 @@ impl<T: FromPrimitive + PrimInt + SaturatingCast<u8> + WrappingSub> MachineEncod
 
     fn write(&self, code: &mut [u8], element: Self::Output) {
         if self.raw_value.is_none() {
-            let element = element >> self.get_shift();
-            for i in 0..self.width {
-                // Split off the lowest byte at the current position.
-                let current_byte = (element >> (i << 3)).saturating_cast();
-
-                code[self.position() + i] = (code[self.position() + i]
-                    & !(self.get_mask() >> (i << 3)).saturating_cast())
-                    | current_byte;
-            }
+            (element >> self.get_shift()).write_to_bytes(
+                &mut code[self.as_range()],
+                self.get_mask(),
+                self.width(),
+            );
         }
     }
 
