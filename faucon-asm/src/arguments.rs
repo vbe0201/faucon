@@ -861,11 +861,6 @@ impl<T: FromPrimitive + PrimInt + WrappingSub> Immediate<T> {
     fn get_shift(&self) -> usize {
         self.shift.unwrap_or(0)
     }
-
-    #[inline]
-    fn get_mask(&self) -> T {
-        self.mask.unwrap_or(T::zero().wrapping_sub(&T::one()))
-    }
 }
 
 impl<T> Positional for Immediate<T> {
@@ -937,7 +932,7 @@ impl<T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub> MachineEncoding fo
         if self.raw_value.is_none() {
             (element >> self.get_shift()).write_to_bytes(
                 &mut code[self.as_range()],
-                self.get_mask(),
+                self.mask,
                 self.width(),
             );
         }

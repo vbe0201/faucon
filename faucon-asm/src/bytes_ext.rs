@@ -44,7 +44,22 @@ fn read_int(buf: &[u8], nbytes: usize) -> i32 {
 }
 
 #[inline]
-fn write_uint(buf: &mut [u8], i: u32, mask: u32, nbytes: usize) {
+fn write_uint(buf: &mut [u8], i: u32, nbytes: usize) {
+    assert!(nbytes <= 4 && nbytes <= buf.len() && bytewidth(i) <= nbytes);
+
+    unsafe {
+        let bytes = *(&i.to_le() as *const u32 as *const [u8; 4]);
+        copy_nonoverlapping(bytes.as_ptr(), buf.as_mut_ptr(), nbytes);
+    }
+}
+
+#[inline]
+fn write_int(buf: &mut [u8], i: i32, nbytes: usize) {
+    write_uint(buf, unextend_sign(i, nbytes), nbytes)
+}
+
+#[inline]
+fn modify_uint(buf: &mut [u8], i: u32, mask: u32, nbytes: usize) {
     assert!(nbytes <= 4 && nbytes <= buf.len() && bytewidth(i) <= nbytes);
 
     let bytes = i.to_le_bytes();
@@ -54,8 +69,8 @@ fn write_uint(buf: &mut [u8], i: u32, mask: u32, nbytes: usize) {
 }
 
 #[inline]
-fn write_int(buf: &mut [u8], i: i32, mask: i32, nbytes: usize) {
-    write_uint(buf, unextend_sign(i, nbytes), mask as u32, nbytes)
+fn modify_int(buf: &mut [u8], i: i32, mask: i32, nbytes: usize) {
+    modify_uint(buf, unextend_sign(i, nbytes), mask as u32, nbytes)
 }
 
 /// A trait that defines byte encoding for individual integer types.
@@ -69,7 +84,7 @@ pub trait ByteEncoding: Sized {
     fn read_from_bytes(buf: &[u8], nbytes: usize) -> Self;
 
     /// Writes the integer type to a buffer of bytes.
-    fn write_to_bytes(self, buf: &mut [u8], mask: Self, nbytes: usize);
+    fn write_to_bytes(self, buf: &mut [u8], mask: Option<Self>, nbytes: usize);
 }
 
 macro_rules! impl_byteencoding_for {
@@ -79,8 +94,11 @@ macro_rules! impl_byteencoding_for {
                 read_uint(buf, nbytes) as $ty
             }
 
-            fn write_to_bytes(self, buf: &mut [u8], mask: Self, nbytes: usize) {
-                write_uint(buf, self as u32, mask as u32, nbytes)
+            fn write_to_bytes(self, buf: &mut [u8], mask: Option<Self>, nbytes: usize) {
+                match mask {
+                    None => write_uint(buf, self as u32, nbytes),
+                    Some(m) => modify_uint(buf, self as u32, m as u32, nbytes),
+                }
             }
         }
     };
@@ -90,8 +108,11 @@ macro_rules! impl_byteencoding_for {
                 read_int(buf, nbytes) as $ty
             }
 
-            fn write_to_bytes(self, buf: &mut [u8], mask: Self, nbytes: usize) {
-                write_int(buf, self as i32, mask as i32, nbytes)
+            fn write_to_bytes(self, buf: &mut [u8], mask: Option<Self>, nbytes: usize) {
+                match mask {
+                    None => write_int(buf, self as i32, nbytes),
+                    Some(m) => modify_int(buf, self as i32, m as i32, nbytes),
+                }
             }
         }
     };
