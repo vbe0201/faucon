@@ -62,7 +62,7 @@
 //! ```
 //! use faucon_asm::faucon_asm;
 //!
-//! let code = faucon_asm!("ld.w $r12 D[$r3+0x74]\n").expect("Failed to assemble the code");
+//! let code = faucon_asm!("ld.w $r12 D[$r3+0x74];").expect("Failed to assemble the code");
 //! assert_eq!(code, vec![0x98, 0x3C, 0x1D]);
 //! ```
 //!
@@ -113,7 +113,7 @@ pub use operands::*;
 /// ```
 /// use faucon_asm::faucon_asm;
 ///
-/// let result = faucon_asm!("halt\n").expect("Failed to assemble the code");
+/// let result = faucon_asm!("halt;").expect("Failed to assemble the code");
 /// assert_eq!(result, vec![0xF8, 0x02]);
 /// ```
 #[macro_export]
