@@ -47,10 +47,8 @@ pub enum Command {
     /// Disassembles the next few instructions starting from the given
     /// address.
     Disassemble(u32, u32),
-    /// Dumps all registers that belong to the given [`RegisterKind`]
+    /// Dumps all registers that belong to the given [`faucon_asm::operands::RegisterKind`]
     /// group.
-    ///
-    /// [`RegisterKind`]: /faucon-asm/operands/enum.RegisterKind.html
     RegDump(RegisterKind),
 }
 

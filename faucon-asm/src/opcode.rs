@@ -159,8 +159,6 @@ impl SubopcodeLocation {
 }
 
 /// Parses the [`SubopcodeLocation`] for the given opcode chunks.
-///
-/// [`SubopcodeLocation`]: enum.SubopcodeLocation.html
 pub const fn get_subopcode_location(size: u8, a: u8, b: u8) -> Option<SubopcodeLocation> {
     match (size, a, b) {
         // Sized opcodes (0x00 - 0xBF)

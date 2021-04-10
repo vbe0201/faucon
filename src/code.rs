@@ -55,8 +55,6 @@ pub fn read_falcon_binary<P: AsRef<Path>>(path: P) -> Result<Box<[u8]>, color_ey
 /// code segment of the processor.
 ///
 /// Returns an error if the binary is too large to fit into the Falcon code segment.
-///
-/// [`read_falcon_binary`]: fn.read_falcon_binary.html
 pub fn upload_to_imem(cpu: &mut Cpu, address: u16, vaddress: u32, binary: &[u8]) -> Result<(), ()> {
     assert_eq!((address & 0xFC), 0);
     assert_eq!((vaddress & 0xFC), 0);

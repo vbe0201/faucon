@@ -84,8 +84,6 @@ impl Request {
     ///
     /// The actual amount of bytes to copy can be obtained through
     /// [`Request::xfer_data_size`].
-    ///
-    /// [`Request::xfer_data_size`]: struct.Request.html#method.xfer_data_size
     pub fn xfer_size(&self) -> u8 {
         if self.mode == RequestMode::CodeLoad {
             // For code xfers, the size is effectively always 6.
@@ -122,14 +120,10 @@ impl Request {
 ///
 /// The internal controller allows for asynchronous copies between Falcon DMEM/IMEM
 /// and external memory, issued through DMA [`Request`]s.
-///
-/// [`Request`]: struct.Request.html
 // TODO: Make DMA engine capable of processing request asynchronously in separate threads.
 #[derive(Debug)]
 pub struct Engine {
     /// A queue of DMA [`Request`]s to be processed by the engine.
-    ///
-    /// [`Request`]: struct.Request.html
     queue: Vec<Request>,
 }
 
@@ -154,8 +148,6 @@ impl Engine {
     /// the user must ensure that all the memory addresses and offsets
     /// denoted in a request are valid and aligned, otherwise undefined
     /// behavior will be triggered.
-    ///
-    /// [`Request`]: struct.Request.html
     pub unsafe fn enqueue(&mut self, request: Request, cpu: &mut Cpu) {
         self.queue.push(request);
 

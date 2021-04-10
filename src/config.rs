@@ -18,8 +18,6 @@ pub struct Config {
 impl Config {
     /// Loads a configuration file from a given path and deserializes it
     /// into a [`Config`] instance.
-    ///
-    /// [`Config`]: struct.Config.html
     pub fn load<P: AsRef<Path>>(path: &P) -> color_eyre::Result<Self> {
         let config = fs::read_to_string(path)?;
 

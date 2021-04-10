@@ -119,8 +119,6 @@ impl Cpu {
     }
 
     /// Triggers a [`Trap`] that should be delivered to the processor.
-    ///
-    /// [`Trap`]: enum.Trap.html
     pub fn trigger_trap(&mut self, trap: Trap) {
         // Set the Trap Active bit in the flags register.
         self.registers[FLAGS] |= 1 << 24;

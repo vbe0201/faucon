@@ -19,81 +19,64 @@
 //!
 //! # The Instruction Set Architecture
 //!
-//! The inner workings of Falcon assembly are documented elsewhere. If you see this
-//! disclaimer, odds are pretty high that nobody has started to work on it yet.
-//!
-//! The heart of this crate is the [`Instruction`] structure. Objects should never
-//! be created manually, unless you know what you are doing. Rather, instances
-//! should be obtained through the [`read_instruction`] function, which disassembles
-//! a chunk of binary data into Falcon assembly.
+//! The heart of this crate is the [`Instruction`] structure. Objects of it shall never
+//! be created manually, unless you know what you are doing. Rather, instances may be
+//! obtained through the [`read_instruction`] function, which disassembles a chunk of
+//! binary data into Falcon assembly.
 //!
 //! See the respective documentation for more details on the usage possibilities.
 //!
 //! ## Pretty-printing instructions
 //!
-//! Instructions implement the [`Display`] trait so they can emit valid assembly code
-//! for the wrapped instruction which could be thrown at an assembler.
+//! Instructions implement the [`std::fmt::Display`] trait so they can emit valid assembly
+//! code for the wrapped instruction which could be thrown at an assembler.
 //!
 //! ```
-//! let instruction = faucon_asm::read_instruction(&mut &[0xBFu8, 0x1Fu8][..])
-//!     .expect("Failed to disassemble the given bytes into a valid instruction");
+//! let instruction = unsafe {
+//!     faucon_asm::read_instruction(&mut &[0xBF, 0x1F][..], &mut 0).unwrap()
+//! };
 //!
-//! assert_eq!(instruction.to_string(), "ld b32 $r15 D[$r1]");
+//! assert_eq!(instruction.to_string(), "ld.w $r15 D[$r1]");
 //! ```
 //!
 //! ## Instruction operands
 //!
 //! Of course, an [`Instruction`] object lets you access its operands which are used to
-//! execute the operation. There are various types of operands in Falcon assembly:
-//!
-//! - registers (`$r0`, `$sp`, ...)
-//! - immediates (`0xAB`, `-0x98`, ...)
-//! - CPU flags from the `$flags` register (`pX`, `c`, ...)
-//! - direct memory accesses (`D[$sp + 0xAB]`, `I[$r0 + $r4]`, ...)
-//!
-//! To work with these data efficiently, Falcon wraps up the values and corresponding
-//! metadata in the [`Operand`] enumeration. A list of instruction operands can be
-//! obtained through [`Instruction::operands`].
-//!
-//! ## Comparing instructions
-//!
-//! In Falcon assembly, it is quite usual that [`Instruction`]s have multiple variants
-//! with different opcodes and different operand combinations. To compare the natures
-//! of instructions, [`Instruction::kind`] exposes an [`InstructionKind`] variant.
-//!
-//! ```
-//! let instruction = faucon_asm::read_instruction(&mut &[0xBFu8, 0x1Fu8][..])
-//!     .expect("Failed to disassemble the given bytes into a valid instruction");
-//!
-//! assert_eq!(instruction.kind(), faucon_asm::InstructionKind::LD);
-//! ```
+//! execute the operation. The various different types of operands are portrayed by the
+//! [`Operand`] enumeration. A list of instruction operands can be obtained through
+//! [`Instruction::operands`].
 //!
 //! # Assembling instructions
 //!
-//! Functionality for assembling intermediate representation to machine code is
-//! currently unsupported and planned for the future.
+//! Assembling instructions is supported and can be done either by using the [`Assembler`]
+//! structure to build machine code out of source files or a raw string of assembly or by
+//! calling [`Instruction::assemble`] on an instruction instance.
 //!
-//! For the time being, it is advised to use `envyas` from the [envytools]
-//! collection.
+//! Latter is discouraged when instructions were hand-constructed because a lot can go wrong
+//! and no sanitization is done on the opcodes or the underlying encoding form.
+//!
+//! When assembling raw strings, a helper macro [`faucon_asm!`] is provided to construct
+//! an instance of the [`Assembler`] and consume a `&str` of assembly language into a `Vec<u8>`
+//! of machine code:
+//!
+//! ```
+//! use faucon_asm::faucon_asm;
+//!
+//! let code = faucon_asm!("ld.w $r12 D[$r3+0x74]\n").expect("Failed to assemble the code");
+//! assert_eq!(code, vec![0x98, 0x3C, 0x1D]);
+//! ```
 //!
 //! # Disassembling instructions
 //!
-//! As mentioned previously, the [`read_instruction`] can be used to disassemble
-//! raw instruction bytes into [`Instruction`] objects. The function can be called
-//! repeatedly on a buffer of code until an error or [`Error::Eof`] occurs.
+//! As mentioned previously, the [`read_instruction`] function should be used to
+//! disassemble raw instruction bytes into [`Instruction`] objects. The function
+//! can be called repeatedly on a buffer of code until an error or [`Error::Eof`]
+//! occurs.
 //!
-//! It is within the user's responsibility to ensure that all possible exceptions
-//! are handled correctly.
-//!
-//! [`Instruction`]: struct.Instruction.html
-//! [`read_instruction`]: fn.read_instruction.html
-//! [`Display`]: https://doc.rust-lang.org/std/fmt/trait.Display.html
-//! [`Operand`]: ./operands/enum.Operand.html
-//! [`Instruction::operands`]: struct.Instruction.html#method.operands
-//! [`Instruction::kind`]: struct.Instruction.html#method.kind
-//! [`InstructionKind`]: ./isa/enum.InstructionKind.html
-//! [envytools]: https://github.com/envytools/envytools
-//! [`Error::Eof`]: enum.Error.html#variant.Eof
+//! However if a user wishes to pretty-print a sequence of instructions to a special
+//! output sink, the [`Disassembler`] structure may be used which provides additional
+//! formatting capabilities which include the current program counter of an instruction
+//! and its representation in raw bytes.
 
 #![feature(const_option, const_unreachable_unchecked)]
 
@@ -115,6 +98,30 @@ pub use isa::InstructionKind;
 pub use opcode::OperandSize;
 use opcode::*;
 pub use operands::*;
+
+/// Assembles Falcon assembly to machine code at runtime.
+///
+/// This is mainly laid out for convenient usage of the assembler interface without
+/// having to write any boilerplate code. Under the hood, it calls the
+/// [`Assembler::assemble_str`] method and yields its return value.
+///
+/// No include path will be set up, so the `include` directive cannot be used inside
+/// the code supplied to this macro.
+///
+/// # Example
+///
+/// ```
+/// use faucon_asm::faucon_asm;
+///
+/// let result = faucon_asm!("halt\n").expect("Failed to assemble the code");
+/// assert_eq!(result, vec![0xF8, 0x02]);
+/// ```
+#[macro_export]
+macro_rules! faucon_asm {
+    ($asm:expr) => {
+        $crate::Assembler::new().assemble_str($asm, &::std::ffi::OsString::from("<main>"))
+    };
+}
 
 /// Error kinds that may occur when assembling or disassembling code
 /// using this crate.

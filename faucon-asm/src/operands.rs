@@ -145,8 +145,6 @@ impl fmt::Display for MemorySpace {
 /// - Access through a single register holding the address: `[$reg]`
 /// - Access through two registers for base address and scaled offset: `[$reg1 + $reg2 * scale]`
 /// - Access through a register for base address and an immediate for offset: `[$reg + imm]`
-///
-/// [`MemorySpace`]: enum.MemorySpace.html
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MemoryAccess {
     /// A form where the memory address is derived from a single register: `[$reg]`
@@ -213,15 +211,12 @@ impl fmt::Display for MemoryAccess {
     }
 }
 
-/// An operand of a Falcon assembly [`Instruction`].
+/// An operand of a Falcon assembly [`crate::Instruction`].
 ///
 /// Operands usually denote CPU registers, immediates, and memory addressing for
 /// the instruction to operate on. A `Vec` of instruction operands can be obtained
-/// for every instruction individually through [`Instruction::operands`]. It is
+/// for every instruction individually through [`crate::Instruction::operands`]. It is
 /// at the user's responsibility to correctly interpret and process the operands.
-///
-/// [`Instruction`]: ../struct.Instruction.html
-/// [`Instruction::operands`]: ../struct.Instruction.html#method.operands
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operand {
     /// A Falcon CPU register operand.

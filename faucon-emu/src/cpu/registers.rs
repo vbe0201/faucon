@@ -125,12 +125,10 @@ impl CpuRegisters {
     }
 
     /// A debugging method that grants immutable access to the registers of the
-    /// supplied [`RegisterKind`].
+    /// supplied [`faucon_asm::operands::RegisterKind`].
     ///
     /// NOTE: The intent behind this method is to query internal state for
     /// inspection during emulation.
-    ///
-    /// [`RegisterKind`]: /faucon-asm/operands/enum.RegisterKind.html
     pub fn debug_get(&self, kind: &RegisterKind) -> &[u32] {
         match kind {
             RegisterKind::Gpr => &self.gpr,

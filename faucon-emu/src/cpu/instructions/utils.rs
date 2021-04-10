@@ -5,13 +5,10 @@ use faucon_asm::{opcode::OperandSize, MemoryAccess, MemorySpace, Operand};
 
 use super::{Cpu, CpuFlag};
 
-/// Parses a [`MemoryAccess`] descriptor by composing the memory address in question and
-/// extracting the corresponding [`MemorySpace`].
+/// Parses a [`faucon_asm::operands::MemoryAccess`] descriptor by composing the memory address
+/// in question and extracting the corresponding [`faucon_asm::operands::MemorySpace`].
 ///
 /// The data will be returned as a `(space, address)` tuple.
-///
-/// [`MemoryAccess`]: /faucon-asm/operands/enum.MemoryAccess.html
-/// [`MemorySpace`]: /faucon-asm/operands/enum.MemorySpace.html
 pub fn parse_memory_access(cpu: &Cpu, mem: Operand) -> Option<(MemorySpace, u32)> {
     if let Operand::Memory(mem) = mem {
         match mem {
@@ -83,13 +80,11 @@ pub fn write_value_to_reg(cpu: &mut Cpu, size: OperandSize, destination: Operand
     }
 }
 
-/// Reads a value from the given [`MemoryAccess`] descriptor.
+/// Reads a value from the given [`faucon_asm::operands::MemoryAccess`] descriptor.
 ///
 /// This is usually used by instruction handlers and should only be called when it
-/// is guaranteed that the right [`Operand`] variant is being passed.
-///
-/// [`MemoryAccess`]: /faucon-asm/operands/enum.MemoryAccess.html
-/// [`Operand`]: /faucon-asm/operands/enum.Operand.html
+/// is guaranteed that the right [`faucon_asm::operands::Operand`] variant is being
+/// passed.
 pub fn read_mem(cpu: &Cpu, size: OperandSize, source: Operand) -> u32 {
     let (space, address) = parse_memory_access(cpu, source).unwrap();
     match space {

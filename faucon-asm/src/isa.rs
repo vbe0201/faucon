@@ -18,14 +18,10 @@ pub struct InstructionMeta {
     /// Whether this instruction is a form with variable operand sizing.
     pub sized: bool,
     /// The first part of an instruction's opcode, which can be obtained through
-    /// [`get_opcode_form`].
-    ///
-    /// [`get_opcode_form`]: ../opcode/fn.get_opcode_form.html
+    /// [`crate::opcode::get_opcode_form`].
     pub a: u8,
     /// The second part of an instruction's opcode, which can be obtained through
-    /// [`get_opcode_form`].
-    ///
-    /// [`get_opcode_form`]: ../opcode/fn.get_opcode_form.html
+    /// [`crate::opcode::get_opcode_form`].
     pub b: u8,
     /// The location of the subopcode.
     pub subopcode_location: SubopcodeLocation,
@@ -33,9 +29,6 @@ pub struct InstructionMeta {
     ///
     /// If [`InstructionMeta::a`] is in the range of 0 through 2, the subopcode
     /// should be identical to [`InstructionMeta::b`].
-    ///
-    /// [`InstructionMeta::a`]: struct.InstructionMeta.html#structfield.a
-    /// [`InstructionMeta::b`]: struct.InstructionMeta.html#structfield.b
     pub subopcode: u8,
     /// A vector of Arguments which work as a parser layer of packing or unpacking
     /// several instruction operands in the underlying raw bytes.
@@ -45,8 +38,6 @@ pub struct InstructionMeta {
 impl InstructionMeta {
     /// Constructs a new [`InstructionMeta`] object from relevant instruction
     /// details.
-    ///
-    /// [`InstructionMeta`]: struct.InstructionMeta.html
     pub const fn new(
         kind: InstructionKind,
         opcode: u8,
@@ -462,8 +453,6 @@ pub enum InstructionKind {
     ///
     /// This instruction essentially executes a [`InstructionKind::MPOP`] and finally
     /// adds the supplied immediate value to the $sp register.
-    ///
-    /// [`InstructionKind::MPOP`]: enum.InstructionKind.html#variant.MPOP
     #[insn(opcode = 0xFB, subopcode = 0x04, operands(R2, I8SX32))]
     #[insn(opcode = 0xFB, subopcode = 0x02, operands(R2, I16SX32))]
     MPOPADD,
@@ -472,9 +461,6 @@ pub enum InstructionKind {
     ///
     /// This instruction essentially executes a [`InstructionKind::MPOP`] followed by
     /// a [`InstructionKind::RET`].
-    ///
-    /// [`InstructionKind::MPOP`]: enum.InstructionKind.html#variant.MPOP
-    /// [`InstructionKind::RET`]: enum.InstructionKind.html#variant.RET
     #[insn(opcode = 0xFB, subopcode = 0x01, operands(R2))]
     MPOPRET,
 
@@ -482,9 +468,6 @@ pub enum InstructionKind {
     ///
     /// This instruction essentially executes a [`InstructionKind::MPOPADD`] followed
     /// by a [`InstructionKind::RET`].
-    ///
-    /// [`InstructionKind::MPOPADD`]: enum.InstructionKind.html#variant.MPOPADD
-    /// [`InstructionKind::RET`]: enum.InstructionKind.html#variant.RET
     #[insn(opcode = 0xFB, subopcode = 0x05, operands(R2, I8SX32))]
     #[insn(opcode = 0xFB, subopcode = 0x03, operands(R2, I16SX32))]
     MPOPADDRET,

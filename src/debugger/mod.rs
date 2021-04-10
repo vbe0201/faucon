@@ -31,10 +31,8 @@ pub struct Debugger {
 }
 
 impl Debugger {
-    /// Constructs a new debugger that takes ownership of the [`Cpu`] used for
-    /// emulation.
-    ///
-    /// [`Cpu`]: ../cpu/struct.Cpu.html
+    /// Constructs a new debugger that takes ownership of the [`faucon_emu::cpu::Cpu`]
+    /// used for emulation.
     pub fn new(falcon: Cpu) -> Self {
         let config = Config::builder()
             .history_ignore_space(false)
