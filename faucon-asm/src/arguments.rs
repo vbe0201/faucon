@@ -60,14 +60,12 @@ pub trait MachineEncoding {
 // evaluation engine.
 macro_rules! unwrap {
     ($argument:expr, $variant:pat => $result:expr) => {
-        if let $variant = $argument {
-            $result
+        (if let $variant = $argument {
+            Some($result)
         } else {
-            // SAFETY: As an internal macro that is only applied on constant
-            // `Argument` instances with known variants, it always produces the
-            // expected results and code flow never gets to land here.
-            unsafe { ::std::hint::unreachable_unchecked() }
-        }
+            None
+        })
+        .unwrap()
     };
 }
 
@@ -880,9 +878,7 @@ impl<T> Positional for Immediate<T> {
     }
 }
 
-impl<T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub> MachineEncoding
-    for Immediate<T>
-{
+impl<T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub> MachineEncoding for Immediate<T> {
     type Output = T;
 
     fn read(&self, instruction: &[u8]) -> Self::Output {

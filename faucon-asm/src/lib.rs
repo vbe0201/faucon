@@ -78,7 +78,7 @@
 //! formatting capabilities which include the current program counter of an instruction
 //! and its representation in raw bytes.
 
-#![feature(const_option, const_unreachable_unchecked)]
+#![feature(const_option)]
 
 mod arguments;
 pub mod assembler;
