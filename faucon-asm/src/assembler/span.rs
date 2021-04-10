@@ -3,8 +3,6 @@
 
 use std::ffi::OsString;
 
-use nom::Slice;
-
 use super::parser::LineSpan;
 
 /// Matches an object from the given parser and wraps it in a [`ParseSpan`].
@@ -55,21 +53,11 @@ impl<T> ParseSpan<T> {
     /// This should never be called manually, refer to [`spanned`] instead.
     pub fn new<'a>(location_span: LineSpan<'a>, width: usize, token: T) -> Self {
         ParseSpan {
-            file: location_span.extra.0.to_owned(),
-            line: {
-                let full_source = location_span.extra.1;
-                let offset = location_span.location_offset();
-
-                let start = full_source.slice(..offset).rfind('\n').map_or(0, |x| x + 1);
-                full_source
-                    .slice(offset..)
-                    .find('\n')
-                    .map_or_else(
-                        || full_source.slice(start..),
-                        |end| full_source.slice(start..(offset + end)),
-                    )
-                    .to_owned()
-            },
+            file: location_span.extra.file_name.to_owned(),
+            line: location_span
+                .extra
+                .get_line_contents(location_span.location_offset())
+                .to_owned(),
             lineno: location_span.location_line() as usize,
             offset: location_span.naive_get_utf8_column(),
             width,

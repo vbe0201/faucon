@@ -12,7 +12,7 @@ use crate::assembler::span::ParseSpan;
 ///
 /// Contains debug information about the position where the error occurred
 /// and what the error itself was caused by.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum ParseError {
     /// A tokenization error that indicates unparseable characters.
     Tokenization(ParseSpan<String>),
@@ -83,17 +83,10 @@ impl ParseError {
             Err(e) => {
                 let span = e.input;
 
-                // If we could actually parse the remaining input into a valid token,
-                // it usually means that a missing whitespace was causing the error.
-                let mut extra = "";
-                if let Ok(_) = Token::from_span(span) {
-                    extra = " Maybe insert a whitespace?";
-                }
-
                 Err(ParseError::Tokenization(ParseSpan::new(
                     span,
                     span.chars().take_while(|c| !c.is_whitespace()).count(),
-                    format!("Unparseable tokens detected.{}", extra),
+                    "Unparseable tokens detected.".to_owned(),
                 )))
             }
         }

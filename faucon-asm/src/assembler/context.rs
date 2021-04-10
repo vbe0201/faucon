@@ -359,7 +359,7 @@ impl<'a> Context<'a> {
 // or data and are uniquely identified by a name. Further, sections can
 // be relocated to desired virtual addresses and denote in which security
 // mode they should be executed at runtime.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Section<'a> {
     // The name of the section.
     pub name: &'a str,

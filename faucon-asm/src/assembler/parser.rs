@@ -6,56 +6,189 @@ use nom::character::complete::*;
 use nom::combinator::*;
 use nom::multi::*;
 use nom::sequence::*;
-use nom::IResult;
+use nom::{IResult, Slice};
 use num_traits::{Num, PrimInt, Signed, Unsigned};
 
+use crate::assembler::lexer::Token;
+use crate::assembler::span::{spanned, ParseSpan};
 use crate::isa::InstructionKind;
 use crate::opcode::OperandSize;
-use crate::operands::{MemoryAccess, MemorySpace, Register, RegisterKind};
+use crate::operands::*;
 
-pub type LineSpan<'a> = nom_locate::LocatedSpan<&'a str, (&'a OsStr, &'a str)>;
+pub type LineSpan<'a> = nom_locate::LocatedSpan<&'a str, Metadata<'a>>;
+
+#[derive(Clone, Copy, Debug)]
+pub struct Metadata<'a> {
+    full_input: &'a str,
+    pub file_name: &'a OsStr,
+}
+
+impl<'a> Metadata<'a> {
+    pub fn new(full_input: &'a str, file_name: &'a OsStr) -> Self {
+        Metadata {
+            full_input,
+            file_name,
+        }
+    }
+
+    pub fn get_line_contents(&self, offset: usize) -> &'a str {
+        let start = self
+            .full_input
+            .slice(..offset)
+            .rfind('\n')
+            .map_or(0, |x| x + 1);
+
+        self.full_input.slice(offset..).find('\n').map_or_else(
+            || self.full_input.slice(start..),
+            |end| self.full_input.slice(start..(offset + end)),
+        )
+    }
+}
+
+#[inline]
+fn parse_number<T>(literal: &str, radix: u32) -> Result<T, <T as Num>::FromStrRadixErr>
+where
+    T: PrimInt,
+{
+    // XXX: Do we really need to replace here?
+    T::from_str_radix(&str::replace(&literal, "_", ""), radix)
+}
 
 pub fn start<'a, T>(
     file_name: &'a OsStr,
-    source: &'a str,
     mut parser: impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T>,
 ) -> impl FnMut(&'a str) -> IResult<LineSpan<'a>, T> {
-    move |s: &'a str| parser(LineSpan::new_extra(s, (file_name, source)))
+    move |s: &'a str| parser(LineSpan::new_extra(s, Metadata::new(s, file_name)))
 }
 
-fn eol_comment(input: LineSpan) -> IResult<LineSpan, ()> {
-    value((), pair(tag("//"), is_not("\n\r")))(input)
+// *separator_list*? ( *statement* *separator_list* )*
+pub fn do_parse(input: LineSpan) -> IResult<LineSpan, Vec<ParseSpan<Token>>> {
+    let (input, _) = opt(separator_list)(input)?;
+    fold_many0(
+        pair(statement, separator_list),
+        Vec::with_capacity(100),
+        |mut acc, ((label, inst), _)| {
+            if let Some(l) = label {
+                acc.push(l);
+            }
+            if let Some(i) = inst {
+                acc.push(i.0);
+                acc.extend(i.1);
+            }
+
+            acc
+        },
+    )(input)
 }
 
-fn pinline_comment(input: LineSpan) -> IResult<LineSpan, ()> {
-    value((), tuple((tag("/*"), take_until("*/"), tag("*/"))))(input)
+// *label_decl*? ( *instruction* *operand** )?
+fn statement(
+    input: LineSpan,
+) -> IResult<
+    LineSpan,
+    (
+        Option<ParseSpan<Token>>,
+        Option<(ParseSpan<Token>, Vec<ParseSpan<Token>>)>,
+    ),
+> {
+    pair(
+        opt(ws0(label_decl)),
+        opt(pair(
+            instruction,
+            many0(preceded(many1(whitespace), operand)),
+        )),
+    )(input)
 }
 
-pub fn ws0<'a, T>(
+// *label*
+fn label_decl(input: LineSpan) -> IResult<LineSpan, ParseSpan<Token>> {
+    spanned(label)(input)
+}
+
+// ( *mnemonic* | *directive* )
+fn instruction(input: LineSpan) -> IResult<LineSpan, ParseSpan<Token>> {
+    spanned(alt((mnemonic, directive)))(input)
+}
+
+// *register* | *flag* | *memory_access* | *string* | *signed_integer* | ...
+fn operand(input: LineSpan) -> IResult<LineSpan, ParseSpan<Token>> {
+    spanned(alt((
+        directive,
+        symbol,
+        register,
+        flag,
+        memory_access,
+        bitfield,
+        unsigned_integer,
+        signed_integer,
+        string,
+    )))(input)
+}
+
+// *whitespace** *parser* *whitespace**
+fn ws0<'a, T>(
     parser: impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T>,
 ) -> impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T> {
-    delimited(
-        many0(alt((value((), multispace1), eol_comment, pinline_comment))),
-        parser,
-        many0(alt((value((), multispace1), eol_comment, pinline_comment))),
-    )
+    delimited(many0(whitespace), parser, many0(whitespace))
 }
 
-pub fn ws1<'a, T>(
-    parser: impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T>,
-) -> impl FnMut(LineSpan<'a>) -> IResult<LineSpan<'a>, T> {
-    delimited(
-        many0(alt((value((), multispace1), eol_comment, pinline_comment))),
-        parser,
-        many1(alt((value((), multispace1), eol_comment, pinline_comment))),
-    )
+// *separator*+
+fn separator_list(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    recognize(many1(separator))(input)
 }
 
-pub fn string_literal(input: LineSpan) -> IResult<LineSpan, &str> {
-    let (ls, lit) = tuple((tag(r#"""#), take_until(r#"""#), tag(r#"""#)))(input)?;
-    Ok((ls, &lit.1))
+// *whitespace** ( `;` | *line_terminator* ) *whitespace**
+fn separator(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    ws0(alt((line_terminator, recognize(char(';')))))(input)
 }
 
+// ` ` | 0x09 | 0x0b | 0x0c | 0x20 | *comment*
+fn whitespace(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    alt((recognize(one_of(" \t\x0b\x0c\r")), recognize(comment)))(input)
+}
+
+// *single_line_comment* | *multi_line_comment*
+fn comment(input: LineSpan) -> IResult<LineSpan, ()> {
+    value((), alt((single_line_comment, multi_line_comment)))(input)
+}
+
+// `//` *line_content*?
+fn single_line_comment(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    recognize(tuple((tag("//"), opt(line_content))))(input)
+}
+
+// `/*` ...? `*/`
+fn multi_line_comment(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    recognize(tuple((tag("/*"), take_until("*/"), tag("*/"))))(input)
+}
+
+// *anychar*+ *line_terminator*?
+fn line_content(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    recognize(many1(preceded(peek(not(line_terminator)), anychar)))(input)
+}
+
+// `\r`? `\n`
+fn line_terminator(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    line_ending(input)
+}
+
+// `.` *identifier*
+fn directive(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(preceded(tag("."), identifier), Token::Directive)(input)
+}
+
+// `#` `#`? *identifier*
+fn symbol(input: LineSpan) -> IResult<LineSpan, Token> {
+    let (ls, (_, is_physical, ident)) = tuple((tag("#"), opt(tag("#")), identifier))(input)?;
+    Ok((ls, Token::Symbol((ident, is_physical.is_some()))))
+}
+
+// *identifier* `:`
+fn label(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(terminated(identifier, tag(":")), Token::Label)(input)
+}
+
+// ( *alpha1* | `_` ) ( *alphanumeric1* | `_` )*
 fn identifier(input: LineSpan) -> IResult<LineSpan, &str> {
     let (ls, ident) = recognize(pair(
         alt((alpha1, tag("_"))),
@@ -64,126 +197,142 @@ fn identifier(input: LineSpan) -> IResult<LineSpan, &str> {
     Ok((ls, &ident))
 }
 
-pub fn mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandSize)> {
-    pair(
-        alt((
-            alt((
-                value(InstructionKind::CMPU, tag_no_case("cmpu")),
-                value(InstructionKind::CMPS, tag_no_case("cmps")),
-                value(InstructionKind::CMP, tag_no_case("cmp")),
-                value(InstructionKind::ADDSP, tag_no_case("addsp")),
-                value(InstructionKind::CCR, tag_no_case("ccr")),
-                value(InstructionKind::ADD, tag_no_case("add")),
-                value(InstructionKind::ADC, tag_no_case("adc")),
-                value(InstructionKind::SUB, tag_no_case("sub")),
-                value(InstructionKind::SBB, tag_no_case("sbb")),
-                value(InstructionKind::SHL, tag_no_case("shl")),
-                value(InstructionKind::SHR, tag_no_case("shr")),
-                value(InstructionKind::SAR, tag_no_case("sar")),
-                value(InstructionKind::SHLC, tag_no_case("shlc")),
-                value(InstructionKind::SHRC, tag_no_case("shrc")),
-                value(InstructionKind::NOT, tag_no_case("not")),
-                value(InstructionKind::NEG, tag_no_case("neg")),
-                value(InstructionKind::HSWAP, tag_no_case("hswap")),
-                value(InstructionKind::SETHI, tag_no_case("sethi")),
-                value(InstructionKind::CLEAR, tag_no_case("clear")),
-                value(InstructionKind::TEST, tag_no_case("test")),
-                value(InstructionKind::MULU, tag_no_case("mulu")),
-            )),
-            alt((
-                value(InstructionKind::MULS, tag_no_case("muls")),
-                value(InstructionKind::SEXT, tag_no_case("sext")),
-                value(InstructionKind::AND, tag_no_case("and")),
-                value(InstructionKind::OR, tag_no_case("or")),
-                value(InstructionKind::XOR, tag_no_case("xor")),
-                value(InstructionKind::XBIT, tag_no_case("xbit")),
-                value(InstructionKind::BSET, tag_no_case("bset")),
-                value(InstructionKind::BCLR, tag_no_case("bclr")),
-                value(InstructionKind::BTGL, tag_no_case("btgl")),
-                value(InstructionKind::DIV, tag_no_case("div")),
-                value(InstructionKind::MOD, tag_no_case("mod")),
-                value(InstructionKind::SETP, tag_no_case("setp")),
-                value(InstructionKind::EXTRS, tag_no_case("extrs")),
-                value(InstructionKind::EXTR, tag_no_case("extr")),
-                value(InstructionKind::INS, tag_no_case("ins")),
-                value(InstructionKind::MOV, tag_no_case("mov")),
-                value(InstructionKind::LD, tag_no_case("ld")),
-                value(InstructionKind::ST, tag_no_case("st")),
-                value(InstructionKind::PUSH, tag_no_case("push")),
-                value(InstructionKind::POP, tag_no_case("pop")),
-                value(InstructionKind::MPUSH, tag_no_case("mpush")),
-            )),
-            alt((
-                value(InstructionKind::MPOP, tag_no_case("mpop")),
-                value(InstructionKind::MPOPADD, tag_no_case("mpopadd")),
-                value(InstructionKind::MPOPRET, tag_no_case("mpopret")),
-                value(InstructionKind::MPOPADDRET, tag_no_case("mpopaddret")),
-                value(InstructionKind::CALL, tag_no_case("call")),
-                value(InstructionKind::LCALL, tag_no_case("lcall")),
-                value(InstructionKind::JMP, tag_no_case("jmp")),
-                value(InstructionKind::BP, tag_no_case("bp")),
-                value(InstructionKind::BC, tag_no_case("bc")),
-                value(InstructionKind::BO, tag_no_case("bo")),
-                value(InstructionKind::BS, tag_no_case("bs")),
-                value(InstructionKind::BZ, tag_no_case("bz")),
-                value(InstructionKind::BA, tag_no_case("ba")),
-                value(InstructionKind::BNA, tag_no_case("bna")),
-                value(InstructionKind::BRA, tag_no_case("bra")),
-                value(InstructionKind::BNP, tag_no_case("bnp")),
-                value(InstructionKind::BNC, tag_no_case("bnc")),
-                value(InstructionKind::BNO, tag_no_case("bno")),
-                value(InstructionKind::BNS, tag_no_case("bns")),
-                value(InstructionKind::BNZ, tag_no_case("bnz")),
-                value(InstructionKind::BGE, tag_no_case("bge")),
-            )),
-            alt((
-                value(InstructionKind::BG, tag_no_case("bg")),
-                value(InstructionKind::BLE, tag_no_case("ble")),
-                value(InstructionKind::BL, tag_no_case("bl")),
-                value(InstructionKind::LBRA, tag_no_case("lbra")),
-                value(InstructionKind::RET, tag_no_case("ret")),
-                value(InstructionKind::HALT, tag_no_case("halt")),
-                value(InstructionKind::SLEEP, tag_no_case("sleep")),
-                value(InstructionKind::IMBLK, tag_no_case("imblk")),
-                value(InstructionKind::IMTAG, tag_no_case("imtag")),
-                value(InstructionKind::IMINV, tag_no_case("iminv")),
-                value(InstructionKind::IRET, tag_no_case("iret")),
-                value(InstructionKind::TRAP, tag_no_case("trap")),
-                value(InstructionKind::IMLD, tag_no_case("imld")),
-                value(InstructionKind::DMLD, tag_no_case("dmld")),
-                value(InstructionKind::DMST, tag_no_case("dmst")),
-                value(InstructionKind::IMWAIT, tag_no_case("imwait")),
-                value(InstructionKind::DMWAIT, tag_no_case("dmwait")),
-                value(InstructionKind::DMFENCE, tag_no_case("dmfence")),
-                value(InstructionKind::IORDS, tag_no_case("iords")),
-                value(InstructionKind::IORD, tag_no_case("iord")),
-                value(InstructionKind::IOWR, tag_no_case("iowr")),
-            )),
-            value(InstructionKind::IOWRS, tag_no_case("iowrs")),
-        )),
-        map(
-            opt(preceded(char('.'), one_of("bhwBHW"))),
-            |out: Option<char>| match out {
-                Some('b') | Some('B') => OperandSize::EightBit,
-                Some('h') | Some('H') => OperandSize::SixteenBit,
-                Some('w') | Some('W') => OperandSize::ThirtyTwoBit,
-                None => OperandSize::Unsized,
-                _ => unreachable!(),
-            },
-        ),
-    )(input)
+// *_mnemonic*
+fn mnemonic(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(_mnemonic, Token::Mnemonic)(input)
 }
 
-fn general_purpose_register(input: LineSpan) -> IResult<LineSpan, Register> {
+// *opcode* *operand_size*
+fn _mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandSize)> {
+    pair(opcode, operand_size)(input)
+}
+
+// `CMPU` | `CMPS` | `CMP` | ...
+fn opcode(input: LineSpan) -> IResult<LineSpan, InstructionKind> {
+    macro_rules! mnemonic_values {
+        ($variant:ident) => {
+            value(InstructionKind::$variant, tag_no_case(stringify!($variant)))
+        };
+        ($($variant:ident),+) => {
+            // XXX: alt() blocks take at least two and at most twenty-one values.
+            //      Keep that in mind when invoking this arm of the macro.
+            alt((
+                $(mnemonic_values!($variant)),*
+            ))
+        };
+    }
+
+    alt((
+        mnemonic_values!(
+            CMPU, CMPS, CMP, ADDSP, CCR, ADD, ADC, SUB, SBB, SHL, SHR, SAR, SHLC, SHRC, NOT, NEG,
+            HSWAP, SETHI, CLEAR, TEST, MULU
+        ),
+        mnemonic_values!(
+            MULS, SEXT, AND, OR, XOR, XBIT, BSET, BCLR, BTGL, DIV, MOD, SETP, EXTRS, EXTR, INS,
+            MOV, LD, ST, PUSH, POP, MPUSH
+        ),
+        mnemonic_values!(
+            MPOP, MPOPADD, MPOPRET, MPOPADDRET, CALL, LCALL, JMP, BP, BC, BO, BS, BZ, BA, BNA, BRA,
+            BNP, BNC, BNO, BNS, BNZ, BGE
+        ),
+        mnemonic_values!(
+            BG, BLE, BL, LBRA, RET, HALT, SLEEP, IMBLK, IMTAG, IMINV, IRET, TRAP, IMLD, DMLD, DMST,
+            IMWAIT, DMWAIT, DMFENCE, IORDS, IORD, IOWRS
+        ),
+        mnemonic_values!(IOWR),
+    ))(input)
+}
+
+// ( `.` ( `b` | `h` | `w` | `B` | `H` | `W` ) )?
+fn operand_size(input: LineSpan) -> IResult<LineSpan, OperandSize> {
     map(
-        preceded(
-            alt((complete(tag_no_case("reg")), tag_no_case("r"))),
-            digit1,
-        ),
-        |s: LineSpan| Register(RegisterKind::Gpr, s.fragment().parse::<usize>().unwrap()),
+        opt(preceded(char('.'), one_of("bhwBHW"))),
+        |out| match out {
+            Some('b') | Some('B') => OperandSize::EightBit,
+            Some('h') | Some('H') => OperandSize::SixteenBit,
+            Some('w') | Some('W') => OperandSize::ThirtyTwoBit,
+            None => OperandSize::Unsized,
+            _ => unreachable!(),
+        },
     )(input)
 }
 
+// *_memory_access*
+fn memory_access(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(_memory_access, Token::Memory)(input)
+}
+
+// *memory_space* `[` *whitespace** ( *reg_imm* | *reg_reg* | *reg* ) *whitespace** `]`
+fn _memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
+    // Parse the memory space to access.
+    let (input, space) = ws0(memory_space)(input)?;
+
+    // Prepare parsers for different forms of memory accesses.
+    let reg = map(_register, move |base| MemoryAccess::Reg { space, base });
+    let reg_reg = map(
+        tuple((
+            _register,
+            ws0(tag("+")),
+            _register,
+            opt(preceded(ws0(tag("*")), _unsigned_integer)),
+        )),
+        move |(base, _, offset, scale)| MemoryAccess::RegReg {
+            space,
+            base,
+            offset,
+            scale: scale.unwrap_or(1),
+        },
+    );
+    let reg_imm = map(
+        tuple((_register, ws0(tag("+")), _unsigned_integer)),
+        move |(base, _, offset)| MemoryAccess::RegImm {
+            space,
+            base,
+            offset,
+        },
+    );
+
+    // Put it all together.
+    delimited(tag("["), ws0(alt((reg_imm, reg_reg, reg))), tag("]"))(input)
+}
+
+// `i` | `d` | `I` | `D`
+fn memory_space(input: LineSpan) -> IResult<LineSpan, MemorySpace> {
+    alt((
+        value(MemorySpace::IMem, tag_no_case("i")),
+        value(MemorySpace::DMem, tag_no_case("d")),
+    ))(input)
+}
+
+// *_register*
+fn register(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(_register, Token::Register)(input)
+}
+
+// `$` ( *general_purpose_register* | *special_purpose_register* )
+fn _register(input: LineSpan) -> IResult<LineSpan, Register> {
+    preceded(
+        tag("$"),
+        alt((general_purpose_register, special_purpose_register)),
+    )(input)
+}
+
+// *general_purpose_register_tag* *digit1*
+fn general_purpose_register(input: LineSpan) -> IResult<LineSpan, Register> {
+    map_opt(preceded(general_purpose_register_tag, digit1), |s| {
+        s.fragment()
+            .parse::<usize>()
+            .map(|i| Register(RegisterKind::Gpr, i))
+            .ok()
+    })(input)
+}
+
+// `reg` | `r`
+fn general_purpose_register_tag(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    alt((recognize(tag_no_case("reg")), recognize(tag_no_case("r"))))(input)
+}
+
+// `iv0` | `iv1` | `iv2` | `ev` | ...
 fn special_purpose_register(input: LineSpan) -> IResult<LineSpan, Register> {
     alt((
         value(Register(RegisterKind::Spr, 0x0), tag_no_case("iv0")),
@@ -205,16 +354,14 @@ fn special_purpose_register(input: LineSpan) -> IResult<LineSpan, Register> {
     ))(input)
 }
 
-pub fn register(input: LineSpan) -> IResult<LineSpan, Register> {
-    preceded(
-        char('$'),
-        alt((general_purpose_register, special_purpose_register)),
-    )(input)
+fn flag(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(_flag, Token::Flag)(input)
 }
 
-pub fn flag(input: LineSpan) -> IResult<LineSpan, u8> {
+// `$` ( `p0` | `p1` | `p2` | `p3` | ... )
+fn _flag(input: LineSpan) -> IResult<LineSpan, u8> {
     preceded(
-        char('$'),
+        tag("$"),
         alt((
             value(0x00, tag_no_case("p0")),
             value(0x01, tag_no_case("p1")),
@@ -239,243 +386,385 @@ pub fn flag(input: LineSpan) -> IResult<LineSpan, u8> {
     )(input)
 }
 
-pub fn memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
-    // Parse the prefix that indicates the accessed memory space.
-    let (input, space) = alt((
-        value(MemorySpace::IMem, tag_no_case("i")),
-        value(MemorySpace::DMem, tag_no_case("d")),
-    ))(input)?;
-
-    // Prepare a parser for the single-register form: `$rX`.
-    let reg = map(register, move |base| MemoryAccess::Reg { space, base });
-    // Prepare a parser for the double-register form: `$rX + $rY * scale`.
-    let reg_reg = map(
-        tuple((
-            register,
-            ws0(tag("+")),
-            register,
-            opt(preceded(ws0(tag("*")), unsigned_integer)),
-        )),
-        move |out: (Register, LineSpan, Register, Option<u8>)| MemoryAccess::RegReg {
-            space,
-            base: out.0,
-            offset: out.2,
-            scale: out.3.unwrap_or(1),
-        },
-    );
-    // Prepare a parser for the register-immediate form: `$rX + imm`.
-    let reg_imm = map(
-        tuple((register, ws0(tag("+")), unsigned_integer)),
-        move |out: (Register, LineSpan, u32)| MemoryAccess::RegImm {
-            space,
-            base: out.0,
-            offset: out.2,
-        },
-    );
-
-    // Put it all together to parse the memory access.
-    delimited(tag("["), ws0(alt((reg_imm, reg_reg, reg))), tag("]"))(input)
+// *_string*
+fn string(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(_string, Token::String)(input)
 }
 
-pub fn symbol(input: LineSpan) -> IResult<LineSpan, (&str, bool)> {
-    let (ls, (_, is_physical, ident)) = tuple((char('#'), opt(char('#')), identifier))(input)?;
-    Ok((ls, (ident, is_physical.is_some())))
+// `"` *take_until* `"`
+fn _string(input: LineSpan) -> IResult<LineSpan, &str> {
+    let (span, (_, lit, _)) = tuple((tag("\""), take_until("\""), tag("\"")))(input)?;
+    Ok((span, &lit))
 }
 
-pub fn label_definition(input: LineSpan) -> IResult<LineSpan, &str> {
-    let (ls, ident) = terminated(identifier, char(':'))(input)?;
-    Ok((ls, &ident))
+// *_signed_integer*
+fn signed_integer(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(_signed_integer, Token::SignedInt)(input)
 }
 
-pub fn directive(input: LineSpan) -> IResult<LineSpan, &str> {
-    let (ls, ident) = preceded(tag("."), identifier)(input)?;
-    Ok((ls, &ident))
+// *_unsigned_integer*
+fn unsigned_integer(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(_unsigned_integer, Token::UnsignedInt)(input)
 }
 
-pub fn bitfield<T>(input: LineSpan) -> IResult<LineSpan, (T, T)>
+// *_bitfield*
+fn bitfield(input: LineSpan) -> IResult<LineSpan, Token> {
+    map(_bitfield, Token::Bitfield)(input)
+}
+
+// *_unsigned_integer* `:` *_unsigned_integer*
+fn _bitfield<T>(input: LineSpan) -> IResult<LineSpan, (T, T)>
 where
     T: PrimInt + Unsigned,
 {
-    let (ls, (index, _, nbits)) = tuple((unsigned_integer, char(':'), unsigned_integer))(input)?;
-    Ok((ls, (index, nbits)))
+    let (span, (start, _, end)) = tuple((_unsigned_integer, char(':'), _unsigned_integer))(input)?;
+    Ok((span, (start, end)))
 }
 
-pub fn signed_integer<T>(input: LineSpan) -> IResult<LineSpan, T>
+// *signed_hex* | *signed_binary* | *signed_octal* | *signed_decimal*
+fn _signed_integer<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Signed,
 {
-    alt((
-        signed_binary,
-        signed_hexadecimal,
-        signed_octal,
-        signed_decimal,
-    ))(input)
+    alt((signed_hex, signed_binary, signed_octal, signed_decimal))(input)
 }
 
-pub fn unsigned_integer<T>(input: LineSpan) -> IResult<LineSpan, T>
+// *unsigned_hex* | *unsigned_binary* | *unsigned_octal* | *unsigned_hex*
+fn _unsigned_integer<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Unsigned,
 {
     alt((
+        unsigned_hex,
         unsigned_binary,
-        unsigned_hexadecimal,
         unsigned_octal,
         unsigned_decimal,
     ))(input)
 }
 
-#[inline]
-fn parse_number<T>(literal: &str, radix: u32) -> Result<T, <T as Num>::FromStrRadixErr>
-where
-    T: PrimInt,
-{
-    T::from_str_radix(&str::replace(&literal, "_", ""), radix)
-}
-
+// *sign* *decimal_digits*
 fn signed_decimal<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Signed,
 {
-    map_res(
-        pair(
-            map(opt(alt((tag("+"), tag("-")))), |sign: Option<LineSpan>| {
-                sign.map(|s| if *s.fragment() == "-" { true } else { false })
-                    .unwrap_or(false)
-            }),
-            recognize(many1(terminated(one_of("0123456789"), many0(char('_'))))),
-        ),
-        |out: (bool, LineSpan)| {
-            parse_number(out.1.fragment(), 10).and_then(|n: T| if out.0 { Ok(-n) } else { Ok(n) })
-        },
-    )(input)
+    map_res(pair(sign, decimal_digits), |(sign, span)| {
+        parse_number(span.fragment(), 10).and_then(|n: T| if sign { Ok(-n) } else { Ok(n) })
+    })(input)
 }
 
+// `+`? *decimal_digits*
 fn unsigned_decimal<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Unsigned,
 {
-    map_res(
-        preceded(
-            opt(tag("+")),
-            recognize(many1(terminated(one_of("0123456789"), many0(char('_'))))),
-        ),
-        |out: LineSpan| parse_number(out.fragment(), 10),
-    )(input)
+    map_res(pair(opt(tag("+")), decimal_digits), |(_, span)| {
+        parse_number(span.fragment(), 10)
+    })(input)
 }
 
-fn signed_hexadecimal<T>(input: LineSpan) -> IResult<LineSpan, T>
+// ( `0` | `1` | `2` | `3` | `4` | `5` | `6` | `7` | `8` | `9` | `_` )+
+fn decimal_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    recognize(many1(terminated(one_of("0123456789"), many0(char('_')))))(input)
+}
+
+// *sign* *hex_prefix* *hex_digits*
+fn signed_hex<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Signed,
 {
     map_res(
-        pair(
-            map(opt(alt((tag("+"), tag("-")))), |sign: Option<LineSpan>| {
-                sign.map(|s| if *s.fragment() == "-" { true } else { false })
-                    .unwrap_or(false)
-            }),
-            preceded(
-                complete(tag_no_case("0x")),
-                recognize(many1(terminated(
-                    one_of("0123456789abcdefABCDEF"),
-                    many0(char('_')),
-                ))),
-            ),
-        ),
-        |out: (bool, LineSpan)| {
-            parse_number(out.1.fragment(), 16).and_then(|n: T| if out.0 { Ok(-n) } else { Ok(n) })
+        pair(sign, preceded(hex_prefix, hex_digits)),
+        |(sign, span)| {
+            parse_number(span.fragment(), 16).and_then(|n: T| if sign { Ok(-n) } else { Ok(n) })
         },
     )(input)
 }
 
-fn unsigned_hexadecimal<T>(input: LineSpan) -> IResult<LineSpan, T>
+// `+`? *hex_prefix* *hex_digits*
+fn unsigned_hex<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Unsigned,
 {
     map_res(
-        preceded(
-            opt(tag("+")),
-            preceded(
-                complete(tag_no_case("0x")),
-                recognize(many1(terminated(
-                    one_of("0123456789abcdefABCDEF"),
-                    many0(char('_')),
-                ))),
-            ),
-        ),
-        |out: LineSpan| parse_number(out.fragment(), 16),
+        pair(opt(tag("+")), preceded(hex_prefix, hex_digits)),
+        |(_, span)| parse_number(span.fragment(), 16),
     )(input)
 }
 
+// `0x`
+fn hex_prefix(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    complete(tag_no_case("0x"))(input)
+}
+
+// ( `0` | `1` | `2` | `3` | `4` | `5` | `6` | `7` | `8` | `9` | `a` | ... )+
+fn hex_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    recognize(many1(terminated(
+        one_of("0123456789abcdefABCDEF"),
+        many0(char('_')),
+    )))(input)
+}
+
+// *sign* *octal_prefix* *octal_digits*
 fn signed_octal<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Signed,
 {
     map_res(
-        pair(
-            map(opt(alt((tag("+"), tag("-")))), |sign: Option<LineSpan>| {
-                sign.map(|s| if *s.fragment() == "-" { true } else { false })
-                    .unwrap_or(false)
-            }),
-            preceded(
-                complete(tag_no_case("0o")),
-                recognize(many1(terminated(one_of("01234567"), many0(char('_'))))),
-            ),
-        ),
-        |out: (bool, LineSpan)| {
-            parse_number(out.1.fragment(), 8).and_then(|n: T| if out.0 { Ok(-n) } else { Ok(n) })
+        pair(sign, preceded(octal_prefix, octal_digits)),
+        |(sign, span)| {
+            parse_number(span.fragment(), 8).and_then(|n: T| if sign { Ok(-n) } else { Ok(n) })
         },
     )(input)
 }
 
+// `+`? *octal_prefix* *octal_digits*
 fn unsigned_octal<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Unsigned,
 {
     map_res(
-        preceded(
-            opt(tag("+")),
-            preceded(
-                complete(tag_no_case("0o")),
-                recognize(many1(terminated(one_of("01234567"), many0(char('_'))))),
-            ),
-        ),
-        |out: LineSpan| parse_number(out.fragment(), 8),
+        pair(opt(tag("+")), preceded(octal_prefix, octal_digits)),
+        |(_, span)| parse_number(span.fragment(), 8),
     )(input)
 }
 
+// `0o`
+fn octal_prefix(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    complete(tag_no_case("0o"))(input)
+}
+
+// ( `0` | `1` | `2` | `3` | `4` | `5` | `6` | `7` | `_` )+
+fn octal_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    recognize(many1(terminated(one_of("01234567"), many0(char('_')))))(input)
+}
+
+// *sign* *binary_prefix* *binary_digits*
 fn signed_binary<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Signed,
 {
     map_res(
-        pair(
-            map(opt(alt((tag("+"), tag("-")))), |sign: Option<LineSpan>| {
-                sign.map(|s| if *s.fragment() == "-" { true } else { false })
-                    .unwrap_or(false)
-            }),
-            preceded(
-                complete(tag_no_case("0b")),
-                recognize(many1(terminated(one_of("01"), many0(char('_'))))),
-            ),
-        ),
-        |out: (bool, LineSpan)| {
-            parse_number(out.1.fragment(), 2).and_then(|n: T| if out.0 { Ok(-n) } else { Ok(n) })
+        pair(sign, preceded(binary_prefix, binary_digits)),
+        |(sign, span)| {
+            parse_number(span.fragment(), 2).and_then(|n: T| if sign { Ok(-n) } else { Ok(n) })
         },
     )(input)
 }
 
+// `+`? *binary_prefix* *binary_digits*
 fn unsigned_binary<T>(input: LineSpan) -> IResult<LineSpan, T>
 where
     T: PrimInt + Unsigned,
 {
     map_res(
-        preceded(
-            opt(tag("+")),
-            preceded(
-                complete(tag_no_case("0b")),
-                recognize(many1(terminated(one_of("01"), many0(char('_'))))),
-            ),
-        ),
-        |out: LineSpan| parse_number(out.fragment(), 2),
+        pair(opt(tag("+")), preceded(binary_prefix, binary_digits)),
+        |(_, span)| parse_number(span.fragment(), 2),
     )(input)
+}
+
+// `0b`
+fn binary_prefix(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    complete(tag_no_case("0b"))(input)
+}
+
+// ( `0` | `1` | `_` )+
+fn binary_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+    recognize(many1(terminated(one_of("01"), many0(char('_')))))(input)
+}
+
+// ( `+` | `-` )?
+fn sign(input: LineSpan) -> IResult<LineSpan, bool> {
+    map(
+        opt(alt((value(false, tag("+")), value(true, tag("-"))))),
+        |i| i.unwrap_or(false),
+    )(input)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! test_case {
+        ($parser:expr, $input:expr, $expected:expr) => {
+            let temp = std::ffi::OsString::new();
+            assert_eq!(start(&temp, $parser)($input).unwrap().1, $expected);
+        };
+    }
+
+    // For the sake of efficiency, we don't test every parser individually but rather
+    // the most important ones which cover up all the smaller parsers as well. That
+    // approach gives us the best picture of how well everything plays together.
+
+    #[test]
+    fn test_sign_parser() {
+        test_case!(sign, "-", true);
+        test_case!(sign, "---", true);
+        test_case!(sign, "+", false);
+        test_case!(sign, "+-", false);
+        test_case!(sign, "", false);
+    }
+
+    #[test]
+    fn test_binary_parsers() {
+        test_case!(
+            unsigned_binary::<u32>,
+            "0b1111_1111_1111_1111_1111_1111_1111_1111",
+            0b11111111111111111111111111111111
+        );
+        test_case!(unsigned_binary::<u8>, "+0b1_1_1_1", 0b1111);
+        test_case!(unsigned_binary::<u32>, "0b11011_1101_11", 0b11011110111);
+
+        test_case!(signed_binary::<i32>, "-0b11011_1101_11", -0b11011110111);
+        test_case!(signed_binary::<i32>, "0b11011_1101_11", 0b11011110111);
+        test_case!(signed_binary::<i8>, "-0b0100_0000", -0b1000000);
+    }
+
+    #[test]
+    fn test_octal_parsers() {
+        test_case!(unsigned_octal::<u32>, "0o12733324", 0o12733324);
+        test_case!(unsigned_octal::<u8>, "0O111", 0o111);
+        test_case!(unsigned_octal::<u32>, "+0o347234", 0o347234);
+
+        test_case!(signed_octal::<i32>, "-0o34234", -0o34234);
+        test_case!(signed_octal::<i8>, "+0O12", 0o12);
+        test_case!(signed_octal::<i32>, "0O34234345", 0o34234345);
+    }
+
+    #[test]
+    fn test_hex_parsers() {
+        test_case!(unsigned_hex::<u32>, "0xFfFf_FFfF", 0xFFFF_FFFF);
+        test_case!(unsigned_hex::<u8>, "+0x1", 0x1);
+        test_case!(unsigned_hex::<u32>, "0x1_F1_F_FfF_F", 0x1F1F_FFFF);
+
+        test_case!(signed_hex::<i32>, "-0x7FfF_FF_fF", -0x7FFF_FFFF);
+        test_case!(signed_hex::<i32>, "+0x7FfF_FF_fF", 0x7FFF_FFFF);
+        test_case!(signed_hex::<i8>, "0X28", 0x28);
+    }
+
+    #[test]
+    fn test_decimal_parsers() {
+        test_case!(unsigned_decimal::<u16>, "+1000", 1000);
+        test_case!(unsigned_decimal::<u8>, "255", 255);
+        test_case!(unsigned_decimal::<u32>, "4158930443", 4158930443);
+
+        test_case!(signed_decimal::<i32>, "-487593589", -487593589);
+        test_case!(signed_decimal::<i8>, "+43", 43);
+        test_case!(signed_decimal::<i16>, "31873", 31873);
+    }
+
+    #[test]
+    fn test_bitfield_parser() {
+        test_case!(_bitfield::<u8>, "5:9", (5, 9));
+        test_case!(_bitfield::<u8>, "12:20", (12, 20));
+        test_case!(_bitfield::<u8>, "+8:+16", (8, 16));
+        test_case!(_bitfield::<u8>, "34:+58", (34, 58));
+    }
+
+    #[test]
+    fn test_string_parser() {
+        test_case!(_string, "\"Test String\"", "Test String");
+        test_case!(
+            _string,
+            "\"fDKajls\nsAF234d\nadFsj\n\"",
+            "fDKajls\nsAF234d\nadFsj\n"
+        );
+        test_case!(_string, "\"\"", "");
+    }
+
+    #[test]
+    fn test_flag_parser() {
+        test_case!(_flag, "$ie0", 0x10);
+        test_case!(_flag, "$o", 0x9);
+        test_case!(_flag, "$p0", 0);
+        test_case!(_flag, "$ea", 0x18);
+    }
+
+    #[test]
+    fn test_register_parser() {
+        test_case!(_register, "$reg5", Register(RegisterKind::Gpr, 5));
+        test_case!(_register, "$ReG12", Register(RegisterKind::Gpr, 12));
+        test_case!(_register, "$R8", Register(RegisterKind::Gpr, 8));
+
+        test_case!(_register, "$sp", Register(RegisterKind::Spr, 4));
+        test_case!(_register, "$pc", Register(RegisterKind::Spr, 5));
+        test_case!(_register, "$iv2", Register(RegisterKind::Spr, 2));
+    }
+
+    #[test]
+    fn test_memory_access_parser() {
+        test_case!(
+            _memory_access,
+            "d[$R5 + $REG3 ]",
+            MemoryAccess::RegReg {
+                space: MemorySpace::DMem,
+                base: Register(RegisterKind::Gpr, 5),
+                offset: Register(RegisterKind::Gpr, 3),
+                scale: 1
+            }
+        );
+        test_case!(
+            _memory_access,
+            "D [$R0 + $REG12   * 5 ]",
+            MemoryAccess::RegReg {
+                space: MemorySpace::DMem,
+                base: Register(RegisterKind::Gpr, 0),
+                offset: Register(RegisterKind::Gpr, 12),
+                scale: 5
+            }
+        );
+        test_case!(
+            _memory_access,
+            "I  [ $REG15 ]",
+            MemoryAccess::Reg {
+                space: MemorySpace::IMem,
+                base: Register(RegisterKind::Gpr, 15)
+            }
+        );
+        test_case!(
+            _memory_access,
+            "D[   $R7 +    0x52 ]",
+            MemoryAccess::RegImm {
+                space: MemorySpace::DMem,
+                base: Register(RegisterKind::Gpr, 7),
+                offset: 0x52
+            }
+        );
+    }
+
+    #[test]
+    fn test_mnemonic_parser() {
+        test_case!(
+            _mnemonic,
+            "hswap.W",
+            (InstructionKind::HSWAP, OperandSize::ThirtyTwoBit)
+        );
+        test_case!(
+            _mnemonic,
+            "mOV",
+            (InstructionKind::MOV, OperandSize::Unsized)
+        );
+        test_case!(
+            _mnemonic,
+            "ADDSP",
+            (InstructionKind::ADDSP, OperandSize::Unsized)
+        );
+        test_case!(
+            _mnemonic,
+            "aDD.b",
+            (InstructionKind::ADD, OperandSize::EightBit)
+        );
+        test_case!(
+            _mnemonic,
+            "HALT",
+            (InstructionKind::HALT, OperandSize::Unsized)
+        );
+    }
+
+    #[test]
+    fn test_identifier_parser() {
+        test_case!(identifier, "_abc_def", "_abc_def");
+        test_case!(identifier, "test123_abc", "test123_abc");
+        test_case!(identifier, "this_is_an_ident", "this_is_an_ident");
+        test_case!(identifier, "fja3", "fja3");
+    }
 }
