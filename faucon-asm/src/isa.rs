@@ -655,6 +655,26 @@ pub enum InstructionKind {
     #[insn(opcode = 0x3E, subopcode = 0x00, operands(I24ZX32))]
     LBRA,
 
+    /// The BCMPE instruction.
+    ///
+    /// Performs a conditional branch to a PC-relative address if the value of
+    /// the register operand matches the second immediate operand.
+    #[insn(opcode = 0x33, subopcode = 0x03, operands(R2, I8ZXS, PC8P3))]
+    #[insn(opcode = 0x33, subopcode = 0x09, operands(R2, I8ZXS, PC16P3))]
+    #[insn(opcode = 0x33, subopcode = 0x0A, operands(R2, I16ZXS, PC8P4))]
+    #[insn(opcode = 0x33, subopcode = 0x0B, operands(R2, I16ZXS, PC16P4))]
+    BCMPE,
+
+    /// The BCMPNE instruction.
+    ///
+    /// Performs a conditional branch to a PC-relative address if the value of
+    /// the register operand does not match the second immediate operand.
+    #[insn(opcode = 0x33, subopcode = 0x04, operands(R2, I8ZXS, PC8P3))]
+    #[insn(opcode = 0x33, subopcode = 0x0D, operands(R2, I8ZXS, PC16P3))]
+    #[insn(opcode = 0x33, subopcode = 0x0E, operands(R2, I16ZXS, PC8P4))]
+    #[insn(opcode = 0x33, subopcode = 0x0F, operands(R2, I16ZXS, PC8P4))]
+    BCMPNE,
+
     /// The RET instruction.
     ///
     /// Returns from a previous subroutine call.
@@ -849,6 +869,8 @@ impl fmt::Display for InstructionKind {
             InstructionKind::BL => "bl",
             InstructionKind::BGE => "bge",
             InstructionKind::LBRA => "lbra",
+            InstructionKind::BCMPE => "bcmpe",
+            InstructionKind::BCMPNE => "bcmpne",
             InstructionKind::RET => "ret",
             InstructionKind::HALT => "halt",
             InstructionKind::SLEEP => "sleep",

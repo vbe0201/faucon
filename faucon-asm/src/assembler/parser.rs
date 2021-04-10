@@ -232,14 +232,14 @@ fn opcode(input: LineSpan) -> IResult<LineSpan, InstructionKind> {
             MOV, LD, ST, PUSH, POP, MPUSH
         ),
         mnemonic_values!(
-            MPOP, MPOPADD, MPOPRET, MPOPADDRET, CALL, LCALL, JMP, BP, BC, BO, BS, BZ, BA, BNA, BRA,
-            BNP, BNC, BNO, BNS, BNZ, BGE
+            MPOP, MPOPADD, MPOPRET, MPOPADDRET, CALL, LCALL, JMP, BCMPE, BCMPNE, BP, BC, BO, BS,
+            BZ, BA, BNA, BRA, BNP, BNC, BNO, BNS
         ),
         mnemonic_values!(
-            BG, BLE, BL, LBRA, RET, HALT, SLEEP, IMBLK, IMTAG, IMINV, IRET, TRAP, IMLD, DMLD, DMST,
-            IMWAIT, DMWAIT, DMFENCE, IORDS, IORD, IOWRS
+            BNZ, BGE, BG, BLE, BL, LBRA, RET, HALT, SLEEP, IMBLK, IMTAG, IMINV, IRET, TRAP, IMLD,
+            DMLD, DMST, IMWAIT, DMWAIT, DMFENCE, IORDS
         ),
-        mnemonic_values!(IOWR),
+        mnemonic_values!(IORD, IOWRS, IOWR),
     ))(input)
 }
 

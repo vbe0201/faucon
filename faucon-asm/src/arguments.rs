@@ -367,6 +367,54 @@ pub const PC8: Argument = Argument::PcRel8(unwrap!(I8S, Argument::I8(i) => i));
 // These are used for branches.
 pub const PC16: Argument = Argument::PcRel16(unwrap!(I16S, Argument::I16(i) => i));
 
+/// An 8-bit PC-relative offset.
+///
+/// These are used for conditional branch instructions on Falcon v5.
+pub const PC8P3: Argument = Argument::PcRel8(Immediate {
+    position: 3,
+    width: 1,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
+
+// A 16-bit PC-relative offset.
+//
+// These are used for conditional branch instructions on Falcon v5.
+pub const PC16P3: Argument = Argument::PcRel16(Immediate {
+    position: 3,
+    width: 2,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
+
+/// An 8-bit PC-relative offset.
+///
+/// These are used for conditional branch instructions on Falcon v5.
+pub const PC8P4: Argument = Argument::PcRel8(Immediate {
+    position: 4,
+    width: 1,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
+
+// A 16-bit PC-relative offset.
+//
+// These are used for conditional branch instructions on Falcon v5.
+pub const PC16P4: Argument = Argument::PcRel16(Immediate {
+    position: 4,
+    width: 2,
+    sign: true,
+    shift: None,
+    mask: None,
+    raw_value: None,
+});
+
 // A bitfield within an 8-bit-range.
 //
 // Bitfields are used for specific bitfield manipulation instructions and denote
