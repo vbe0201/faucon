@@ -62,10 +62,8 @@ fn write_int(buf: &mut [u8], i: i32, nbytes: usize) {
 fn modify_uint(buf: &mut [u8], i: u32, mask: u32, nbytes: usize) {
     assert!(nbytes <= 4 && nbytes <= buf.len() && bytewidth(i) <= nbytes);
 
-    let bytes = i.to_le_bytes();
-    for i in 0..nbytes {
-        buf[i] = (buf[i] & !(mask >> (i << 3)) as u8) | bytes[i];
-    }
+    let new_i = (read_uint(buf, nbytes) & !mask) | i;
+    write_uint(buf, new_i, nbytes);
 }
 
 #[inline]
