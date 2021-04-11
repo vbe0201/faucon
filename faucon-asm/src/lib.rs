@@ -70,7 +70,7 @@
 //!
 //! As mentioned previously, the [`read_instruction`] function should be used to
 //! disassemble raw instruction bytes into [`Instruction`] objects. The function
-//! can be called repeatedly on a buffer of code until an error or [`Error::Eof`]
+//! can be called repeatedly on a buffer of code until an error or [`FalconError::Eof`]
 //! occurs.
 //!
 //! However if a user wishes to pretty-print a sequence of instructions to a special
