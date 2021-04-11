@@ -1,1 +1,4 @@
 * text=auto eol=lf
+
+# Make sure .fuc files are recognized as assembly sources.
+*.fuc linguist-language=Assembly

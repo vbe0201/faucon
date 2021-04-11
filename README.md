@@ -22,6 +22,8 @@ disassembling capabilities
 
 - [`faucon`](./src): Command-line interface for invoking and driving the provided tools
 
+- [`examples`](./examples): Assembly examples on programming the Falcon hardware
+
 ## Setup
 
 Coming soon.

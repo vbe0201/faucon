@@ -1,0 +1,31 @@
+/**
+ * init.fuc - Basic Falcon runtime initialization.
+ *
+ * The initial Falcon microcode that executes on an engine must
+ * initialize its own stack. This example showcases how that works.
+ *
+ * This works on any Falcon version!
+ */
+
+.equ #FALCON_HWCFG 0x4200
+.equ #FALCON_HWCFG_DMEM_SIZE_SHIFT 0x9
+.equ #FALCON_HWCFG_DMEM_SIZE_MASK  0x1FF
+
+// Read the contents of the FALCON_HWCFG register into REG13.
+mov $r13 #FALCON_HWCFG
+iord $r13 I[$r13]
+// Extract the bitfield that encodes the size of the DMEM in 0x100
+// byte quantities and shift it by 8 to obtain its size in bytes.
+shr.w $r13 #FALCON_HWCFG_DMEM_SIZE_SHIFT
+and $r13 #FALCON_HWCFG_DMEM_SIZE_MASK
+shl.w $r13 0x8
+// Move the greatest supported address of the DMEM segment (which
+// is equivalent to its size we extracted) into the stack pointer.
+mov $sp $r13
+
+/*
+ * Application code here...
+ */
+
+// Halt the microprocessor after execution is done.
+halt
