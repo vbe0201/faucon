@@ -302,12 +302,8 @@ impl Instruction {
 
         // Write the operand to the code buffer.
         match arg {
-            Argument::U8(imm) => imm.write_operand(output, operand),
-            Argument::I8(imm) => imm.write_operand(output, operand),
-            Argument::U16(imm) => imm.write_operand(output, operand),
-            Argument::I16(imm) => imm.write_operand(output, operand),
-            Argument::U32(imm) => imm.write_operand(output, operand),
-            Argument::I32(imm) => imm.write_operand(output, operand),
+            Argument::UImm(imm) => imm.write_operand(output, operand),
+            Argument::Imm(imm) => imm.write_operand(output, operand),
 
             Argument::Bitfield(imm) => imm.write_operand(output, operand),
 
@@ -316,8 +312,7 @@ impl Instruction {
 
             Argument::Memory(mem) => mem.write_operand(output, operand),
 
-            Argument::PcRel8(imm) => imm.write_operand(output, operand.subtract_pc(self.pc)),
-            Argument::PcRel16(imm) => imm.write_operand(output, operand.subtract_pc(self.pc)),
+            Argument::PcRel(imm) => imm.write_operand(output, operand.subtract_pc(self.pc)),
 
             Argument::SizeConverter(_) => unreachable!(),
         }

@@ -66,14 +66,7 @@ fn resolve_symbol<'a>(
 
 fn matches_operand_impl(arg: &Argument, pc: u32, t: &Token<'_>) -> bool {
     match arg {
-        Argument::PcRel8(imm) => match t {
-            Token::UnsignedInt(i) => imm.matches(&Token::SignedInt(i.wrapping_sub(&pc) as i32)),
-            Token::SignedInt(i) if !i.is_negative() => {
-                imm.matches(&Token::SignedInt(*i - pc as i32))
-            }
-            _ => false,
-        },
-        Argument::PcRel16(imm) => match t {
+        Argument::PcRel(imm) => match t {
             Token::UnsignedInt(i) => imm.matches(&Token::SignedInt(i.wrapping_sub(&pc) as i32)),
             Token::SignedInt(i) if !i.is_negative() => {
                 imm.matches(&Token::SignedInt(*i - pc as i32))
@@ -81,12 +74,8 @@ fn matches_operand_impl(arg: &Argument, pc: u32, t: &Token<'_>) -> bool {
             _ => false,
         },
 
-        Argument::U8(imm) => imm.matches(t),
-        Argument::I8(imm) => imm.matches(t),
-        Argument::U16(imm) => imm.matches(t),
-        Argument::I16(imm) => imm.matches(t),
-        Argument::U32(imm) => imm.matches(t),
-        Argument::I32(imm) => imm.matches(t),
+        Argument::UImm(imm) => imm.matches(t),
+        Argument::Imm(imm) => imm.matches(t),
 
         Argument::Bitfield(imm) => imm.matches(t),
 
@@ -223,23 +212,14 @@ fn unwrap_memory_access(token: &Token<'_>) -> Option<MemoryAccess> {
 
 fn lower_operand_impl(buffer: &mut [u8], pc: u32, token: &Token<'_>, arg: &Argument) -> Result<(), ()> {
     match arg {
-        Argument::PcRel8(imm) => match token {
-            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(&pc) as i8),
-            Token::SignedInt(i) if !i.is_negative() => imm.write(buffer, (i - pc as i32) as i8),
-            _ => return Err(()),
-        },
-        Argument::PcRel16(imm) => match token {
-            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(&pc) as i16),
-            Token::SignedInt(i) if !i.is_negative() => imm.write(buffer, (i - pc as i32) as i16),
+        Argument::PcRel(imm) => match token {
+            Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(&pc) as i32),
+            Token::SignedInt(i) if !i.is_negative() => imm.write(buffer, i - pc as i32),
             _ => return Err(()),
         },
 
-        Argument::U8(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
-        Argument::I8(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
-        Argument::U16(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
-        Argument::I16(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
-        Argument::U32(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
-        Argument::I32(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
+        Argument::UImm(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
+        Argument::Imm(imm) => imm.write(buffer, unwrap_immediate(token).ok_or(())?),
 
         Argument::Bitfield(imm) => imm.write(buffer, unwrap_bitfield(token).ok_or(())?),
 

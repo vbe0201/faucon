@@ -241,16 +241,11 @@ impl Operand {
             Argument::SizeConverter(_) => unreachable!(),
 
             // PC-relative branch offsets.
-            Argument::PcRel8(imm) => Operand::UImm((pc + imm.read(insn) as i32) as u32),
-            Argument::PcRel16(imm) => Operand::UImm((pc + imm.read(insn) as i32) as u32),
+            Argument::PcRel(imm) => Operand::UImm((pc + imm.read(insn)) as u32),
 
             // Immediate forms.
-            Argument::U8(imm) => Operand::UImm(imm.read(insn) as u32),
-            Argument::I8(imm) => Operand::Imm(imm.read(insn) as i32),
-            Argument::U16(imm) => Operand::UImm(imm.read(insn) as u32),
-            Argument::I16(imm) => Operand::Imm(imm.read(insn) as i32),
-            Argument::U32(imm) => Operand::UImm(imm.read(insn)),
-            Argument::I32(imm) => Operand::Imm(imm.read(insn)),
+            Argument::UImm(imm) => Operand::UImm(imm.read(insn)),
+            Argument::Imm(imm) => Operand::Imm(imm.read(insn)),
 
             // Bitfields.
             Argument::Bitfield(imm) => {

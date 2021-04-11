@@ -72,7 +72,7 @@ macro_rules! unwrap {
 // An unsigned 8-bit immediate.
 //
 // These are used for bit positions, shifts and 8-bit instructions.
-pub const I8: Argument = Argument::U8(Immediate {
+pub const I8: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 1,
     sign: false,
@@ -84,7 +84,7 @@ pub const I8: Argument = Argument::U8(Immediate {
 // A signed 8-bit immediate.
 //
 // These are used for comparisons and PC-relative offsets.
-pub const I8S: Argument = Argument::I8(Immediate {
+pub const I8S: Argument = Argument::Imm(Immediate {
     position: 2,
     width: 1,
     sign: true,
@@ -96,7 +96,7 @@ pub const I8S: Argument = Argument::I8(Immediate {
 // An unsigned 8-bit immediate zero-extended to 16 bits.
 //
 // These are used for sethi and 16-bit instructions.
-pub const I8ZX16: Argument = Argument::U16(Immediate {
+pub const I8ZX16: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 1,
     sign: false,
@@ -108,7 +108,7 @@ pub const I8ZX16: Argument = Argument::U16(Immediate {
 // A signed 8-bit immediate sign-extended to 16 bits.
 //
 // These are used for sethi and 16-bit instructions.
-pub const I8SX16: Argument = Argument::I16(Immediate {
+pub const I8SX16: Argument = Argument::Imm(Immediate {
     position: 2,
     width: 1,
     sign: true,
@@ -120,7 +120,7 @@ pub const I8SX16: Argument = Argument::I16(Immediate {
 // An unsigned 8-bit immediate zero-extended to 32 bits.
 //
 // These are used for memory addressing and most 32-bit instructions.
-pub const I8ZX32: Argument = Argument::U32(Immediate {
+pub const I8ZX32: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 1,
     sign: false,
@@ -132,7 +132,7 @@ pub const I8ZX32: Argument = Argument::U32(Immediate {
 // A signed 32-bit immediate sign-extended to 32 bits.
 //
 // These are used for memory addressing and most 32-bit instructions.
-pub const I8SX32: Argument = Argument::I32(Immediate {
+pub const I8SX32: Argument = Argument::Imm(Immediate {
     position: 2,
     width: 1,
     sign: true,
@@ -144,7 +144,7 @@ pub const I8SX32: Argument = Argument::I32(Immediate {
 // A signed 8-bit immediate sign-extended to 32 bits.
 //
 // These are used for Falcon v5 MOV instructions.
-pub const I8SX32P1: Argument = Argument::I32(Immediate {
+pub const I8SX32P1: Argument = Argument::Imm(Immediate {
     position: 1,
     width: 1,
     sign: true,
@@ -157,7 +157,7 @@ pub const I8SX32P1: Argument = Argument::I32(Immediate {
 // by one.
 //
 // These are mainly used for memory addressing.
-pub const I8ZX32S1: Argument = Argument::U32(Immediate {
+pub const I8ZX32S1: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 1,
     sign: false,
@@ -170,7 +170,7 @@ pub const I8ZX32S1: Argument = Argument::U32(Immediate {
 // by two.
 //
 // These are mainly used for memory addressing.
-pub const I8ZX32S2: Argument = Argument::U32(Immediate {
+pub const I8ZX32S2: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 1,
     sign: false,
@@ -183,7 +183,7 @@ pub const I8ZX32S2: Argument = Argument::U32(Immediate {
 // by 12.
 //
 // These are used by the SETHI instruction.
-pub const I8ZX32S16: Argument = Argument::U32(Immediate {
+pub const I8ZX32S16: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 1,
     sign: false,
@@ -218,7 +218,7 @@ pub const I8SXS: Argument = Argument::SizeConverter(|size| match size {
 //
 // Used by 8-bit instructions which have a 16-bit immediate form for
 // whatever reason.
-pub const I16T8: Argument = Argument::U8(Immediate {
+pub const I16T8: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 2,
     sign: false,
@@ -230,7 +230,7 @@ pub const I16T8: Argument = Argument::U8(Immediate {
 // An unsigned 16-bit immediate.
 //
 // These are used by sethi and 16-bit instructions.
-pub const I16: Argument = Argument::U16(Immediate {
+pub const I16: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 2,
     sign: false,
@@ -242,7 +242,7 @@ pub const I16: Argument = Argument::U16(Immediate {
 // A signed 16-bit immediate.
 //
 // These are used for signed comparisons.
-pub const I16S: Argument = Argument::I16(Immediate {
+pub const I16S: Argument = Argument::Imm(Immediate {
     position: 2,
     width: 2,
     sign: true,
@@ -254,7 +254,7 @@ pub const I16S: Argument = Argument::I16(Immediate {
 // An unsigned 16-bit immediate zero-extended to 32 bits.
 //
 // These are used for most 32-bit instructions.
-pub const I16ZX32: Argument = Argument::U32(Immediate {
+pub const I16ZX32: Argument = Argument::UImm(Immediate {
     position: 2,
     width: 2,
     sign: false,
@@ -266,7 +266,7 @@ pub const I16ZX32: Argument = Argument::U32(Immediate {
 // An unsigned 16-bit immediate zero-extended to 32 bits.
 //
 // These are used for Falcon v5 call instructions.
-pub const I16ZX32P1: Argument = Argument::U32(Immediate {
+pub const I16ZX32P1: Argument = Argument::UImm(Immediate {
     position: 1,
     width: 2,
     sign: false,
@@ -278,7 +278,7 @@ pub const I16ZX32P1: Argument = Argument::U32(Immediate {
 // A signed 16-bit immediate sign-extended to 32 bits.
 //
 // These are used for most 32-bit instructions.
-pub const I16SX32: Argument = Argument::I32(Immediate {
+pub const I16SX32: Argument = Argument::Imm(Immediate {
     position: 2,
     width: 2,
     sign: true,
@@ -290,7 +290,7 @@ pub const I16SX32: Argument = Argument::I32(Immediate {
 // A signed 16-bit immediate sign-extended to 32 bits.
 //
 // These are used for Falcon v5 MOV instructions.
-pub const I16SX32P1: Argument = Argument::I32(Immediate {
+pub const I16SX32P1: Argument = Argument::Imm(Immediate {
     position: 1,
     width: 2,
     sign: true,
@@ -324,7 +324,7 @@ pub const I16SXS: Argument = Argument::SizeConverter(|size| match size {
 // An unsigned 24-bit immediate zero-extended to 32 bits.
 //
 // These are used for absolute call/jump addresses.
-pub const I24ZX32: Argument = Argument::U32(Immediate {
+pub const I24ZX32: Argument = Argument::UImm(Immediate {
     position: 1,
     width: 3,
     sign: false,
@@ -336,7 +336,7 @@ pub const I24ZX32: Argument = Argument::U32(Immediate {
 // A signed 24-bit immediate sign-extended to 32 bits.
 //
 // These are used for Falcon v5 CALL instructions.
-pub const I24SX32: Argument = Argument::I32(Immediate {
+pub const I24SX32: Argument = Argument::Imm(Immediate {
     position: 1,
     width: 3,
     sign: true,
@@ -348,7 +348,7 @@ pub const I24SX32: Argument = Argument::I32(Immediate {
 // An unsigned 32-bit immediate.
 //
 // These are used for MOV instructions.
-pub const I32: Argument = Argument::U32(Immediate {
+pub const I32: Argument = Argument::UImm(Immediate {
     position: 1,
     width: 4,
     sign: false,
@@ -360,17 +360,17 @@ pub const I32: Argument = Argument::U32(Immediate {
 // An 8-bit PC-relative offset.
 //
 // These are used for branches.
-pub const PC8: Argument = Argument::PcRel8(unwrap!(I8S, Argument::I8(i) => i));
+pub const PC8: Argument = Argument::PcRel(unwrap!(I8S, Argument::Imm(i) => i));
 
 // A 16-bit PC-relative offset.
 //
 // These are used for branches.
-pub const PC16: Argument = Argument::PcRel16(unwrap!(I16S, Argument::I16(i) => i));
+pub const PC16: Argument = Argument::PcRel(unwrap!(I16S, Argument::Imm(i) => i));
 
 /// An 8-bit PC-relative offset.
 ///
 /// These are used for conditional branch instructions on Falcon v5.
-pub const PC8P3: Argument = Argument::PcRel8(Immediate {
+pub const PC8P3: Argument = Argument::PcRel(Immediate {
     position: 3,
     width: 1,
     sign: true,
@@ -382,7 +382,7 @@ pub const PC8P3: Argument = Argument::PcRel8(Immediate {
 // A 16-bit PC-relative offset.
 //
 // These are used for conditional branch instructions on Falcon v5.
-pub const PC16P3: Argument = Argument::PcRel16(Immediate {
+pub const PC16P3: Argument = Argument::PcRel(Immediate {
     position: 3,
     width: 2,
     sign: true,
@@ -394,7 +394,7 @@ pub const PC16P3: Argument = Argument::PcRel16(Immediate {
 /// An 8-bit PC-relative offset.
 ///
 /// These are used for conditional branch instructions on Falcon v5.
-pub const PC8P4: Argument = Argument::PcRel8(Immediate {
+pub const PC8P4: Argument = Argument::PcRel(Immediate {
     position: 4,
     width: 1,
     sign: true,
@@ -406,7 +406,7 @@ pub const PC8P4: Argument = Argument::PcRel8(Immediate {
 // A 16-bit PC-relative offset.
 //
 // These are used for conditional branch instructions on Falcon v5.
-pub const PC16P4: Argument = Argument::PcRel16(Immediate {
+pub const PC16P4: Argument = Argument::PcRel(Immediate {
     position: 4,
     width: 2,
     sign: true,
@@ -419,13 +419,13 @@ pub const PC16P4: Argument = Argument::PcRel16(Immediate {
 //
 // Bitfields are used for specific bitfield manipulation instructions and denote
 // the lower bit index and its size subtracted by 1.
-pub const BITF8: Argument = Argument::Bitfield(unwrap!(I8ZX32, Argument::U32(i) => i));
+pub const BITF8: Argument = Argument::Bitfield(unwrap!(I8ZX32, Argument::UImm(i) => i));
 
 // A bitfield within a 16-bit-range.
 //
 // Bitfields are used for specific bitfield manipulation instructions and denote
 // the lower bit index and its size subtracted by 1.
-pub const BITF16: Argument = Argument::Bitfield(unwrap!(I16ZX32, Argument::U32(i) => i));
+pub const BITF16: Argument = Argument::Bitfield(unwrap!(I16ZX32, Argument::UImm(i) => i));
 
 // A Falcon general-purpose register, encoded in the low 4 bits of the first
 // instruction byte.
@@ -515,7 +515,7 @@ pub const PRED: Argument = Argument::Flag(Immediate {
 //
 // It is used by the TRAP instruction and is encoded in the low two bits of
 // instruction byte 1, the subopcode in this case.
-pub const TRAP: Argument = Argument::U8(Immediate {
+pub const TRAP: Argument = Argument::UImm(Immediate {
     position: 1,
     width: 1,
     sign: false,
@@ -577,7 +577,7 @@ pub const MEMR: Argument = Argument::SizeConverter(|size| match size {
 pub const MEMRI8: Argument = Argument::Memory(MemoryAccess::RegImm(
     operands::MemorySpace::DMem,
     unwrap!(R2, Argument::Register(r) => r),
-    unwrap!(I8ZX32, Argument::U32(imm) => imm),
+    unwrap!(I8ZX32, Argument::UImm(imm) => imm),
 ));
 
 // A memory access to a 16-bit value in Falcon DMem. The address is composed from a
@@ -585,7 +585,7 @@ pub const MEMRI8: Argument = Argument::Memory(MemoryAccess::RegImm(
 pub const MEMRI16: Argument = Argument::Memory(MemoryAccess::RegImm(
     operands::MemorySpace::DMem,
     unwrap!(R2, Argument::Register(r) => r),
-    unwrap!(I8ZX32S1, Argument::U32(imm) => imm),
+    unwrap!(I8ZX32S1, Argument::UImm(imm) => imm),
 ));
 
 // A memory access to a 32-bit value in Falcon DMem. The address is composed from a
@@ -593,7 +593,7 @@ pub const MEMRI16: Argument = Argument::Memory(MemoryAccess::RegImm(
 pub const MEMRI32: Argument = Argument::Memory(MemoryAccess::RegImm(
     operands::MemorySpace::DMem,
     unwrap!(R2, Argument::Register(r) => r),
-    unwrap!(I8ZX32S2, Argument::U32(imm) => imm),
+    unwrap!(I8ZX32S2, Argument::UImm(imm) => imm),
 ));
 
 // A helper that leverages the selection of an appropriate parser for memory access
@@ -610,7 +610,7 @@ pub const MEMRI: Argument = Argument::SizeConverter(|size| match size {
 pub const MEMSPI8: Argument = Argument::Memory(MemoryAccess::RegImm(
     operands::MemorySpace::DMem,
     unwrap!(SP, Argument::Register(r) => r),
-    unwrap!(I8ZX32, Argument::U32(imm) => imm),
+    unwrap!(I8ZX32, Argument::UImm(imm) => imm),
 ));
 
 // A memory access to a 16-bit value in Falcon DMem. The address is composed from a
@@ -618,7 +618,7 @@ pub const MEMSPI8: Argument = Argument::Memory(MemoryAccess::RegImm(
 pub const MEMSPI16: Argument = Argument::Memory(MemoryAccess::RegImm(
     operands::MemorySpace::DMem,
     unwrap!(SP, Argument::Register(r) => r),
-    unwrap!(I8ZX32S1, Argument::U32(imm) => imm),
+    unwrap!(I8ZX32S1, Argument::UImm(imm) => imm),
 ));
 
 // A memory access to a 32-bit value in Falcon DMem. The address is composed from a
@@ -626,7 +626,7 @@ pub const MEMSPI16: Argument = Argument::Memory(MemoryAccess::RegImm(
 pub const MEMSPI32: Argument = Argument::Memory(MemoryAccess::RegImm(
     operands::MemorySpace::DMem,
     unwrap!(SP, Argument::Register(r) => r),
-    unwrap!(I8ZX32S2, Argument::U32(imm) => imm),
+    unwrap!(I8ZX32S2, Argument::UImm(imm) => imm),
 ));
 
 // A helper that leverages the selection of an appropriate parser for memory access
@@ -767,7 +767,7 @@ pub const IORR: Argument = Argument::Memory(MemoryAccess::RegReg(
 pub const IORI: Argument = Argument::Memory(MemoryAccess::RegImm(
     operands::MemorySpace::IMem,
     unwrap!(R2, Argument::Register(r) => r),
-    unwrap!(I8ZX32S2, Argument::U32(imm) => imm),
+    unwrap!(I8ZX32S2, Argument::UImm(imm) => imm),
 ));
 
 // Dissects a bitfield given its encoding as an immediate.
@@ -821,23 +821,13 @@ pub enum Argument {
     // to extend an immediate to when dealing with variable sizing.
     SizeConverter(fn(size: u8) -> Argument),
 
-    // A signed 8-bit PC-relative offset.
-    PcRel8(Immediate<i8>),
-    // A signed 16-bit PC-relative offset.
-    PcRel16(Immediate<i16>),
+    // A signed 32-bit PC-relative offset.
+    PcRel(Immediate<i32>),
 
-    // An unsigned 8-bit immediate.
-    U8(Immediate<u8>),
-    // A signed 8-bit immediate.
-    I8(Immediate<i8>),
-    // An unsigned 16-bit immediate.
-    U16(Immediate<u16>),
-    // A signed 16-bit immediate.
-    I16(Immediate<i16>),
     // An unsigned 32-bit immediate.
-    U32(Immediate<u32>),
+    UImm(Immediate<u32>),
     // A signed 32-bit immediate.
-    I32(Immediate<i32>),
+    Imm(Immediate<i32>),
 
     // A bitfield range encoded as an immediate.
     Bitfield(Immediate<u32>),
@@ -854,36 +844,26 @@ pub enum Argument {
 impl Positional for Argument {
     fn position(&self) -> usize {
         match self {
-            Argument::U8(imm) => imm.position(),
-            Argument::I8(imm) => imm.position(),
-            Argument::U16(imm) => imm.position(),
-            Argument::I16(imm) => imm.position(),
-            Argument::U32(imm) => imm.position(),
-            Argument::I32(imm) => imm.position(),
+            Argument::UImm(imm) => imm.position(),
+            Argument::Imm(imm) => imm.position(),
             Argument::Bitfield(imm) => imm.position(),
             Argument::Register(reg) => reg.position(),
             Argument::Flag(imm) => imm.position(),
             Argument::Memory(mem) => mem.position(),
-            Argument::PcRel8(imm) => imm.position(),
-            Argument::PcRel16(imm) => imm.position(),
+            Argument::PcRel(imm) => imm.position(),
             Argument::SizeConverter(_) => unreachable!(),
         }
     }
 
     fn width(&self) -> usize {
         match self {
-            Argument::U8(imm) => imm.width(),
-            Argument::I8(imm) => imm.width(),
-            Argument::U16(imm) => imm.width(),
-            Argument::I16(imm) => imm.width(),
-            Argument::U32(imm) => imm.width(),
-            Argument::I32(imm) => imm.width(),
+            Argument::UImm(imm) => imm.width(),
+            Argument::Imm(imm) => imm.width(),
             Argument::Bitfield(imm) => imm.width(),
             Argument::Register(reg) => reg.width(),
             Argument::Flag(imm) => imm.width(),
             Argument::Memory(mem) => mem.width(),
-            Argument::PcRel8(imm) => imm.width(),
-            Argument::PcRel16(imm) => imm.width(),
+            Argument::PcRel(imm) => imm.width(),
             Argument::SizeConverter(_) => unreachable!(),
         }
     }
