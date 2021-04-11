@@ -180,7 +180,7 @@ pub const I8ZX32S2: Argument = Argument::U32(Immediate {
 });
 
 // An unsigned 8-bit immediate zero-extended to 32 bits and shifted left
-// by 16.
+// by 12.
 //
 // These are used by the SETHI instruction.
 pub const I8ZX32S16: Argument = Argument::U32(Immediate {
@@ -942,12 +942,12 @@ impl<T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub> MachineEncoding fo
         // fails, we can assume that the value would not produce a match anyway.
         let value = if let Some(value) = match token {
             Token::Flag(_) => return true,
-            Token::SignedInt(imm) => cast(*imm),
-            Token::UnsignedInt(imm) => cast(*imm),
+            Token::SignedInt(imm) => cast::<i32, T>(*imm),
+            Token::UnsignedInt(imm) => cast::<u32, T>(*imm),
             Token::Bitfield((start, end)) => cast(build_bitfield(*start, *end)),
             _ => return false,
         } {
-            value
+            value >> self.get_shift()
         } else {
             return false;
         };

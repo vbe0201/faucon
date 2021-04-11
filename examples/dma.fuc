@@ -1,0 +1,97 @@
+/**
+ * dma.fuc - Showcasing Falcon DMA functionality.
+ *
+ * This is a simple demonstration of how Falcon's builtin DMA
+ * functionality can be used to transfer a copy of its DMEM into
+ * a buffer allocated on the host processor, e.g. for debugging.
+ *
+ * When running this example, please provide the following arguments:
+ *   - Mailbox 0: The start address of the buffer to write data to.
+ *   - Mailbox 1: The amount of bytes to write, starting from 0.
+ *
+ * This code will write back one of the following result codes:
+ *   - Mailbox 1 - 0xDEADBEEF - Failed to transfer the buffer.
+ *   - Mailbox 1 - 0x10101010 - Success!
+ *
+ * This example works on Falcon v4+ engines!
+ */
+
+.equ #FALCON_MAILBOX0 0x1000
+.equ #FALCON_MAILBOX1 0x1100
+.equ #FALCON_HWCFG    0x4200
+
+.equ #RESULT_CODE_FAILURE 0xDEADBEEF
+.equ #RESULT_CODE_SUCCESS 0x10101010
+
+// Initialize the stack pointer and call `main`.
+mov $r13 #FALCON_HWCFG
+iord $r13 I[$r13]
+extr $r13 $r13 9:17
+shl.w $r13 0x8
+mov $sp $r13
+lcall #main
+halt
+
+main:
+    mov $r7 #FALCON_MAILBOX0
+    mov $r8 #FALCON_MAILBOX1
+
+    iord $r10 I[$r7]
+    iord $r11 I[$r8]
+    lcall #dma_copy_dmem_to_host
+
+    ret
+
+
+dma_copy_dmem_to_host:
+    // Make sure the output buffer is properly aligned.
+    // NOTE: The buffer must be aligned to a 16-byte-boundary.
+    and $r9 $r10 0xF
+    bnz #dma_copy_dmem_to_host_error
+
+    // Make sure the amount of bytes to transfer is valid.
+    // NOTE: The size must be a multiple of 0x100 bytes.
+    and $r9 $r11 0xFF
+    bnz #dma_copy_dmem_to_host_error
+
+    // Make sure the amount of bytes does not exceed the DMEM size.
+    cmp.w $r11 $r13
+    bg #dma_copy_dmem_to_host_error
+
+    // Sequentially transfer the contents of DMEM via DMA.
+    dma_copy_dmem_to_host_transfer_loop_start:
+        // Check if there is anything left to copy.
+        cmp.w $r11 0
+        bz #dma_copy_dmem_to_host_transfer_loop_end
+
+        // Prepare the external base address for DMA to host memory.
+        iord $r4 I[$r7]
+        add.w $r4 $r4 $r10
+        shr.w $r4 0x8
+        mov $dmb $r4
+
+        // Prepare the DMA transfer arguments.
+        clear.w $r4
+        mov.h $r5 $r10
+        sethi $r5 0x60000
+
+        // Kick off the DMA data store operation.
+        dmst $r4 $r5
+        dmwait
+
+        // Advance to the next chunk of 0x100 bytes to transfer.
+        add.w $r10 $r10 0x100
+        sub.w $r11 0x100
+        lbra #dma_copy_dmem_to_host_transfer_loop_start
+    dma_copy_dmem_to_host_transfer_loop_end:
+
+    // Write the result code and racefully return back to `main`.
+    mov $r9 #RESULT_CODE_SUCCESS
+    iowr I[$r8] $r9
+    ret
+
+    // If an error occurred, write back the result code and quit.
+    dma_copy_dmem_to_host_error:
+        mov $r9 #RESULT_CODE_FAILURE
+        iowr I[$r8] $r9
+        halt

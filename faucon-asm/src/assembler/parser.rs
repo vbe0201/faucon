@@ -61,10 +61,10 @@ pub fn start<'a, T>(
     move |s: &'a str| parser(LineSpan::new_extra(s, Metadata::new(s, file_name)))
 }
 
-// *separator_list*? ( *statement* *separator_list* )*
+// *separator_list*? ( *statement* *separator_list* )* *eof*
 pub fn do_parse(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Vec<ParseSpan<Token<'_>>>> {
     let (input, _) = opt(separator_list)(input)?;
-    fold_many0(
+    let (input, result) = fold_many0(
         pair(statement, separator_list),
         Vec::with_capacity(100),
         |mut acc, ((label, inst), _)| {
@@ -78,7 +78,10 @@ pub fn do_parse(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Vec<ParseSpan<Toke
 
             acc
         },
-    )(input)
+    )(input)?;
+    let (input, _) = eof(input)?;
+
+    Ok((input, result))
 }
 
 // *label_decl*? ( *instruction* *operand** )?
