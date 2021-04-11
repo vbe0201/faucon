@@ -78,6 +78,7 @@
 //! formatting capabilities which include the current program counter of an instruction
 //! and its representation in raw bytes.
 
+#![deny(rust_2018_idioms, broken_intra_doc_links)]
 #![feature(const_option)]
 
 mod arguments;

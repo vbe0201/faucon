@@ -64,7 +64,7 @@ fn resolve_symbol<'a>(
         .and_then(|s| Some(Token::UnsignedInt(if is_virtual { s.0 } else { s.1 })))
 }
 
-fn matches_operand_impl(arg: &Argument, pc: u32, t: &Token) -> bool {
+fn matches_operand_impl(arg: &Argument, pc: u32, t: &Token<'_>) -> bool {
     match arg {
         Argument::PcRel8(imm) => match t {
             Token::UnsignedInt(i) => imm.matches(&Token::SignedInt(i.wrapping_sub(&pc) as i32)),
@@ -101,7 +101,7 @@ fn matches_operand_impl(arg: &Argument, pc: u32, t: &Token) -> bool {
 
 fn matches_operand<'a>(
     context: &Context<'a>,
-    section: &mut Section,
+    section: &mut Section<'_>,
     size: &OperandSize,
     arg: &Argument,
 ) -> Option<bool> {
@@ -137,7 +137,7 @@ fn matches_operand<'a>(
 
 fn select_instruction_form<'a>(
     context: &Context<'a>,
-    section: &mut Section,
+    section: &mut Section<'_>,
     forms: &'a Vec<InstructionMeta>,
     size: &OperandSize,
 ) -> Option<&'a InstructionMeta> {
@@ -170,7 +170,7 @@ fn select_instruction_form<'a>(
 }
 
 #[inline]
-fn unwrap_immediate<T>(token: &Token) -> Option<T>
+fn unwrap_immediate<T>(token: &Token<'_>) -> Option<T>
 where
     T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub,
 {
@@ -182,7 +182,7 @@ where
 }
 
 #[inline]
-fn unwrap_flag<T>(token: &Token) -> Option<T>
+fn unwrap_flag<T>(token: &Token<'_>) -> Option<T>
 where
     T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub,
 {
@@ -195,7 +195,7 @@ where
 }
 
 #[inline]
-fn unwrap_bitfield<T>(token: &Token) -> Option<T>
+fn unwrap_bitfield<T>(token: &Token<'_>) -> Option<T>
 where
     T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub,
 {
@@ -206,7 +206,7 @@ where
 }
 
 #[inline]
-fn unwrap_register(token: &Token) -> Option<Register> {
+fn unwrap_register(token: &Token<'_>) -> Option<Register> {
     match token {
         Token::Register(reg) => Some(*reg),
         _ => None,
@@ -214,14 +214,14 @@ fn unwrap_register(token: &Token) -> Option<Register> {
 }
 
 #[inline]
-fn unwrap_memory_access(token: &Token) -> Option<MemoryAccess> {
+fn unwrap_memory_access(token: &Token<'_>) -> Option<MemoryAccess> {
     match token {
         Token::Memory(mem) => Some(*mem),
         _ => None,
     }
 }
 
-fn lower_operand_impl(buffer: &mut [u8], pc: u32, token: &Token, arg: &Argument) -> Result<(), ()> {
+fn lower_operand_impl(buffer: &mut [u8], pc: u32, token: &Token<'_>, arg: &Argument) -> Result<(), ()> {
     match arg {
         Argument::PcRel8(imm) => match token {
             Token::UnsignedInt(i) => imm.write(buffer, i.wrapping_sub(&pc) as i8),

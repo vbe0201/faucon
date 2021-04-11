@@ -2,7 +2,7 @@
 //!
 //! Do not use this crate directly!
 
-extern crate proc_macro;
+#![deny(rust_2018_idioms)]
 
 #[macro_use]
 extern crate quote;

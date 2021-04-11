@@ -40,7 +40,7 @@ pub trait MachineEncoding {
 
     // Checks if an assembly token matches the criteria to be encoded into its
     // machine representation for a specific operand.
-    fn matches(&self, token: &Token) -> bool;
+    fn matches(&self, token: &Token<'_>) -> bool;
 
     // Writes the underlying output type from a value to a buffer containing
     // Falcon machine code bytes.
@@ -937,7 +937,7 @@ impl<T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub> MachineEncoding fo
         result << self.get_shift()
     }
 
-    fn matches(&self, token: &Token) -> bool {
+    fn matches(&self, token: &Token<'_>) -> bool {
         // Try to extract the value and convert it into the appropriate type. If that
         // fails, we can assume that the value would not produce a match anyway.
         let value = if let Some(value) = match token {
@@ -1044,7 +1044,7 @@ impl MachineEncoding for Register {
         operands::Register(self.kind, register as usize)
     }
 
-    fn matches(&self, token: &Token) -> bool {
+    fn matches(&self, token: &Token<'_>) -> bool {
         match token {
             Token::Register(reg) => match self.raw_value {
                 Some(_) => true, // Default values do always match.
@@ -1133,7 +1133,7 @@ impl MachineEncoding for MemoryAccess {
         }
     }
 
-    fn matches(&self, token: &Token) -> bool {
+    fn matches(&self, token: &Token<'_>) -> bool {
         match (self, token) {
             (
                 MemoryAccess::Reg(_, _base),

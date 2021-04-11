@@ -62,7 +62,7 @@ pub fn start<'a, T>(
 }
 
 // *separator_list*? ( *statement* *separator_list* )*
-pub fn do_parse(input: LineSpan) -> IResult<LineSpan, Vec<ParseSpan<Token>>> {
+pub fn do_parse(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Vec<ParseSpan<Token<'_>>>> {
     let (input, _) = opt(separator_list)(input)?;
     fold_many0(
         pair(statement, separator_list),
@@ -83,12 +83,12 @@ pub fn do_parse(input: LineSpan) -> IResult<LineSpan, Vec<ParseSpan<Token>>> {
 
 // *label_decl*? ( *instruction* *operand** )?
 fn statement(
-    input: LineSpan,
+    input: LineSpan<'_>,
 ) -> IResult<
-    LineSpan,
+    LineSpan<'_>,
     (
-        Option<ParseSpan<Token>>,
-        Option<(ParseSpan<Token>, Vec<ParseSpan<Token>>)>,
+        Option<ParseSpan<Token<'_>>>,
+        Option<(ParseSpan<Token<'_>>, Vec<ParseSpan<Token<'_>>>)>,
     ),
 > {
     pair(
@@ -101,17 +101,17 @@ fn statement(
 }
 
 // *label*
-fn label_decl(input: LineSpan) -> IResult<LineSpan, ParseSpan<Token>> {
+fn label_decl(input: LineSpan<'_>) -> IResult<LineSpan<'_>, ParseSpan<Token<'_>>> {
     spanned(label)(input)
 }
 
 // ( *mnemonic* | *directive* )
-fn instruction(input: LineSpan) -> IResult<LineSpan, ParseSpan<Token>> {
+fn instruction(input: LineSpan<'_>) -> IResult<LineSpan<'_>, ParseSpan<Token<'_>>> {
     spanned(alt((mnemonic, directive)))(input)
 }
 
 // *register* | *flag* | *memory_access* | *string* | *signed_integer* | ...
-fn operand(input: LineSpan) -> IResult<LineSpan, ParseSpan<Token>> {
+fn operand(input: LineSpan<'_>) -> IResult<LineSpan<'_>, ParseSpan<Token<'_>>> {
     spanned(alt((
         directive,
         symbol,
@@ -133,63 +133,63 @@ fn ws0<'a, T>(
 }
 
 // *separator*+
-fn separator_list(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn separator_list(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     recognize(many1(separator))(input)
 }
 
 // *whitespace** ( `;` | *line_terminator* ) *whitespace**
-fn separator(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn separator(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     ws0(alt((line_terminator, recognize(char(';')))))(input)
 }
 
 // ` ` | 0x09 | 0x0b | 0x0c | 0x20 | *comment*
-fn whitespace(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn whitespace(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     alt((recognize(one_of(" \t\x0b\x0c\r")), recognize(comment)))(input)
 }
 
 // *single_line_comment* | *multi_line_comment*
-fn comment(input: LineSpan) -> IResult<LineSpan, ()> {
+fn comment(input: LineSpan<'_>) -> IResult<LineSpan<'_>, ()> {
     value((), alt((single_line_comment, multi_line_comment)))(input)
 }
 
 // `//` *line_content*?
-fn single_line_comment(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn single_line_comment(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     recognize(tuple((tag("//"), opt(line_content))))(input)
 }
 
 // `/*` ...? `*/`
-fn multi_line_comment(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn multi_line_comment(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     recognize(tuple((tag("/*"), take_until("*/"), tag("*/"))))(input)
 }
 
 // *anychar*+ *line_terminator*?
-fn line_content(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn line_content(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     recognize(many1(preceded(peek(not(line_terminator)), anychar)))(input)
 }
 
 // `\r`? `\n`
-fn line_terminator(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn line_terminator(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     line_ending(input)
 }
 
 // `.` *identifier*
-fn directive(input: LineSpan) -> IResult<LineSpan, Token> {
+fn directive(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(preceded(tag("."), identifier), Token::Directive)(input)
 }
 
 // `#` `#`? *identifier*
-fn symbol(input: LineSpan) -> IResult<LineSpan, Token> {
+fn symbol(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     let (ls, (_, is_physical, ident)) = tuple((tag("#"), opt(tag("#")), identifier))(input)?;
     Ok((ls, Token::Symbol((ident, is_physical.is_some()))))
 }
 
 // *identifier* `:`
-fn label(input: LineSpan) -> IResult<LineSpan, Token> {
+fn label(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(terminated(identifier, tag(":")), Token::Label)(input)
 }
 
 // ( *alpha1* | `_` ) ( *alphanumeric1* | `_` )*
-fn identifier(input: LineSpan) -> IResult<LineSpan, &str> {
+fn identifier(input: LineSpan<'_>) -> IResult<LineSpan<'_>, &str> {
     let (ls, ident) = recognize(pair(
         alt((alpha1, tag("_"))),
         many0(alt((alphanumeric1, tag("_")))),
@@ -198,17 +198,17 @@ fn identifier(input: LineSpan) -> IResult<LineSpan, &str> {
 }
 
 // *_mnemonic*
-fn mnemonic(input: LineSpan) -> IResult<LineSpan, Token> {
+fn mnemonic(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(_mnemonic, Token::Mnemonic)(input)
 }
 
 // *opcode* *operand_size*
-fn _mnemonic(input: LineSpan) -> IResult<LineSpan, (InstructionKind, OperandSize)> {
+fn _mnemonic(input: LineSpan<'_>) -> IResult<LineSpan<'_>, (InstructionKind, OperandSize)> {
     pair(opcode, operand_size)(input)
 }
 
 // `CMPU` | `CMPS` | `CMP` | ...
-fn opcode(input: LineSpan) -> IResult<LineSpan, InstructionKind> {
+fn opcode(input: LineSpan<'_>) -> IResult<LineSpan<'_>, InstructionKind> {
     macro_rules! mnemonic_values {
         ($variant:ident) => {
             value(InstructionKind::$variant, tag_no_case(stringify!($variant)))
@@ -244,7 +244,7 @@ fn opcode(input: LineSpan) -> IResult<LineSpan, InstructionKind> {
 }
 
 // ( `.` ( `b` | `h` | `w` | `B` | `H` | `W` ) )?
-fn operand_size(input: LineSpan) -> IResult<LineSpan, OperandSize> {
+fn operand_size(input: LineSpan<'_>) -> IResult<LineSpan<'_>, OperandSize> {
     map(
         opt(preceded(char('.'), one_of("bhwBHW"))),
         |out| match out {
@@ -258,12 +258,12 @@ fn operand_size(input: LineSpan) -> IResult<LineSpan, OperandSize> {
 }
 
 // *_memory_access*
-fn memory_access(input: LineSpan) -> IResult<LineSpan, Token> {
+fn memory_access(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(_memory_access, Token::Memory)(input)
 }
 
 // *memory_space* `[` *whitespace** ( *reg_imm* | *reg_reg* | *reg* ) *whitespace** `]`
-fn _memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
+fn _memory_access(input: LineSpan<'_>) -> IResult<LineSpan<'_>, MemoryAccess> {
     // Parse the memory space to access.
     let (input, space) = ws0(memory_space)(input)?;
 
@@ -297,7 +297,7 @@ fn _memory_access(input: LineSpan) -> IResult<LineSpan, MemoryAccess> {
 }
 
 // `i` | `d` | `I` | `D`
-fn memory_space(input: LineSpan) -> IResult<LineSpan, MemorySpace> {
+fn memory_space(input: LineSpan<'_>) -> IResult<LineSpan<'_>, MemorySpace> {
     alt((
         value(MemorySpace::IMem, tag_no_case("i")),
         value(MemorySpace::DMem, tag_no_case("d")),
@@ -305,12 +305,12 @@ fn memory_space(input: LineSpan) -> IResult<LineSpan, MemorySpace> {
 }
 
 // *_register*
-fn register(input: LineSpan) -> IResult<LineSpan, Token> {
+fn register(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(_register, Token::Register)(input)
 }
 
 // `$` ( *general_purpose_register* | *special_purpose_register* )
-fn _register(input: LineSpan) -> IResult<LineSpan, Register> {
+fn _register(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Register> {
     preceded(
         tag("$"),
         alt((general_purpose_register, special_purpose_register)),
@@ -318,7 +318,7 @@ fn _register(input: LineSpan) -> IResult<LineSpan, Register> {
 }
 
 // *general_purpose_register_tag* *digit1*
-fn general_purpose_register(input: LineSpan) -> IResult<LineSpan, Register> {
+fn general_purpose_register(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Register> {
     map_opt(preceded(general_purpose_register_tag, digit1), |s| {
         s.fragment()
             .parse::<usize>()
@@ -328,12 +328,12 @@ fn general_purpose_register(input: LineSpan) -> IResult<LineSpan, Register> {
 }
 
 // `reg` | `r`
-fn general_purpose_register_tag(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn general_purpose_register_tag(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     alt((recognize(tag_no_case("reg")), recognize(tag_no_case("r"))))(input)
 }
 
 // `iv0` | `iv1` | `iv2` | `ev` | ...
-fn special_purpose_register(input: LineSpan) -> IResult<LineSpan, Register> {
+fn special_purpose_register(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Register> {
     alt((
         value(Register(RegisterKind::Spr, 0x0), tag_no_case("iv0")),
         value(Register(RegisterKind::Spr, 0x1), tag_no_case("iv1")),
@@ -354,12 +354,12 @@ fn special_purpose_register(input: LineSpan) -> IResult<LineSpan, Register> {
     ))(input)
 }
 
-fn flag(input: LineSpan) -> IResult<LineSpan, Token> {
+fn flag(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(_flag, Token::Flag)(input)
 }
 
 // `$` ( `p0` | `p1` | `p2` | `p3` | ... )
-fn _flag(input: LineSpan) -> IResult<LineSpan, u8> {
+fn _flag(input: LineSpan<'_>) -> IResult<LineSpan<'_>, u8> {
     preceded(
         tag("$"),
         alt((
@@ -387,33 +387,33 @@ fn _flag(input: LineSpan) -> IResult<LineSpan, u8> {
 }
 
 // *_string*
-fn string(input: LineSpan) -> IResult<LineSpan, Token> {
+fn string(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(_string, Token::String)(input)
 }
 
 // `"` *take_until* `"`
-fn _string(input: LineSpan) -> IResult<LineSpan, &str> {
+fn _string(input: LineSpan<'_>) -> IResult<LineSpan<'_>, &str> {
     let (span, (_, lit, _)) = tuple((tag("\""), take_until("\""), tag("\"")))(input)?;
     Ok((span, &lit))
 }
 
 // *_signed_integer*
-fn signed_integer(input: LineSpan) -> IResult<LineSpan, Token> {
+fn signed_integer(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(_signed_integer, Token::SignedInt)(input)
 }
 
 // *_unsigned_integer*
-fn unsigned_integer(input: LineSpan) -> IResult<LineSpan, Token> {
+fn unsigned_integer(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(_unsigned_integer, Token::UnsignedInt)(input)
 }
 
 // *_bitfield*
-fn bitfield(input: LineSpan) -> IResult<LineSpan, Token> {
+fn bitfield(input: LineSpan<'_>) -> IResult<LineSpan<'_>, Token<'_>> {
     map(_bitfield, Token::Bitfield)(input)
 }
 
 // *_unsigned_integer* `:` *_unsigned_integer*
-fn _bitfield<T>(input: LineSpan) -> IResult<LineSpan, (T, T)>
+fn _bitfield<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, (T, T)>
 where
     T: PrimInt + Unsigned,
 {
@@ -422,7 +422,7 @@ where
 }
 
 // *signed_hex* | *signed_binary* | *signed_octal* | *signed_decimal*
-fn _signed_integer<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn _signed_integer<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Signed,
 {
@@ -430,7 +430,7 @@ where
 }
 
 // *unsigned_hex* | *unsigned_binary* | *unsigned_octal* | *unsigned_hex*
-fn _unsigned_integer<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn _unsigned_integer<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Unsigned,
 {
@@ -443,7 +443,7 @@ where
 }
 
 // *sign* *decimal_digits*
-fn signed_decimal<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn signed_decimal<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Signed,
 {
@@ -453,7 +453,7 @@ where
 }
 
 // `+`? *decimal_digits*
-fn unsigned_decimal<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn unsigned_decimal<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Unsigned,
 {
@@ -463,12 +463,12 @@ where
 }
 
 // ( `0` | `1` | `2` | `3` | `4` | `5` | `6` | `7` | `8` | `9` | `_` )+
-fn decimal_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn decimal_digits(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     recognize(many1(terminated(one_of("0123456789"), many0(char('_')))))(input)
 }
 
 // *sign* *hex_prefix* *hex_digits*
-fn signed_hex<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn signed_hex<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Signed,
 {
@@ -481,7 +481,7 @@ where
 }
 
 // `+`? *hex_prefix* *hex_digits*
-fn unsigned_hex<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn unsigned_hex<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Unsigned,
 {
@@ -492,12 +492,12 @@ where
 }
 
 // `0x`
-fn hex_prefix(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn hex_prefix(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     complete(tag_no_case("0x"))(input)
 }
 
 // ( `0` | `1` | `2` | `3` | `4` | `5` | `6` | `7` | `8` | `9` | `a` | ... )+
-fn hex_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn hex_digits(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     recognize(many1(terminated(
         one_of("0123456789abcdefABCDEF"),
         many0(char('_')),
@@ -505,7 +505,7 @@ fn hex_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
 }
 
 // *sign* *octal_prefix* *octal_digits*
-fn signed_octal<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn signed_octal<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Signed,
 {
@@ -518,7 +518,7 @@ where
 }
 
 // `+`? *octal_prefix* *octal_digits*
-fn unsigned_octal<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn unsigned_octal<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Unsigned,
 {
@@ -529,17 +529,17 @@ where
 }
 
 // `0o`
-fn octal_prefix(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn octal_prefix(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     complete(tag_no_case("0o"))(input)
 }
 
 // ( `0` | `1` | `2` | `3` | `4` | `5` | `6` | `7` | `_` )+
-fn octal_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn octal_digits(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     recognize(many1(terminated(one_of("01234567"), many0(char('_')))))(input)
 }
 
 // *sign* *binary_prefix* *binary_digits*
-fn signed_binary<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn signed_binary<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Signed,
 {
@@ -552,7 +552,7 @@ where
 }
 
 // `+`? *binary_prefix* *binary_digits*
-fn unsigned_binary<T>(input: LineSpan) -> IResult<LineSpan, T>
+fn unsigned_binary<T>(input: LineSpan<'_>) -> IResult<LineSpan<'_>, T>
 where
     T: PrimInt + Unsigned,
 {
@@ -563,17 +563,17 @@ where
 }
 
 // `0b`
-fn binary_prefix(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn binary_prefix(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     complete(tag_no_case("0b"))(input)
 }
 
 // ( `0` | `1` | `_` )+
-fn binary_digits(input: LineSpan) -> IResult<LineSpan, LineSpan> {
+fn binary_digits(input: LineSpan<'_>) -> IResult<LineSpan<'_>, LineSpan<'_>> {
     recognize(many1(terminated(one_of("01"), many0(char('_')))))(input)
 }
 
 // ( `+` | `-` )?
-fn sign(input: LineSpan) -> IResult<LineSpan, bool> {
+fn sign(input: LineSpan<'_>) -> IResult<LineSpan<'_>, bool> {
     map(
         opt(alt((value(false, tag("+")), value(true, tag("-"))))),
         |i| i.unwrap_or(false),
