@@ -3,9 +3,9 @@ use syn::{Attribute, Error, Meta, Result};
 
 use crate::r#impl::ATTR;
 
-/// Flattens all the meta properties within a given attribute into a vector.
-///
-/// NOTE: Literals will not be considered and result in an error.
+// Flattens all the meta properties within a given attribute into a vector.
+//
+// NOTE: Literals will not be considered and result in an error.
 pub fn flatten_attribute_meta(attr: &Attribute) -> Result<Vec<Meta>> {
     if let Meta::List(ref list) = attr.parse_meta()? {
         let mut properties = Vec::new();
@@ -30,8 +30,8 @@ pub fn flatten_attribute_meta(attr: &Attribute) -> Result<Vec<Meta>> {
     }
 }
 
-/// Parses a `name=value` property inside a proc-macro attribute into an integer of
-/// `value`.
+// Parses a `name=value` property inside a proc-macro attribute into an integer of
+// `value`.
 pub fn parse_int_meta(name: &str, meta: &Meta) -> Result<u8> {
     if let Meta::NameValue(ref value) = meta {
         assert_matching_name(name, &value.path)?;
@@ -54,8 +54,8 @@ pub fn parse_int_meta(name: &str, meta: &Meta) -> Result<u8> {
     }
 }
 
-/// Parses a `name(a, b, c)` property inside a proc-macro attribute into a vector
-/// containing `a, b, c`.
+// Parses a `name(a, b, c)` property inside a proc-macro attribute into a
+// `vec![a, b, c]`.
 pub fn parse_list_meta(name: &str, meta: &Meta) -> Result<Vec<TokenStream>> {
     if let Meta::List(ref list) = meta {
         assert_matching_name(name, &list.path)?;

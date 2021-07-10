@@ -5,18 +5,9 @@ use syn::{parse::Error, Ident, Result};
 
 use crate::parser;
 
-/// The name of the attribute that is supported by the proc-macro.
+// The name of the sole attribute supported by the `Instruction` macro.
 pub const ATTR: &str = "insn";
 
-/// Generates the AST that the `Instruction` derive macro will expand to.
-///
-/// The macro is used for conveniently adding support for new instructions
-/// to the disassembler with lowest possible effort.
-///
-/// At compile-time, it expands to a bunch of const arrays which will be baked
-/// into the final binary. These are arranged and ordered by the forms of
-/// instruction groups and allow for fast opcode lookup through subopcode
-/// indexing on the arrays.
 pub fn impl_instruction(ast: &syn::DeriveInput) -> Result<TokenStream> {
     if let syn::Data::Enum(data) = &ast.data {
         generate_lookup_tables(&ast.ident, data)
@@ -86,30 +77,24 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
         let subopcode = subopcode as usize;
 
         // faucon-asm stores the operands of each instruction in `[Argument; 3]` arrays.
-        // For instructions that have less than 3 real operands, the remaining space in
-        // the array is being filled out with `NOP` as a placeholder/padding.
+        // Since instructions have varying numbers of operands from 0 to 3, we store every
+        // operand in `Option::Some` and ignore those that are `Option::None`.
         while operands.len() < 3 {
-            operands.push(quote! { None });
+            operands.push(quote! { ::std::option::Option::None });
         }
 
         let instruction_meta = {
-            forms.push(quote! {
-                InstructionMeta::new(
-                    InstructionKind::#vname,
+            let meta = quote! {
+                crate::isa::InstructionMeta::new(
+                    #name::#vname,
                     #opcode,
-                    #subopcode as u8,
+                    #subopcode as ::std::primitive::u8,
                     [#(#operands),*],
                 )
-            });
+            };
+            forms.push(meta.clone());
 
-            quote! {
-                Some(InstructionMeta::new(
-                    InstructionKind::#vname,
-                    #opcode,
-                    #subopcode as u8,
-                    [#(#operands),*],
-                ))
-            }
+            quote! { Some(#meta) }
         };
 
         match (size, a, b) {
@@ -179,216 +164,216 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
             fill_table(vname, *opcode, *subopcode, operands, &mut get_forms_vec);
         }
 
-        get_forms_match_arms.push(quote! { InstructionKind::#vname => vec![#(#get_forms_vec),*] });
+        get_forms_match_arms.push(quote! { #name::#vname => ::std::vec![#(#get_forms_vec),*] });
     }
 
     Ok(quote! {
-        const FORM_WI: [Option<InstructionMeta>; 0x3] = [
+        static FORM_WI: [::std::option::Option<crate::isa::InstructionMeta>; 0x3] = [
             #(#wi),*
         ];
 
-        const FORM_SRWI8: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRWI8: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#srwi8),*
         ];
 
-        const FORM_SRWI16: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRWI16: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#srwi16),*
         ];
 
-        const FORM_SRI8: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRI8: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#sri8),*
         ];
 
-        const FORM_SRI16: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRI16: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#sri16),*
         ];
 
-        const FORM_SRR: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRR: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#srr),*
         ];
 
-        const FORM_SUNK: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SUNK: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#sunk),*
         ];
 
-        const FORM_SWI8: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SWI8: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#swi8),*
         ];
 
-        const FORM_SRRI8: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRRI8: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#srri8),*
         ];
 
-        const FORM_SMI8: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SMI8: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#smi8),*
         ];
 
-        const FORM_SMI16: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SMI16: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#smi16),*
         ];
 
-        const FORM_SRRI16: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRRI16: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#srri16),*
         ];
 
-        const FORM_SRW: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRW: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#srw),*
         ];
 
-        const FORM_SWRR: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SWRR: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#swrr),*
         ];
 
-        const FORM_SMR: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SMR: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#smr),*
         ];
 
-        const FORM_SRRW: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SRRW: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#srrw),*
         ];
 
-        const FORM_SM: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SM: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#sm),*
         ];
 
-        const FORM_I24: [Option<InstructionMeta>; 0x3] = [
+        static FORM_I24: [::std::option::Option<crate::isa::InstructionMeta>; 0x3] = [
             #(#i24),*
         ];
 
-        const FORM_SWR: [Option<InstructionMeta>; 0x10] = [
+        static FORM_SWR: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#swr),*
         ];
 
-        const FORM_RWI8: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RWI8: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#rwi8),*
         ];
 
-        const FORM_WI32: [Option<InstructionMeta>; 0x1] = [
+        static FORM_WI32: [::std::option::Option<crate::isa::InstructionMeta>; 0x1] = [
             #(#wi32),*
         ];
 
-        const FORM_RWI16: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RWI16: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#rwi16),*
         ];
 
-        const FORM_MI8: [Option<InstructionMeta>; 0x10] = [
+        static FORM_MI8: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#mi8),*
         ];
 
-        const FORM_MI16: [Option<InstructionMeta>; 0x10] = [
+        static FORM_MI16: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#mi16),*
         ];
 
-        const FORM_R1: [Option<InstructionMeta>; 0x10] = [
+        static FORM_R1: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#r1),*
         ];
 
-        const FORM_I16Z: [Option<InstructionMeta>; 0x10] = [
+        static FORM_I16Z: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#i16z),*
         ];
 
-        const FORM_I8Z: [Option<InstructionMeta>; 0x40] = [
+        static FORM_I8Z: [::std::option::Option<crate::isa::InstructionMeta>; 0x40] = [
             #(#i8z),*
         ];
 
-        const FORM_I16S: [Option<InstructionMeta>; 0x40] = [
+        static FORM_I16S: [::std::option::Option<crate::isa::InstructionMeta>; 0x40] = [
             #(#i16s),*
         ];
 
-        const FORM_RRI1: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RRI1: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#rri1),*
         ];
 
-        const FORM_RRI2: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RRI2: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#rri2),*
         ];
 
-        const FORM_N: [Option<InstructionMeta>; 0x10] = [
+        static FORM_N: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#n),*
         ];
 
-        const FORM_R2: [Option<InstructionMeta>; 0x10] = [
+        static FORM_R2: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#r2),*
         ];
 
-        const FORM_RR: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RR: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#rr),*
         ];
 
-        const FORM_RI: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RI: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#ri),*
         ];
 
-        const FORM_W: [Option<InstructionMeta>; 0x10] = [
+        static FORM_W: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#w),*
         ];
 
-        const FORM_RM: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RM: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#rm),*
         ];
 
-        const FORM_RW: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RW: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#rw),*
         ];
 
-        const FORM_RRW: [Option<InstructionMeta>; 0x10] = [
+        static FORM_RRW: [::std::option::Option<crate::isa::InstructionMeta>; 0x10] = [
             #(#rrw),*
         ];
 
         impl #name {
             pub(crate) fn lookup_meta(
-                sized: bool,
-                a: u8,
-                b: u8,
-                subopcode: u8
-            ) -> Option<InstructionMeta> {
-                let b = b as usize;
-                let subopcode = subopcode as usize;
+                sized: std::primitive::bool,
+                a: ::std::primitive::u8,
+                b: ::std::primitive::u8,
+                subopcode: ::std::primitive::u8
+            ) -> ::std::option::Option<crate::isa::InstructionMeta> {
+                let b = b as std::primitive::usize;
+                let subopcode = subopcode as ::std::primitive::usize;
 
-                match (sized, a, b) {
-                    (true, 0x0, _) => FORM_WI[subopcode].clone(),
-                    (true, 0x1, _) => FORM_SRWI8[b].clone(),
-                    (true, 0x2, _) => FORM_SRWI16[b].clone(),
-                    (true, 0x3, 0x0) => FORM_SRI8[subopcode].clone(),
-                    (true, 0x3, 0x1) => FORM_SRI16[subopcode].clone(),
-                    (true, 0x3, 0x2) => FORM_SRR[subopcode].clone(),
-                    (true, 0x3, 0x3) => FORM_SUNK[subopcode].clone(),
-                    (true, 0x3, 0x4) => FORM_SWI8[subopcode].clone(),
-                    (true, 0x3, 0x5) => FORM_SRRI8[subopcode].clone(),
-                    (true, 0x3, 0x6) => FORM_SMI8[subopcode].clone(),
-                    (true, 0x3, 0x7) => FORM_SMI16[subopcode].clone(),
-                    (true, 0x3, 0x8) => FORM_SRRI16[subopcode].clone(),
-                    (true, 0x3, 0x9) => FORM_SRW[subopcode].clone(),
-                    (true, 0x3, 0xA) => FORM_SWRR[subopcode].clone(),
-                    (true, 0x3, 0xB) => FORM_SMR[subopcode].clone(),
-                    (true, 0x3, 0xC) => FORM_SRRW[subopcode].clone(),
-                    (true, 0x3, 0xD) => FORM_SM[subopcode].clone(),
-                    (true, 0x3, 0xE) => FORM_I24[subopcode].clone(),
-                    (true, 0x3, 0xF) => FORM_SWR[subopcode].clone(),
-                    (false, 0x0, _) => FORM_RWI8[b].clone(),
-                    (false, 0x1, _) => FORM_WI32[0].clone(),
-                    (false, 0x2, _) => FORM_RWI16[b].clone(),
-                    (false, 0x3, 0x0) => FORM_MI8[subopcode].clone(),
-                    (false, 0x3, 0x1) => FORM_MI16[subopcode].clone(),
-                    (false, 0x3, 0x2) => FORM_R1[subopcode].clone(),
-                    (false, 0x3, 0x3) => FORM_I16Z[subopcode].clone(),
-                    (false, 0x3, 0x4) => FORM_I8Z[subopcode].clone(),
-                    (false, 0x3, 0x5) => FORM_I16S[subopcode].clone(),
-                    (false, 0x3, 0x6) => FORM_RRI1[subopcode].clone(),
-                    (false, 0x3, 0x7) => FORM_RRI2[subopcode].clone(),
-                    (false, 0x3, 0x8) => FORM_N[subopcode].clone(),
-                    (false, 0x3, 0x9) => FORM_R2[subopcode].clone(),
-                    (false, 0x3, 0xA) => FORM_RR[subopcode].clone(),
-                    (false, 0x3, 0xB) => FORM_RI[subopcode].clone(),
-                    (false, 0x3, 0xC) => FORM_W[subopcode].clone(),
-                    (false, 0x3, 0xD) => FORM_RM[subopcode].clone(),
-                    (false, 0x3, 0xE) => FORM_RW[subopcode].clone(),
-                    (false, 0x3, 0xF) => FORM_RRW[subopcode].clone(),
+                (match (sized, a, b) {
+                    (true, 0x0, _) => &FORM_WI[subopcode],
+                    (true, 0x1, _) => &FORM_SRWI8[b],
+                    (true, 0x2, _) => &FORM_SRWI16[b],
+                    (true, 0x3, 0x0) => &FORM_SRI8[subopcode],
+                    (true, 0x3, 0x1) => &FORM_SRI16[subopcode],
+                    (true, 0x3, 0x2) => &FORM_SRR[subopcode],
+                    (true, 0x3, 0x3) => &FORM_SUNK[subopcode],
+                    (true, 0x3, 0x4) => &FORM_SWI8[subopcode],
+                    (true, 0x3, 0x5) => &FORM_SRRI8[subopcode],
+                    (true, 0x3, 0x6) => &FORM_SMI8[subopcode],
+                    (true, 0x3, 0x7) => &FORM_SMI16[subopcode],
+                    (true, 0x3, 0x8) => &FORM_SRRI16[subopcode],
+                    (true, 0x3, 0x9) => &FORM_SRW[subopcode],
+                    (true, 0x3, 0xA) => &FORM_SWRR[subopcode],
+                    (true, 0x3, 0xB) => &FORM_SMR[subopcode],
+                    (true, 0x3, 0xC) => &FORM_SRRW[subopcode],
+                    (true, 0x3, 0xD) => &FORM_SM[subopcode],
+                    (true, 0x3, 0xE) => &FORM_I24[subopcode],
+                    (true, 0x3, 0xF) => &FORM_SWR[subopcode],
+                    (false, 0x0, _) => &FORM_RWI8[b],
+                    (false, 0x1, _) => &FORM_WI32[0],
+                    (false, 0x2, _) => &FORM_RWI16[b],
+                    (false, 0x3, 0x0) => &FORM_MI8[subopcode],
+                    (false, 0x3, 0x1) => &FORM_MI16[subopcode],
+                    (false, 0x3, 0x2) => &FORM_R1[subopcode],
+                    (false, 0x3, 0x3) => &FORM_I16Z[subopcode],
+                    (false, 0x3, 0x4) => &FORM_I8Z[subopcode],
+                    (false, 0x3, 0x5) => &FORM_I16S[subopcode],
+                    (false, 0x3, 0x6) => &FORM_RRI1[subopcode],
+                    (false, 0x3, 0x7) => &FORM_RRI2[subopcode],
+                    (false, 0x3, 0x8) => &FORM_N[subopcode],
+                    (false, 0x3, 0x9) => &FORM_R2[subopcode],
+                    (false, 0x3, 0xA) => &FORM_RR[subopcode],
+                    (false, 0x3, 0xB) => &FORM_RI[subopcode],
+                    (false, 0x3, 0xC) => &FORM_W[subopcode],
+                    (false, 0x3, 0xD) => &FORM_RM[subopcode],
+                    (false, 0x3, 0xE) => &FORM_RW[subopcode],
+                    (false, 0x3, 0xF) => &FORM_RRW[subopcode],
                     _ => unreachable!(),
-                }
+                }).clone()
             }
 
-            pub(crate) fn get_forms(&self) -> Vec<InstructionMeta> {
+            pub(crate) fn get_forms(&self) -> ::std::vec::Vec<crate::isa::InstructionMeta> {
                 match self {
                     #(#get_forms_match_arms),*
                 }
