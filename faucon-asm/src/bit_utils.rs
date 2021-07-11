@@ -4,6 +4,7 @@ use std::ptr::copy_nonoverlapping;
 
 use num_traits::{One, PrimInt, Zero};
 
+// Gets the width of a value in bytes.
 #[inline]
 fn bytewidth(i: u32) -> usize {
     if i < 1 << 8 {
@@ -17,12 +18,21 @@ fn bytewidth(i: u32) -> usize {
     }
 }
 
+// Sign-extends `value` to the number of bytes denoted by `nbytes`.
 #[inline]
 fn extend_sign(value: u32, nbytes: usize) -> i32 {
     let shift = (size_of::<u32>() - nbytes) << 3;
     (value << shift) as i32 >> shift
 }
 
+// Unextends the sign of `value` from the number of bytes denoted by `nbytes`.
+#[inline]
+fn unextend_sign(value: i32, nbytes: usize) -> u32 {
+    let shift = (size_of::<i32>() - nbytes) << 3;
+    (value << shift) as u32 >> shift
+}
+
+// Sign-extends `value` to the number of bits denoted by `nbits`.
 #[inline]
 fn extend_bit_sign<I>(value: I, nbits: usize) -> I
 where
@@ -39,12 +49,7 @@ where
     }
 }
 
-#[inline]
-fn unextend_sign(value: i32, nbytes: usize) -> u32 {
-    let shift = (size_of::<i32>() - nbytes) << 3;
-    (value << shift) as u32 >> shift
-}
-
+// Reads `nbytes` bytes from `buf` into an unsigned integer value.
 #[inline]
 fn read_uint(buf: &[u8], nbytes: usize) -> u32 {
     assert!(1 <= nbytes && nbytes <= size_of::<u32>() && nbytes <= buf.len());
@@ -57,11 +62,13 @@ fn read_uint(buf: &[u8], nbytes: usize) -> u32 {
     result.to_le()
 }
 
+// Reads `nbytes` bytes from `buf` into a signed integer value.
 #[inline]
 fn read_int(buf: &[u8], nbytes: usize) -> i32 {
     extend_sign(read_uint(buf, nbytes), nbytes)
 }
 
+// Writes `nbytes` bytes from unsigned integer value `i` to `buf`.
 #[inline]
 fn write_uint(buf: &mut [u8], i: u32, nbytes: usize) {
     assert!(nbytes <= 4 && nbytes <= buf.len() && bytewidth(i) <= nbytes);
@@ -72,11 +79,14 @@ fn write_uint(buf: &mut [u8], i: u32, nbytes: usize) {
     }
 }
 
+// Writes `nbytes` bytes from signed integer value `i` to `buf`.
 #[inline]
 fn write_int(buf: &mut [u8], i: i32, nbytes: usize) {
     write_uint(buf, unextend_sign(i, nbytes), nbytes)
 }
 
+// Writes `nbytes` bytes from unsigned integer value `i` to `buf` by masking it in
+// without overriding existing contents.
 #[inline]
 fn modify_uint(buf: &mut [u8], i: u32, mask: u32, nbytes: usize) {
     assert!(nbytes <= 4 && nbytes <= buf.len() && bytewidth(i) <= nbytes);
@@ -85,16 +95,24 @@ fn modify_uint(buf: &mut [u8], i: u32, mask: u32, nbytes: usize) {
     write_uint(buf, new_i, nbytes);
 }
 
+// Writes `nbytes` bytes from signed integer value `i` to `buf` by masking it in
+// without overriding existing contents.
 #[inline]
 fn modify_int(buf: &mut [u8], i: i32, mask: i32, nbytes: usize) {
     modify_uint(buf, unextend_sign(i, nbytes), mask as u32, nbytes)
 }
 
+// Aligns `value` down to the next multiple of `align`.
+//
+// `align` is expected to be a power of two or else this will produce incorrect results.
 #[inline]
 const fn align_down(value: usize, align: usize) -> usize {
     value & !(align - 1)
 }
 
+// Aligns `value` up to the next multiple of `align.`
+//
+// `align` is expected to be a power of two or else this will produce incorrect results.
 #[inline]
 const fn align_up(value: usize, align: usize) -> usize {
     align_down(value + align - 1, align)
@@ -113,6 +131,8 @@ const fn bitmask(start: usize, end: usize) -> usize {
     least_significant_bits(end) & !least_significant_bits(start)
 }
 
+// Represents a specific bitfield over an integral type `I`. Used for converting
+// assembly operands between machine code.
 pub struct BitField<I> {
     value: Option<I>,
     range: Range<usize>,
