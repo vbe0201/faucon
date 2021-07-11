@@ -8,12 +8,7 @@ homepage = "https://github.com/vbe0201/faucon"
 edition = "2018"
 
 [dependencies]
-# Generates instruction lookup tables at compile-time via a procedural macro.
 faucon-asm-derive = { path = "../faucon-asm-derive" }
-
-# Used to implement lexical analysis and parsing functionality of the assembler.
-nom = "6.1"
+nom = "6.2"
 nom_locate = "3.0"
-
-# Aids in implementing a common abstraction layer for different immediate types.
 num-traits = "0.2"

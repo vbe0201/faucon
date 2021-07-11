@@ -83,7 +83,7 @@
 
 mod arguments;
 pub mod assembler;
-mod bytes_ext;
+mod bit_utils;
 pub mod disassembler;
 pub mod isa;
 pub mod opcode;
@@ -203,7 +203,7 @@ impl Instruction {
     /// Although this would not trigger undefined behavior per se, it may
     /// result in undefined behavior in conjunction with [`Instruction::assemble`]
     /// producing malformed code that is feeded into a real Falcon unit.
-    pub unsafe fn new(
+    pub(crate) unsafe fn new(
         meta: isa::InstructionMeta,
         operand_size: OperandSize,
         operands: Vec<Operand>,

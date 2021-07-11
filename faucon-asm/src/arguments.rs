@@ -5,7 +5,7 @@ use std::ops::Range;
 use num_traits::{cast, FromPrimitive, PrimInt, WrappingSub};
 
 use crate::assembler::Token;
-use crate::bytes_ext::ByteEncoding;
+use crate::bit_utils::EncodableInteger;
 use crate::operands::{self, Operand};
 
 // A trait that defines a quantity of a specific size that is stored at a
@@ -901,7 +901,7 @@ impl<T> Positional for Immediate<T> {
     }
 }
 
-impl<T: FromPrimitive + PrimInt + ByteEncoding + WrappingSub> MachineEncoding for Immediate<T> {
+impl<T: FromPrimitive + PrimInt + EncodableInteger + WrappingSub> MachineEncoding for Immediate<T> {
     type Output = T;
 
     fn read(&self, instruction: &[u8]) -> Self::Output {

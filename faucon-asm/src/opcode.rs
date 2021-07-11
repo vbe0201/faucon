@@ -1,4 +1,4 @@
-//! Abstractions over the Falcon opcode format.
+//! Utilities for working with different Falcon opcode formats.
 
 use std::fmt;
 
@@ -24,10 +24,7 @@ pub enum OperandSize {
 impl OperandSize {
     /// Checks whether the operands are sized or not.
     pub const fn sized(&self) -> bool {
-        match self {
-            OperandSize::Unsized => false,
-            _ => true,
-        }
+        !matches!(self, OperandSize::Unsized)
     }
 
     /// Gets the value of the bits that represents the operand size in in the
@@ -48,7 +45,7 @@ impl From<u8> for OperandSize {
             0b00 => OperandSize::EightBit,
             0b01 => OperandSize::SixteenBit,
             0b10 => OperandSize::ThirtyTwoBit,
-            _ => OperandSize::Unsized,
+            _ => OperandSize::Unsized, // 0b11 is the only fitting value here anyway.
         }
     }
 }
