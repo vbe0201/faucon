@@ -13,16 +13,7 @@ pub use pretty::Disassembler;
 
 /// Reads an [`Instruction`] from a given [`std::io::Read`]er holding its binary
 /// representation.
-///
-/// # Safety
-///
-/// Constructing an [`crate::Instruction`] is considered unsafe for reasons detailed
-/// there and thus the user is responsible for feeding valid Falcon machine code into
-/// this function.
-pub unsafe fn read_instruction<'a, R: Read>(
-    reader: &mut R,
-    pc: &mut u32,
-) -> Result<Instruction, FalconError> {
+pub fn read_instruction<R: Read>(reader: &mut R, pc: &mut u32) -> Result<Instruction, FalconError> {
     let mut insn = Vec::new();
 
     // Read the opcode of the next instruction and parse it.
@@ -30,8 +21,6 @@ pub unsafe fn read_instruction<'a, R: Read>(
         read_bytes(&mut insn, reader, 1)?;
         insn[0]
     };
-
-    // Parse the opcode to obtain the instruction size and the encoding form.
     let (a, b) = opcode::get_opcode_form(opcode);
     let operand_size = opcode::OperandSize::from(opcode);
 
@@ -48,6 +37,8 @@ pub unsafe fn read_instruction<'a, R: Read>(
         // Look up a matching instruction variant and read out the operands it takes.
         let mut meta = InstructionKind::lookup_meta(operand_size.sized(), a, b, subopcode)
             .ok_or(FalconError::InvalidOpcode(opcode))?;
+
+        // Read all operands described by the previously obtained `InstructionMeta` object.
         let operands = read_operands(
             &mut insn,
             reader,
@@ -57,7 +48,8 @@ pub unsafe fn read_instruction<'a, R: Read>(
         )?;
 
         // Construct the instruction object from metadata and raw bytes.
-        let instruction = Instruction::new(meta, operand_size, operands, *pc).with_raw_bytes(insn);
+        let instruction =
+            unsafe { Instruction::new(meta, operand_size, operands, *pc).with_raw_bytes(insn) };
 
         // Increment the program counter to point to the next instruction.
         *pc += instruction.raw_bytes().unwrap().len() as u32;

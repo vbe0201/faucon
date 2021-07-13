@@ -83,6 +83,7 @@
 
 mod arguments;
 pub mod assembler;
+mod bitfields;
 mod bit_utils;
 pub mod disassembler;
 pub mod isa;

@@ -211,6 +211,8 @@ impl fmt::Display for MemoryAccess {
     }
 }
 
+// TODO: Fix this terribly broken enum some day.
+
 /// An operand of a Falcon assembly [`crate::Instruction`].
 ///
 /// Operands usually denote CPU registers, immediates, and memory addressing for

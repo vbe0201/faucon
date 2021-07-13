@@ -157,28 +157,36 @@ impl<I> BitField<I> {
     }
 
     #[inline]
-    pub(crate) fn byte_start(&self) -> usize {
-        align_down(self.range.start, 8) >> 3
+    const fn aligned_bit_start(&self) -> usize {
+        align_down(self.range.start, 8)
     }
 
     #[inline]
-    pub(crate) fn is_byte_aligned(&self) -> bool {
-        self.range.start & 7 == 0 && self.range.end & 7 == 0
+    const fn aligned_bit_end(&self) -> usize {
+        align_up(self.range.end, 8)
     }
 
     #[inline]
-    pub(crate) fn byte_width(&self) -> usize {
-        align_up(self.range.end - self.range.start, 8) >> 3
+    const fn byte_start(&self) -> usize {
+        self.aligned_bit_start() >> 3
     }
 
     #[inline]
-    pub(crate) fn bitmask(&self) -> u32 {
-        bitmask(self.range.start, self.range.end) as u32
+    const fn byte_width(&self) -> usize {
+        (self.aligned_bit_end() - self.aligned_bit_start()) >> 3
     }
 
     #[inline]
-    pub(crate) fn bitshift(&self) -> usize {
-        self.range.start
+    const fn bitshift(&self) -> usize {
+        self.range.start - self.aligned_bit_start()
+    }
+
+    #[inline]
+    const fn bitmask(&self) -> u32 {
+        let field_start = self.bitshift();
+        let field_end = (self.range.end - self.range.start) + field_start;
+
+        bitmask(field_start, field_end) as u32
     }
 }
 
@@ -198,7 +206,7 @@ macro_rules! impl_bitfield_for {
             pub fn read(&self, buf: &[u8]) -> $ty {
                 self.value.unwrap_or({
                     // Read the value that encapsulate the desired bitfield in full bytes.
-                    let raw = read_uint(buf, self.byte_start() + self.byte_width());
+                    let raw = read_uint(&buf[self.byte_start()..], self.byte_width());
 
                     // Extract the described bitfield.
                     let field = (raw & self.bitmask()) >> self.bitshift();
@@ -214,10 +222,10 @@ macro_rules! impl_bitfield_for {
 
                     let raw = (value >> self.shift.unwrap_or(0)) << self.bitshift();
                     modify_uint(
-                        buf,
+                        &mut buf[self.byte_start()..],
                         raw,
                         self.bitmask(),
-                        self.byte_start() + self.byte_width(),
+                        self.byte_width(),
                     );
                 }
             }
@@ -240,7 +248,7 @@ macro_rules! impl_bitfield_for {
             pub fn read(&self, buf: &[u8]) -> $ty {
                 self.value.unwrap_or({
                     // Read the value that encapsulate the desired bitfield in full bytes.
-                    let raw = read_int(buf, self.byte_start() + self.byte_width());
+                    let raw = read_int(&buf[self.byte_start()..], self.byte_width());
 
                     // Extract the described bitfield.
                     let field = (raw & self.bitmask() as i32) >> self.bitshift();
@@ -256,10 +264,10 @@ macro_rules! impl_bitfield_for {
 
                     let raw = (value >> self.shift.unwrap_or(0)) << self.bitshift();
                     modify_int(
-                        buf,
+                        &mut buf[self.byte_start()..],
                         raw,
                         self.bitmask() as i32,
-                        self.byte_start() + self.byte_width(),
+                        self.byte_width(),
                     );
                 }
             }
@@ -335,31 +343,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_bitfield_helpers() {
-        const BF1: BitField<u32> = BitField::new(8..16, None);
-        const BF2: BitField<u32> = BitField::new(8..12, None);
-        const BF3: BitField<u32> = BitField::new(17..32, None);
-
-        assert_eq!(BF1.byte_start(), 1);
-        assert!(BF1.is_byte_aligned());
-        assert_eq!(BF1.byte_width(), 1);
-        assert_eq!(BF1.bitmask(), 0b1111111100000000);
-        assert_eq!(BF1.bitshift(), 8);
-
-        assert_eq!(BF2.byte_start(), 1);
-        assert!(!BF2.is_byte_aligned());
-        assert_eq!(BF2.byte_width(), 1);
-        assert_eq!(BF2.bitmask(), 0b111100000000);
-        assert_eq!(BF2.bitshift(), 8);
-
-        assert_eq!(BF3.byte_start(), 2);
-        assert!(!BF3.is_byte_aligned());
-        assert_eq!(BF3.byte_width(), 2);
-        assert_eq!(BF3.bitmask(), 0b11111111111111100000000000000000);
-        assert_eq!(BF3.bitshift(), 17);
-    }
-
-    #[test]
     fn test_bitfield_value_bounds() {
         assert_eq!(BitField::<u8>::new(0..0, None).min(), 0);
         assert_eq!(BitField::<u8>::new(0..0, None).max(), 0);
@@ -387,11 +370,13 @@ mod tests {
         const BF1: BitField<u16> = BitField::new(8..24, None);
         const BF2: BitField<u32> = BitField::new(9..24, None);
         const BF3: BitField<u32> = BitField::new(9..23, None);
+        const BF4: BitField<u16> = BitField::new(31..47, None);
 
-        let test_buf: &[u8] = &[0xDE, 0xAD, 0xBE, 0xEF];
+        let test_buf: &[u8] = &[0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF];
         assert_eq!(BF1.read(test_buf), 0xBEAD);
         assert_eq!(BF2.read(test_buf), 0x5F56);
         assert_eq!(BF3.read(test_buf), 0x1F56);
+        assert_eq!(BF4.read(test_buf), 0x5BBD);
     }
 
     #[test]
@@ -399,17 +384,21 @@ mod tests {
         const BF1: BitField<u8> = BitField::new(0..2, None);
         const BF2: BitField<u8> = BitField::new(2..6, None);
         const BF3: BitField<u32> = BitField::new(6..32, None);
+        const BF4: BitField<u16> = BitField::new(33..49, None);
 
-        let test_buf: &mut [u8] = &mut [0, 0, 0, 0];
+        let test_buf: &mut [u8] = &mut [0, 0, 0, 0, 0, 0, 0];
 
         BF1.write(test_buf, 0x2);
-        assert_eq!(test_buf, &[0x2, 0, 0, 0]);
+        assert_eq!(test_buf, &[0x2, 0, 0, 0, 0, 0, 0]);
 
         BF2.write(test_buf, 0xF);
-        assert_eq!(test_buf, &[0x3E, 0, 0, 0]);
+        assert_eq!(test_buf, &[0x3E, 0, 0, 0, 0, 0, 0]);
 
         BF3.write(test_buf, 0xFFFFFFC0);
-        assert_eq!(test_buf, &[0x3E, 0xF0, 0xFF, 0xFF]);
+        assert_eq!(test_buf, &[0x3E, 0xF0, 0xFF, 0xFF, 0, 0, 0]);
+
+        BF4.write(test_buf, 0x1337);
+        assert_eq!(test_buf, &[0x3E, 0xF0, 0xFF, 0xFF, 0x6E, 0x26, 0]);
     }
 
     // TODO: Signed bitfield insertion/extraction tests.

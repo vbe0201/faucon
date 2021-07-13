@@ -46,21 +46,18 @@ impl<W: Write> Disassembler<W> {
     /// It will also ignore any errors that occurred while reading from `stream`.
     pub fn disassemble_stream<R: Read>(&mut self, stream: &mut R) -> io::Result<()> {
         let mut pc = 0;
-        let insns =
-            std::iter::from_fn(
-                || match unsafe { super::read_instruction(stream, &mut pc) } {
-                    Ok(res) => Some(res),
-                    Err(FalconError::InvalidOpcode(op)) => {
-                        println!("[aborted] (unknown instruction '{:x}')", op);
-                        None
-                    }
-                    Err(FalconError::IoError(_)) | Err(FalconError::ParseError(_)) => None,
-                    Err(FalconError::Eof) => {
-                        println!("[aborted] (end of file)");
-                        None
-                    }
-                },
-            );
+        let insns = std::iter::from_fn(|| match super::read_instruction(stream, &mut pc) {
+            Ok(res) => Some(res),
+            Err(FalconError::InvalidOpcode(op)) => {
+                println!("[aborted] (unknown instruction '{:x}')", op);
+                None
+            }
+            Err(FalconError::IoError(_)) | Err(FalconError::ParseError(_)) => None,
+            Err(FalconError::Eof) => {
+                println!("[aborted] (end of file)");
+                None
+            }
+        });
         self.disassemble(insns)
     }
 
@@ -75,10 +72,7 @@ impl<W: Write> Disassembler<W> {
     /// If the [`Instruction`] objects yielded by the iterator do not have their
     /// raw byte representations assigned to them via [`Instruction::with_raw_bytes`],
     /// this method will panic.
-    pub fn disassemble<'a>(
-        &mut self,
-        insns: impl IntoIterator<Item = Instruction>,
-    ) -> io::Result<()> {
+    pub fn disassemble(&mut self, insns: impl IntoIterator<Item = Instruction>) -> io::Result<()> {
         let out = &mut self.output;
         for insn in insns {
             out.reset();
