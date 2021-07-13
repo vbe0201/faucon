@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["InstructionKind","Assembly instruction kinds within the Falcon v5 ISA."]]});

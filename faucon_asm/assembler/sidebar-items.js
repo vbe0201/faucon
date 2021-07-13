@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["error","Error type that is used by the assembler."],["span","A span type implementation providing line and position information for parsed tokens and error messages."]],"struct":[["Assembler","Assembler for building Falcon machine code out of human-readable assembly language."]]});

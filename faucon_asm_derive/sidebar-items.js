@@ -1,0 +1,1 @@
+initSidebarItems({"derive":[["Instruction","A procedural derive macro for dynamically generating opcode lookup tables from the variants of an enum."]]});

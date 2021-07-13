@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["spanned","Matches an object from the given parser and wraps it in a [`ParseSpan`]."]],"struct":[["ParseSpan","Wraps a parsed token along with information about its encoding in the input source."]]});

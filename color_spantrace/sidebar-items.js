@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["colorize","Display a `SpanTrace` with colors and source"],["set_theme","Sets the global theme."]],"struct":[["InstallThemeError","An error returned by `set_theme` if a global theme was already set"],["Theme","A struct that represents theme that is used by `color_spantrace`"]]});

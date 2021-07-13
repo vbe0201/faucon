@@ -1,0 +1,4 @@
+(function() {var implementors = {};
+implementors["faucon_emu"] = [{"text":"impl <a class=\"trait\" href=\"num_traits/cast/trait.FromPrimitive.html\" title=\"trait num_traits::cast::FromPrimitive\">FromPrimitive</a> for <a class=\"enum\" href=\"faucon_emu/cpu/enum.CpuFlag.html\" title=\"enum faucon_emu::cpu::CpuFlag\">CpuFlag</a>","synthetic":false,"types":["faucon_emu::cpu::registers::CpuFlag"]},{"text":"impl <a class=\"trait\" href=\"num_traits/cast/trait.FromPrimitive.html\" title=\"trait num_traits::cast::FromPrimitive\">FromPrimitive</a> for <a class=\"enum\" href=\"faucon_emu/cpu/enum.Trap.html\" title=\"enum faucon_emu::cpu::Trap\">Trap</a>","synthetic":false,"types":["faucon_emu::cpu::Trap"]}];
+implementors["num_traits"] = [];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
