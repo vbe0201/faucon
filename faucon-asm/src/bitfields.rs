@@ -1,8 +1,33 @@
+use std::cmp::{max, min};
+
 use crate::bit_utils::BitField;
 use crate::operands::*;
 
+// Specifies the byte position of an encodable operand bitfield.
+pub trait Position {
+    // Gets the encoded position of a bitfield as a `(byte_start, byte_width)` tuple.
+    //
+    // In case the encoding revolves around multiple elements, the span will be large
+    // enough to cover everything.
+    fn position(&self) -> (usize, usize);
+}
+
+#[inline]
+fn merge_positions(a: (usize, usize), b: (usize, usize)) -> (usize, usize) {
+    let start = min(a.0, b.0);
+    let end = max(a.0 + a.1, b.0 + b.1);
+
+    (start, end - start)
+}
+
+impl<T> Position for BitField<T> {
+    fn position(&self) -> (usize, usize) {
+        (self.byte_start(), self.byte_width())
+    }
+}
+
 // Defines helpers for machine code encoding and decoding of certain crate types.
-pub trait MachineEncoding {
+pub trait MachineEncoding: Position {
     fn read(&self, pc: u32, buf: &[u8]) -> Operand;
 }
 
@@ -22,19 +47,20 @@ impl MachineEncoding for BitField<u32> {
 }
 
 // General-purpose and special-purpose Falcon CPU and coprocessor registers.
-pub enum RegisterEncoding<'b> {
-    // A register type encoded in a given bitfield.
-    Field(RegisterKind, &'b BitField<u8>),
-    // A constant register value implied by the opcode.
-    Const(RegisterKind, u8),
+pub struct RegisterEncoding<'b> {
+    kind: RegisterKind,
+    field: &'b BitField<u8>,
 }
 
 impl<'b> RegisterEncoding<'b> {
     pub fn read_raw(&self, buf: &[u8]) -> Register {
-        match self {
-            RegisterEncoding::Field(kind, field) => Register(*kind, field.read(buf) as usize),
-            RegisterEncoding::Const(kind, val) => Register(*kind, *val as usize),
-        }
+        Register(self.kind, self.field.read(buf) as usize)
+    }
+}
+
+impl<'b> Position for RegisterEncoding<'b> {
+    fn position(&self) -> (usize, usize) {
+        self.field.position()
     }
 }
 
@@ -50,6 +76,12 @@ pub struct FlagEncoding<'b>(&'b BitField<u8>);
 impl<'b> FlagEncoding<'b> {
     pub fn read_raw(&self, buf: &[u8]) -> u8 {
         self.0.read(buf)
+    }
+}
+
+impl<'b> Position for FlagEncoding<'b> {
+    fn position(&self) -> (usize, usize) {
+        self.0.position()
     }
 }
 
@@ -96,6 +128,18 @@ impl<'b> MemoryEncoding<'b> {
     }
 }
 
+impl<'b> Position for MemoryEncoding<'b> {
+    fn position(&self) -> (usize, usize) {
+        match self {
+            MemoryEncoding::Reg(_, reg) => reg.position(),
+            MemoryEncoding::RegReg(_, reg1, reg2, _) => {
+                merge_positions(reg1.position(), reg2.position())
+            }
+            MemoryEncoding::RegImm(_, reg, imm) => merge_positions(reg.position(), imm.position()),
+        }
+    }
+}
+
 impl<'b> MachineEncoding for MemoryEncoding<'b> {
     fn read(&self, _: u32, buf: &[u8]) -> Operand {
         Operand::Memory(self.read_raw(buf))
@@ -108,6 +152,12 @@ pub struct RelativeAddress<'b>(&'b BitField<i32>);
 impl<'b> RelativeAddress<'b> {
     fn read_raw(&self, buf: &[u8]) -> i32 {
         self.0.read(buf)
+    }
+}
+
+impl<'b> Position for RelativeAddress<'b> {
+    fn position(&self) -> (usize, usize) {
+        self.0.position()
     }
 }
 
@@ -132,6 +182,12 @@ impl<'b> BitRangeEncoding<'b> {
     }
 }
 
+impl<'b> Position for BitRangeEncoding<'b> {
+    fn position(&self) -> (usize, usize) {
+        merge_positions(self.start.position(), self.nbits.position())
+    }
+}
+
 impl<'b> MachineEncoding for BitRangeEncoding<'b> {
     fn read(&self, _: u32, buf: &[u8]) -> Operand {
         let (start, nbits) = self.read_raw(buf);
@@ -144,16 +200,17 @@ impl<'b> MachineEncoding for BitRangeEncoding<'b> {
 // On sized instructions, the dispatch influences the operand sizing and thus
 // the value the dispatch evaluates to, whereas operands of unsized instructions
 // are bound to fixed fields.
+#[derive(Clone)]
 pub enum FieldDispatch<'field> {
-    Sized(fn(u8) -> FieldDispatch<'field>),
+    Sized(fn(u8) -> &'field dyn MachineEncoding),
     Fixed(&'field dyn MachineEncoding),
 }
 
 impl<'field> FieldDispatch<'field> {
-    pub fn evaluate(self, size: u8) -> FieldDispatch<'field> {
+    pub fn evaluate(&self, size: u8) -> &'field dyn MachineEncoding {
         match self {
             FieldDispatch::Sized(c) => c(size),
-            FieldDispatch::Fixed(_) => self,
+            FieldDispatch::Fixed(e) => *e,
         }
     }
 }
@@ -163,107 +220,77 @@ impl<'field> FieldDispatch<'field> {
 // Used for bit positions, shifts, and 8-bit instructions.
 pub const U8: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U8);
 
-// Alias: I8, I8ZX16, I8ZX32, I8ZXS
-
 // A signed 8-bit immediate.
 //
 // Used for comparisons and PC-relative offsets.
 pub const I8: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::I8);
-
-// Alias: I8S, I8SX16, I8SX32, I8SXS, PC8
 
 // A signed 8-bit immediate.
 //
 // Used for Falcon v5 MOV instructions.
 pub const I8P1: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::I8P1);
 
-// Alias: I8SX32P1
-
 // An unsigned 8-bit immediate shifted left by `1`.
 //
 // Used for memory addressing.
 pub const U8S1: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U8S1);
-
-// Alias: I8ZX32S1
 
 // An unsigned 8-bit immediate shifted left by `2`.
 //
 // Used for memory addressing.
 pub const U8S2: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U8S2);
 
-// Alias: I8ZX32S2
-
 // An unsigned 8-bit immediate shifted left by `16`.
 //
 // Used by the SETHI instruction.
 pub const U8S16: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U8S16);
-
-// Alias: I8ZX32S16
 
 // An unsigned 16-bit immediate.
 //
 // Used for 16-bit instructions.
 pub const U16: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U16);
 
-// Alias: I16, I16ZX32
-
 // A signed 16-bit immediate.
 //
 // Used for signed comparisons.
 pub const I16: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::I16);
-
-// Alias: I16S, I16SX32, PC16
 
 // An unsigned 16-bit immediate.
 //
 // Used for Falcon v5 CALL instructions.
 pub const U16P1: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U16);
 
-// Alias: I16ZX32P1
-
 // A signed 16-bit immediate.
 //
 // Used for Falcon v5 MOV instructions.
 pub const I16P1: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::I16P1);
 
-// Alias: I16SX32P1
-
 // Dispatches a 16-bit immediate based on the operand size of the instruction.
 pub const U16S: FieldDispatch<'_> = FieldDispatch::Sized(|size| match size {
-    0b00 => U8,
-    _ => U16,
+    0b00 => &raw::U8,
+    _ => &raw::U16,
 });
-
-// Alias: I16ZXS
 
 // Dispatches a 16-bit immediate based on the operand size of the instruction.
 pub const I16S: FieldDispatch<'_> = FieldDispatch::Sized(|size| match size {
-    0b00 => I8,
-    _ => I16,
+    0b00 => &raw::I8,
+    _ => &raw::I16,
 });
-
-// Alias: I16SXS
 
 // An unsigned 24-bit immediate.
 //
 // Used for absolute branch addresses.
 pub const U24: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U24);
 
-// Alias: I24ZX32
-
 // A signed 24-bit immediate.
 //
 // Used for MOV instructions.
 pub const I24: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::I24);
 
-// Alias: I24SX32
-
 // An unsigned 32-bit immediate.
 //
 // Used for Falcon v5 MOV instructions.
 pub const U32: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U32);
-
-// Alias: I32
 
 // An 8-bit PC-relative offset.
 //
@@ -300,14 +327,10 @@ pub const PC16P4: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::PC16P4);
 // Used for bit manipulation instructions.
 pub const BITR8: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::BITR8);
 
-// Alias: BITF8
-
 // A bit range spanning 16 bits.
 //
 // Used for bit manipulation instructions.
 pub const BITR16: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::BITR16);
-
-// Alias: BITF16
 
 // Falcon general-purpose registers encoded in different locations.
 pub const R0: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::R0);
@@ -337,46 +360,39 @@ pub const TRAP: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::TRAP);
 // A memory access to an address in Falcon DMem.
 //
 // Used by the `LD` and `ST` instructions.
-pub const MEMR: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::MEMR); // Alias: MEMR8, MEMR16, MEMR32
-pub const MEMRI: FieldDispatch<'_> = FieldDispatch::Sized(|size| {
-    FieldDispatch::Fixed(match size {
-        0b00 => &raw::MEMRI8,
-        0b01 => &raw::MEMRI16,
-        _ => &raw::MEMRI32,
-    })
+pub const MEMR: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::MEMR);
+pub const MEMRI: FieldDispatch<'_> = FieldDispatch::Sized(|size| match size {
+    0b00 => &raw::MEMRI8,
+    0b01 => &raw::MEMRI16,
+    _ => &raw::MEMRI32,
 });
-pub const MEMSPI: FieldDispatch<'_> = FieldDispatch::Sized(|size| {
-    FieldDispatch::Fixed(match size {
-        0b00 => &raw::MEMSPI8,
-        0b01 => &raw::MEMSPI16,
-        _ => &raw::MEMSPI32,
-    })
+pub const MEMSPI: FieldDispatch<'_> = FieldDispatch::Sized(|size| match size {
+    0b00 => &raw::MEMSPI8,
+    0b01 => &raw::MEMSPI16,
+    _ => &raw::MEMSPI32,
 });
-pub const MEMSPR: FieldDispatch<'_> = FieldDispatch::Sized(|size| {
-    FieldDispatch::Fixed(match size {
-        0b00 => &raw::MEMSPR8,
-        0b01 => &raw::MEMSPR16,
-        _ => &raw::MEMSPR32,
-    })
+pub const MEMSPR: FieldDispatch<'_> = FieldDispatch::Sized(|size| match size {
+    0b00 => &raw::MEMSPR8,
+    0b01 => &raw::MEMSPR16,
+    _ => &raw::MEMSPR32,
 });
-pub const MEMRR: FieldDispatch<'_> = FieldDispatch::Sized(|size| {
-    FieldDispatch::Fixed(match size {
-        0b00 => &raw::MEMRR8,
-        0b01 => &raw::MEMRR16,
-        _ => &raw::MEMRR32,
-    })
+pub const MEMRR: FieldDispatch<'_> = FieldDispatch::Sized(|size| match size {
+    0b00 => &raw::MEMRR8,
+    0b01 => &raw::MEMRR16,
+    _ => &raw::MEMRR32,
 });
-pub const MEMRRALT: FieldDispatch<'_> = FieldDispatch::Sized(|size| {
-    FieldDispatch::Fixed(match size {
-        0b00 => &raw::MEMRRALT8,
-        0b01 => &raw::MEMRRALT16,
-        _ => &raw::MEMRRALT32,
-    })
+pub const MEMRRALT: FieldDispatch<'_> = FieldDispatch::Sized(|size| match size {
+    0b00 => &raw::MEMRRALT8,
+    0b01 => &raw::MEMRRALT16,
+    _ => &raw::MEMRRALT32,
 });
 
 // A memory access to an address in Falcon I/O space.
 //
 // Used by the `IORD(S)` and `IOWR(S)` opcodes.
+pub const IOR: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::IOR);
+pub const IORR: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::IORR);
+pub const IORI: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::IORI);
 
 mod raw {
     use super::*;
@@ -417,20 +433,38 @@ mod raw {
         nbits: &BitField::new(21..26, None),
     };
 
-    pub const R0: RegisterEncoding<'_> =
-        RegisterEncoding::Field(RegisterKind::Gpr, &BitField::new(0..4, None));
-    pub const R1: RegisterEncoding<'_> =
-        RegisterEncoding::Field(RegisterKind::Gpr, &BitField::new(8..12, None));
-    pub const R2: RegisterEncoding<'_> =
-        RegisterEncoding::Field(RegisterKind::Gpr, &BitField::new(12..16, None));
-    pub const R3: RegisterEncoding<'_> =
-        RegisterEncoding::Field(RegisterKind::Gpr, &BitField::new(20..24, None));
-    pub const SR1: RegisterEncoding<'_> =
-        RegisterEncoding::Field(RegisterKind::Spr, &BitField::new(12..16, None));
-    pub const SR2: RegisterEncoding<'_> =
-        RegisterEncoding::Field(RegisterKind::Spr, &BitField::new(8..12, None));
-    pub const SP: RegisterEncoding<'_> = RegisterEncoding::Const(RegisterKind::Spr, 4);
-    pub const CSW: RegisterEncoding<'_> = RegisterEncoding::Const(RegisterKind::Spr, 8);
+    pub const R0: RegisterEncoding<'_> = RegisterEncoding {
+        kind: RegisterKind::Gpr,
+        field: &BitField::new(0..4, None),
+    };
+    pub const R1: RegisterEncoding<'_> = RegisterEncoding {
+        kind: RegisterKind::Gpr,
+        field: &BitField::new(8..12, None),
+    };
+    pub const R2: RegisterEncoding<'_> = RegisterEncoding {
+        kind: RegisterKind::Gpr,
+        field: &BitField::new(12..16, None),
+    };
+    pub const R3: RegisterEncoding<'_> = RegisterEncoding {
+        kind: RegisterKind::Gpr,
+        field: &BitField::new(20..24, None),
+    };
+    pub const SR1: RegisterEncoding<'_> = RegisterEncoding {
+        kind: RegisterKind::Spr,
+        field: &BitField::new(12..16, None),
+    };
+    pub const SR2: RegisterEncoding<'_> = RegisterEncoding {
+        kind: RegisterKind::Spr,
+        field: &BitField::new(8..12, None),
+    };
+    pub const SP: RegisterEncoding<'_> = RegisterEncoding {
+        kind: RegisterKind::Spr,
+        field: &BitField::new_with_value(4),
+    };
+    pub const CSW: RegisterEncoding<'_> = RegisterEncoding {
+        kind: RegisterKind::Spr,
+        field: &BitField::new_with_value(8),
+    };
 
     pub const FLAG: FlagEncoding<'_> = FlagEncoding(&BitField::new(16..21, None));
     pub const PRED: FlagEncoding<'_> = FlagEncoding(&BitField::new(8..11, None));

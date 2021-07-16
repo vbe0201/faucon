@@ -148,11 +148,11 @@ impl<I> BitField<I> {
         }
     }
 
-    pub const fn new_with_value(value: I, range: Range<usize>, shift: Option<usize>) -> Self {
+    pub const fn new_with_value(value: I) -> Self {
         BitField {
             value: Some(value),
-            range,
-            shift,
+            range: 0..0, // Unused fake range.
+            shift: None,
         }
     }
 
@@ -167,12 +167,12 @@ impl<I> BitField<I> {
     }
 
     #[inline]
-    const fn byte_start(&self) -> usize {
+    pub(crate) const fn byte_start(&self) -> usize {
         self.aligned_bit_start() >> 3
     }
 
     #[inline]
-    const fn byte_width(&self) -> usize {
+    pub(crate) const fn byte_width(&self) -> usize {
         (self.aligned_bit_end() - self.aligned_bit_start()) >> 3
     }
 
