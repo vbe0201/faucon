@@ -81,8 +81,7 @@
 #![deny(rust_2018_idioms, broken_intra_doc_links)]
 #![feature(const_option)]
 
-mod arguments;
-pub mod assembler;
+//pub mod assembler;
 mod bitfields;
 mod bit_utils;
 pub mod disassembler;
@@ -93,14 +92,14 @@ pub mod operands;
 use std::fmt;
 use std::io;
 
-use arguments::{Argument, MachineEncoding, Positional};
-pub use assembler::*;
+//use arguments::{Argument, MachineEncoding, Positional};
+//pub use assembler::*;
 pub use disassembler::*;
 pub use isa::InstructionKind;
 pub use opcode::OperandSize;
 use opcode::*;
 pub use operands::*;
-
+/*
 /// Assembles Falcon assembly to machine code at runtime.
 ///
 /// This is mainly laid out for convenient usage of the assembler interface without
@@ -123,7 +122,7 @@ macro_rules! faucon_asm {
     ($asm:expr) => {
         $crate::Assembler::new().assemble_str($asm, &::std::ffi::OsString::from("<main>"))
     };
-}
+}*/
 
 /// Error kinds that may occur when assembling or disassembling code
 /// using this crate.
@@ -138,7 +137,7 @@ pub enum FalconError {
     /// code out of it.
     ///
     /// Encapsulates the original [`ParseError`] object.
-    ParseError(ParseError),
+    //ParseError(ParseError),
     /// An I/O error has occurred while reading data from an input source.
     ///
     /// Encapsulates the original [`std::io::Error`] object.
@@ -158,7 +157,7 @@ impl fmt::Display for FalconError {
             FalconError::InvalidOpcode(op) => {
                 write!(f, "Invalid opcode encountered: {:#X}", op)
             }
-            FalconError::ParseError(e) => write!(f, "{}", e),
+            //FalconError::ParseError(e) => write!(f, "{}", e),
             FalconError::IoError(e) => write!(f, "{}", e),
             FalconError::Eof => write!(f, "Unexpected EOF encountered while trying to read a file"),
         }
@@ -183,14 +182,14 @@ impl std::error::Error for FalconError {}
 /// An [`Instruction`] does not enforce any scrutiny on the data it encapsulates and
 /// thus all means of obtaining an object of it are considered `unsafe`. See
 /// [`Instruction::new`] for more thoughts on why this decision was made.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Instruction {
     meta: isa::InstructionMeta,
     operand_size: OperandSize,
     operands: Vec<Operand>,
     pc: u32,
 
-    raw_bytes: Option<Vec<u8>>,
+    raw_bytes: Vec<u8>,
 }
 
 impl Instruction {
@@ -204,35 +203,24 @@ impl Instruction {
     /// Although this would not trigger undefined behavior per se, it may
     /// result in undefined behavior in conjunction with [`Instruction::assemble`]
     /// producing malformed code that is feeded into a real Falcon unit.
-    pub(crate) unsafe fn new(
+    pub(crate) fn new(
         meta: isa::InstructionMeta,
         operand_size: OperandSize,
         operands: Vec<Operand>,
         pc: u32,
+        raw_bytes: Vec<u8>,
     ) -> Self {
         Instruction {
             meta,
             operand_size,
             operands,
             pc,
-            raw_bytes: None,
+            raw_bytes,
         }
     }
 
-    /// Assigns a vector of raw instruction bytes to this instruction.
-    ///
-    /// If set to a value, this will be used as the return value of [`Instruction::assemble`]
-    /// over assembling the instruction from its metadata from scratch.
-    pub fn with_raw_bytes(mut self, bytes: Vec<u8>) -> Self {
-        self.raw_bytes = Some(bytes);
-        self
-    }
-
-    /// Provides immutable access to the raw bytes of this instruction, if possible.
-    ///
-    ///  This method usually returns `None` if the instruction was not obtained
-    /// through the disassembler.
-    pub fn raw_bytes(&self) -> Option<&Vec<u8>> {
+    /// Provides immutable access to the raw bytes of the instruction.
+    pub fn raw_bytes(&self) -> &[u8] {
         self.raw_bytes.as_ref()
     }
 
@@ -291,7 +279,7 @@ impl Instruction {
         &self.operands
     }
 
-    fn assemble_operand(&self, output: &mut Vec<u8>, arg: &Argument, operand: Operand) {
+    /*fn assemble_operand(&self, output: &mut Vec<u8>, arg: &Argument, operand: Operand) {
         // If necessary, evaluate the real value of the argument and re-call the method.
         if let Argument::SizeConverter(c) = arg {
             let real_arg = c(self.operand_size().value());
@@ -342,7 +330,7 @@ impl Instruction {
                 self.assemble_operand(output, arg, *operand);
             }
         }
-    }
+    }*/
 }
 
 impl fmt::Display for Instruction {

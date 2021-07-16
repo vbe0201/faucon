@@ -4,8 +4,6 @@ use std::fmt;
 
 use num_traits::{PrimInt, Signed, Unsigned};
 
-use crate::arguments::{self, Argument, MachineEncoding};
-
 fn display_signed_hex<I>(immediate: &I, f: &mut fmt::Formatter<'_>) -> fmt::Result
 where
     I: fmt::LowerHex + PrimInt + Signed,
@@ -234,43 +232,6 @@ pub enum Operand {
     Bitfield(u32, u32),
     /// A direct access to a memory space at a given address.
     Memory(MemoryAccess),
-}
-
-impl Operand {
-    pub(crate) fn parse(arg: &Argument, pc: i32, insn: &[u8]) -> Self {
-        match arg {
-            // Already evaluated by the disassembler, unreachable at this point.
-            Argument::SizeConverter(_) => unreachable!(),
-
-            // PC-relative branch offsets.
-            Argument::PcRel(imm) => Operand::UImm((pc + imm.read(insn)) as u32),
-
-            // Immediate forms.
-            Argument::UImm(imm) => Operand::UImm(imm.read(insn)),
-            Argument::Imm(imm) => Operand::Imm(imm.read(insn)),
-
-            // Bitfields.
-            Argument::Bitfield(imm) => {
-                let field = arguments::dissect_bitfield(imm.read(insn));
-                Operand::Bitfield(field.0, field.1)
-            }
-
-            // Register forms.
-            Argument::Register(reg) => Operand::Register(reg.read(insn)),
-            Argument::Flag(imm) => Operand::Flag(imm.read(insn)),
-
-            // Direct memory access.
-            Argument::Memory(mem) => Operand::Memory(mem.read(insn)),
-        }
-    }
-
-    pub(crate) fn subtract_pc(self, pc: u32) -> Self {
-        match self {
-            Operand::UImm(imm) => Operand::Imm(imm.wrapping_sub(pc) as i32),
-            Operand::Imm(imm) => Operand::Imm((imm as u32).wrapping_sub(pc) as i32),
-            _ => self,
-        }
-    }
 }
 
 impl fmt::Display for Operand {

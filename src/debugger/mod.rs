@@ -138,7 +138,7 @@ impl Debugger {
                         FalconError::InvalidOpcode(_) => {
                             error!("Aborting due to error:", "An unknown instruction was hit")
                         }
-                        FalconError::IoError(_) | FalconError::ParseError(_) => unreachable!(),
+                        FalconError::IoError(_) /* | FalconError::ParseError(_) */ => unreachable!(),
                         FalconError::Eof => {}
                     }
                     break;

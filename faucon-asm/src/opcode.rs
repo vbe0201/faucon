@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use crate::bit_utils::BitField;
+
 /// Represents the operand size of an instruction.
 ///
 /// The size is determined by the highest two bits of the first
@@ -101,56 +103,15 @@ pub enum SubopcodeLocation {
 }
 
 impl SubopcodeLocation {
-    /// Gets the subopcode location as a byteslice index.
-    ///
-    /// The subopcodes of instructions may be encoded in different places depending
-    /// on its form. This tells you which byte of the instruction should contain it
-    /// by virtually returning its index in a byteslice. This information can then
-    /// be used to read as many bytes as needed to find the one holding the subopcode.
-    pub const fn position(&self) -> u64 {
+    /// Gets a [`BitField`] reference covering the subopcode range.
+    pub const fn field(&self) -> &BitField<u8> {
         match self {
-            SubopcodeLocation::OH => 0,
-            SubopcodeLocation::O1 => 0,
-            SubopcodeLocation::O2 => 1,
-            SubopcodeLocation::OL => 1,
-            SubopcodeLocation::O3 => 2,
-            SubopcodeLocation::O5 => 4,
-        }
-    }
-
-    /// Gets the bitmask for masking out the subopcode from its position.
-    pub const fn mask(&self) -> u8 {
-        match self {
-            SubopcodeLocation::OH => 0b11 << 6,
-            SubopcodeLocation::O1
-            | SubopcodeLocation::O2
-            | SubopcodeLocation::O3
-            | SubopcodeLocation::O5 => 0b1111,
-            SubopcodeLocation::OL => 0b111111,
-        }
-    }
-
-    /// Brings the subopcode value into shape for being encoded directly.
-    pub fn build_value(&self, value: u8) -> u8 {
-        match self {
-            SubopcodeLocation::OH => value << 6,
-            SubopcodeLocation::O1
-            | SubopcodeLocation::O2
-            | SubopcodeLocation::O3
-            | SubopcodeLocation::O5 => value & 0xF,
-            SubopcodeLocation::OL => value & 0x3F,
-        }
-    }
-
-    /// Extracts the subopcode value from the instruction bytes.
-    pub fn parse_value(&self, insn: &[u8]) -> u8 {
-        match self {
-            SubopcodeLocation::OH => insn[0] >> 6,
-            SubopcodeLocation::O1 => insn[0] & 0xF,
-            SubopcodeLocation::O2 => insn[1] & 0xF,
-            SubopcodeLocation::OL => insn[1] & 0x3F,
-            SubopcodeLocation::O3 => insn[2] & 0xF,
-            SubopcodeLocation::O5 => insn[4] & 0xF,
+            SubopcodeLocation::OH => &bitfields::OH,
+            SubopcodeLocation::O1 => &bitfields::O1,
+            SubopcodeLocation::O2 => &bitfields::O2,
+            SubopcodeLocation::OL => &bitfields::OL,
+            SubopcodeLocation::O3 => &bitfields::O3,
+            SubopcodeLocation::O5 => &bitfields::O5,
         }
     }
 }
@@ -186,4 +147,15 @@ pub const fn get_subopcode_location(size: u8, a: u8, b: u8) -> Option<SubopcodeL
         // Unknown/Invalid
         _ => None,
     }
+}
+
+mod bitfields {
+    use crate::bit_utils::BitField;
+
+    pub const OH: BitField<u8> = BitField::new(6..8, None);
+    pub const O1: BitField<u8> = BitField::new(0..4, None);
+    pub const O2: BitField<u8> = BitField::new(8..12, None);
+    pub const OL: BitField<u8> = BitField::new(8..14, None);
+    pub const O3: BitField<u8> = BitField::new(16..20, None);
+    pub const O5: BitField<u8> = BitField::new(32..36, None);
 }

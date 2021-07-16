@@ -52,7 +52,7 @@ impl<W: Write> Disassembler<W> {
                 println!("[aborted] (unknown instruction '{:x}')", op);
                 None
             }
-            Err(FalconError::IoError(_)) | Err(FalconError::ParseError(_)) => None,
+            Err(FalconError::IoError(_) /* | FalconError::ParseError(_) */) => None,
             Err(FalconError::Eof) => {
                 println!("[aborted] (end of file)");
                 None
@@ -79,7 +79,6 @@ impl<W: Write> Disassembler<W> {
             write!(out, "{:08x} ", self.base + insn.program_counter())?;
 
             insn.raw_bytes()
-                .unwrap()
                 .iter()
                 .try_for_each(|byte| write!(out, "{:02x} ", byte))?;
             align_to(out, out.count, 32)?;

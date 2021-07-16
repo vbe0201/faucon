@@ -204,7 +204,7 @@ impl Cpu {
 
                         None
                     }
-                    Err(FalconError::IoError(_)) | Err(FalconError::ParseError(_)) => {
+                    Err(FalconError::IoError(_) /* | FalconError::ParseError(_) */) => {
                         unreachable!()
                     }
                     Err(FalconError::Eof) => None,
@@ -229,7 +229,7 @@ impl Cpu {
                 // Check if it is necessary to increment the PC.
                 // If not, this has already been done by the instruction itself.
                 if self.increment_pc {
-                    self.registers[PC] += insn.raw_bytes().unwrap().len() as u32;
+                    self.registers[PC] += insn.raw_bytes().len() as u32;
                 }
             }
             None => return,

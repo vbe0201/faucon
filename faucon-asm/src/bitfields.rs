@@ -27,7 +27,7 @@ impl<T> Position for BitField<T> {
 }
 
 // Defines helpers for machine code encoding and decoding of certain crate types.
-pub trait MachineEncoding: Position {
+pub trait MachineEncoding: Position + Sync {
     fn read(&self, pc: u32, buf: &[u8]) -> Operand;
 }
 
@@ -230,16 +230,6 @@ pub const I8: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::I8);
 // Used for Falcon v5 MOV instructions.
 pub const I8P1: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::I8P1);
 
-// An unsigned 8-bit immediate shifted left by `1`.
-//
-// Used for memory addressing.
-pub const U8S1: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U8S1);
-
-// An unsigned 8-bit immediate shifted left by `2`.
-//
-// Used for memory addressing.
-pub const U8S2: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U8S2);
-
 // An unsigned 8-bit immediate shifted left by `16`.
 //
 // Used by the SETHI instruction.
@@ -258,7 +248,7 @@ pub const I16: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::I16);
 // An unsigned 16-bit immediate.
 //
 // Used for Falcon v5 CALL instructions.
-pub const U16P1: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U16);
+pub const U16P1: FieldDispatch<'_> = FieldDispatch::Fixed(&raw::U16P1);
 
 // A signed 16-bit immediate.
 //

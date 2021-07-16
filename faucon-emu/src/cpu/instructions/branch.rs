@@ -10,7 +10,7 @@ pub fn call(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let target = insn.operands()[0];
 
     // Push return address onto the stack.
-    cpu.stack_push(cpu.registers[PC] + insn.raw_bytes().unwrap().len() as u32);
+    cpu.stack_push(cpu.registers[PC] + insn.raw_bytes().len() as u32);
 
     // Branch to the absolute address.
     cpu.registers[PC] = utils::get_value(cpu, insn.operand_size(), target);

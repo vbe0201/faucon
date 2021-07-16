@@ -2,17 +2,16 @@
 
 use std::io::Read;
 
-use crate::arguments::{Argument, Positional};
+use crate::bitfields::Position;
 use crate::isa::*;
-use crate::opcode;
+use crate::opcode::{self, OperandSize};
 use crate::operands::Operand;
 use crate::{FalconError, Instruction};
 
 mod pretty;
 pub use pretty::Disassembler;
 
-/// Reads an [`Instruction`] from a given [`std::io::Read`]er holding its binary
-/// representation.
+/// Disassembles an [`Instruction`] from a given [`std::io::Read`]er.
 pub fn read_instruction<R: Read>(reader: &mut R, pc: &mut u32) -> Result<Instruction, FalconError> {
     let mut insn = Vec::new();
 
@@ -22,81 +21,76 @@ pub fn read_instruction<R: Read>(reader: &mut R, pc: &mut u32) -> Result<Instruc
         insn[0]
     };
     let (a, b) = opcode::get_opcode_form(opcode);
-    let operand_size = opcode::OperandSize::from(opcode);
+    let operand_size = OperandSize::from(opcode);
 
-    // Parse the subopcode value required for instruction lookup.
+    // Parse the subopcode value for instruction lookup.
     let subopcode = {
         let location = opcode::get_subopcode_location(operand_size.value(), a, b)
             .ok_or(FalconError::InvalidOpcode(opcode))?;
-        read_bytes(&mut insn, reader, location.position())?;
+        let bf = location.field();
 
-        location.parse_value(&insn)
+        read_bytes(&mut insn, reader, bf.position().0 as u64)?;
+        bf.read(&insn)
     };
 
     Ok({
-        // Look up a matching instruction variant and read out the operands it takes.
+        // Look up the opcode in our generated lookup tables.
         let mut meta = InstructionKind::lookup_meta(operand_size.sized(), a, b, subopcode)
             .ok_or(FalconError::InvalidOpcode(opcode))?;
 
-        // Read all operands described by the previously obtained `InstructionMeta` object.
-        let operands = read_operands(
-            &mut insn,
-            reader,
-            operand_size.value(),
-            *pc as i32,
-            &mut meta.operands,
-        )?;
+        // Read and decode all instruction operands.
+        let operands = read_operands(&mut insn, reader, &mut meta, operand_size.value(), *pc)?;
 
-        // Construct the instruction object from metadata and raw bytes.
-        let instruction =
-            unsafe { Instruction::new(meta, operand_size, operands, *pc).with_raw_bytes(insn) };
+        // Construct a new instruction object from the metadata and the raw bytes.
+        let instruction = Instruction::new(meta, operand_size, operands, *pc, insn);
 
         // Increment the program counter to point to the next instruction.
-        *pc += instruction.raw_bytes().unwrap().len() as u32;
+        *pc += instruction.raw_bytes().len() as u32;
 
         instruction
     })
 }
 
 fn read_operands<R: Read>(
-    buffer: &mut Vec<u8>,
+    buf: &mut Vec<u8>,
     reader: &mut R,
+    meta: &mut InstructionMeta,
     operand_size: u8,
-    pc: i32,
-    args: &mut [Option<Argument>],
+    pc: u32,
 ) -> Result<Vec<Operand>, FalconError> {
-    let mut operands = Vec::new();
-    for arg in args.iter_mut().flatten() {
-        // If the argument is a SizeConverter helper, evaluate it and replace
-        // it with a real operand to save us some hassle later on.
-        if let Argument::SizeConverter(c) = arg {
-            *arg = c(operand_size);
-        }
+    let mut result = Vec::new();
 
-        // Calculate the amount of bytes to read until the operand completely fits
-        // into the buffer.
+    for dispatch in meta.operands.iter_mut().flatten() {
+        // If the argument is dynamic, evaluate it based on the operand size.
+        let encoding = dispatch.evaluate(operand_size);
+
+        // Calculate the amount of bytes to read until we have the full operand
+        // inside `buf`.
         let mut bytes_to_read = 0;
-        let operand_width = arg.position() + arg.width();
-        if buffer.len() < operand_width {
-            bytes_to_read += (operand_width - buffer.len()) as u64;
+        let operand_width = {
+            let (start, nbytes) = encoding.position();
+            start + nbytes
+        };
+        if buf.len() < operand_width {
+            bytes_to_read += (operand_width - buf.len()) as u64;
         }
 
-        // Read the operand from the underlying input source and parse it.
-        read_bytes(buffer, reader, bytes_to_read)?;
-        operands.push(Operand::parse(arg, pc, buffer));
+        // Read the operand bytes and decode them into an operand.
+        read_bytes(buf, reader, bytes_to_read)?;
+        result.push(encoding.read(pc, buf));
     }
 
-    Ok(operands)
+    Ok(result)
 }
 
 fn read_bytes<R: Read>(
-    buffer: &mut Vec<u8>,
+    buf: &mut Vec<u8>,
     reader: &mut R,
     amount: u64,
 ) -> Result<usize, FalconError> {
-    match reader.take(amount).read_to_end(buffer) {
+    match reader.take(amount).read_to_end(buf) {
         Ok(0) if amount != 0 => Err(FalconError::Eof),
-        Ok(amount_read) => Ok(amount_read),
+        Ok(nbytes) => Ok(nbytes),
         Err(e) => Err(FalconError::IoError(e)),
     }
 }

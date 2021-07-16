@@ -82,11 +82,12 @@ fn assemble<P: AsRef<Path>>(source: P, matches: &clap::ArgMatches<'_>) -> Result
         })
         .unwrap_or(vec![source.parent().unwrap()]);
 
-    let mut binary = faucon_asm::Assembler::new()
-        .with_include_path(include_path)
-        .assemble(source)
-        .wrap_err("failed to assemble the source file")?;
-    fs::write(output, binary).wrap_err("failed to write the code")
+    //let mut binary = faucon_asm::Assembler::new()
+    //    .with_include_path(include_path)
+    //    .assemble(source)
+    //    .wrap_err("failed to assemble the source file")?;
+    //fs::write(output, binary).wrap_err("failed to write the code")
+    Ok(())
 }
 
 fn disassemble<P: AsRef<Path>>(bin: P, matches: &clap::ArgMatches<'_>) -> Result<()> {
