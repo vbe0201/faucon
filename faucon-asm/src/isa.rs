@@ -58,6 +58,19 @@ impl InstructionMeta {
     }
 }
 
+impl fmt::Debug for InstructionMeta {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InstructionMeta")
+            .field("kind", &self.kind)
+            .field("sized", &self.sized)
+            .field("a", &self.a)
+            .field("b", &self.b)
+            .field("subopcode_location", &self.subopcode_location)
+            .field("subopcode", &self.subopcode)
+            .finish()
+    }
+}
+
 impl PartialEq for InstructionMeta {
     fn eq(&self, other: &Self) -> bool {
         self.kind == other.kind
