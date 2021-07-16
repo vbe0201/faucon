@@ -46,11 +46,10 @@
 //! [`Operand`] enumeration. A list of instruction operands can be obtained through
 //! [`Instruction::operands`].
 //!
-//! # Assembling instructions
+/*//! # Assembling instructions
 //!
 //! Assembling instructions is supported and can be done either by using the [`Assembler`]
-//! structure to build machine code out of source files or a raw string of assembly or by
-//! calling [`Instruction::assemble`] on an instruction instance.
+//! structure to build machine code out of source files or a raw string of assembly.
 //!
 //! Latter is discouraged when instructions were hand-constructed because a lot can go wrong
 //! and no sanitization is done on the opcodes or the underlying encoding form.
@@ -65,7 +64,7 @@
 //! let code = faucon_asm!("ld.w $r12 D[$r3+0x74];").expect("Failed to assemble the code");
 //! assert_eq!(code, vec![0x98, 0x3C, 0x1D]);
 //! ```
-//!
+//!*/
 //! # Disassembling instructions
 //!
 //! As mentioned previously, the [`read_instruction`] function should be used to
@@ -78,7 +77,7 @@
 //! formatting capabilities which include the current program counter of an instruction
 //! and its representation in raw bytes.
 
-#![deny(rust_2018_idioms, broken_intra_doc_links)]
+#![deny(rust_2018_idioms, rustdoc::broken_intra_doc_links)]
 #![feature(const_option)]
 
 //pub mod assembler;
@@ -133,11 +132,11 @@ pub enum FalconError {
     ///
     /// In such a case, this variant holds the opcode byte in question.
     InvalidOpcode(u8),
-    /// The assembler failed to parse the input source to build machine
+    /*/// The assembler failed to parse the input source to build machine
     /// code out of it.
     ///
     /// Encapsulates the original [`ParseError`] object.
-    //ParseError(ParseError),
+    ParseError(ParseError),*/
     /// An I/O error has occurred while reading data from an input source.
     ///
     /// Encapsulates the original [`std::io::Error`] object.

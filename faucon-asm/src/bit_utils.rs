@@ -193,16 +193,19 @@ impl<I> BitField<I> {
 macro_rules! impl_bitfield_for {
     (unsigned $ty:ty) => {
         impl BitField<$ty> {
+            #[allow(unused)]
             #[inline]
             pub fn min(&self) -> $ty {
                 0
             }
 
+            #[allow(unused)]
             #[inline]
             pub fn max(&self) -> $ty {
                 least_significant_bits(self.range.end - self.range.start) as $ty
             }
 
+            #[allow(unused)]
             pub fn read(&self, buf: &[u8]) -> $ty {
                 self.value.unwrap_or({
                     // Read the value that encapsulate the desired bitfield in full bytes.
@@ -214,6 +217,7 @@ macro_rules! impl_bitfield_for {
                 })
             }
 
+            #[allow(unused)]
             pub fn write(&self, buf: &mut [u8], value: $ty) {
                 // Fixed values in bitfields are implied by the instruction opcode.
                 // There's no need to write an actual value if that applies here.
@@ -234,17 +238,20 @@ macro_rules! impl_bitfield_for {
 
     (signed $ty:ty) => {
         impl BitField<$ty> {
+            #[allow(unused)]
             #[inline]
             pub fn min(&self) -> $ty {
                 let nbits = self.range.end - self.range.start;
                 extend_bit_sign(1 << (nbits - 1), nbits)
             }
 
+            #[allow(unused)]
             #[inline]
             pub fn max(&self) -> $ty {
                 !self.min()
             }
 
+            #[allow(unused)]
             pub fn read(&self, buf: &[u8]) -> $ty {
                 self.value.unwrap_or({
                     // Read the value that encapsulate the desired bitfield in full bytes.
@@ -256,6 +263,7 @@ macro_rules! impl_bitfield_for {
                 })
             }
 
+            #[allow(unused)]
             pub fn write(&self, buf: &mut [u8], value: $ty) {
                 // Fixed values in bitfields are implied by the instruction opcode.
                 // There's no need to write an actual value if that applies here.

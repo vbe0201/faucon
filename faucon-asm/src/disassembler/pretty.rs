@@ -70,7 +70,7 @@ impl<W: Write> Disassembler<W> {
     /// # Panics
     ///
     /// If the [`Instruction`] objects yielded by the iterator do not have their
-    /// raw byte representations assigned to them via [`Instruction::with_raw_bytes`],
+    /// raw byte representations assigned to them via [`Instruction::raw_bytes`],
     /// this method will panic.
     pub fn disassemble(&mut self, insns: impl IntoIterator<Item = Instruction>) -> io::Result<()> {
         let out = &mut self.output;

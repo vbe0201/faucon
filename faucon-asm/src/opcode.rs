@@ -103,8 +103,7 @@ pub enum SubopcodeLocation {
 }
 
 impl SubopcodeLocation {
-    /// Gets a [`BitField`] reference covering the subopcode range.
-    pub const fn field(&self) -> &BitField<u8> {
+    pub(crate) const fn field(&self) -> &BitField<u8> {
         match self {
             SubopcodeLocation::OH => &bitfields::OH,
             SubopcodeLocation::O1 => &bitfields::O1,
