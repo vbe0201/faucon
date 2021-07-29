@@ -113,13 +113,16 @@ pub fn get_flag_name(value: usize) -> Option<&'static str> {
 ///
 /// Falcon follows the Harvard computer model by utilizing separate memory spaces
 /// for code and data. The *IMEM (instruction memory)* utilizes primitive paging
-/// and contains the code that is executed. The *DMEM (data memory)* on the other
-/// hand stores local variables and the stack. Unaligned access to it leads to
-/// data corruption.
+/// and contains the code that is executed.
+///
+/// The *DMEM (data memory)* on the other hand stores local variables and the stack.
+/// Unaligned access to it leads to data corruption.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MemorySpace {
-    /// The IMEM segment.
-    IMem,
+    /// The Falcon I/O space.
+    ///
+    /// Since IMEM cannot be accessed from any opcodes, we don't need to cover it here.
+    Io,
     /// The DMEM segment.
     DMem,
 }
@@ -127,7 +130,7 @@ pub enum MemorySpace {
 impl fmt::Display for MemorySpace {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let fmt = match self {
-            MemorySpace::IMem => "I",
+            MemorySpace::Io => "I",
             MemorySpace::DMem => "D",
         };
 
@@ -184,32 +187,22 @@ impl fmt::Display for MemoryAccess {
                 base,
                 offset,
                 scale,
-            } => {
-                let offset_fmt = match scale {
-                    0 => "".to_string(),
-                    1 => format!(" + {}", offset),
-                    _ => format!(" + {} * {}", offset, scale),
-                };
-
-                write!(f, "{}[{}{}]", space, base, offset_fmt)
-            }
+            } => match scale {
+                0 => write!(f, "{}[{}]", space, base),
+                1 => write!(f, "{}[{} + {}]", space, base, offset),
+                _ => write!(f, "{}[{} + {} * {}]", space, base, offset, scale),
+            },
             MemoryAccess::RegImm {
                 space,
                 base,
                 offset,
-            } => {
-                let offset_fmt = match offset {
-                    0 => "".to_string(),
-                    _ => format!(" + {:#02x}", offset),
-                };
-
-                write!(f, "{}[{}{}]", space, base, offset_fmt)
-            }
+            } => match offset {
+                0 => write!(f, "{}[{}]", space, base),
+                _ => write!(f, "{}[{} + {:#02x}]", space, base, offset),
+            },
         }
     }
 }
-
-// TODO: Fix this terribly broken enum some day.
 
 /// An operand of a Falcon assembly [`crate::Instruction`].
 ///
@@ -224,9 +217,9 @@ pub enum Operand {
     /// An immediate operand that represents a specific bit of the `$csw` register.
     Flag(u8),
     /// A signed immediate.
-    Imm(i32),
+    Immediate(i32),
     /// An unsigned immediate.
-    UImm(u32),
+    UnsignedImmediate(u32),
     /// An immediate operand that denotes a bitfield starting from the lower bit index
     /// and covering a specific amount of bits.
     Bitfield(u32, u32),
@@ -239,12 +232,9 @@ impl fmt::Display for Operand {
         match self {
             Operand::Register(reg) => write!(f, "{}", reg),
             Operand::Flag(flag) => write!(f, "${}", get_flag_name(*flag as usize).unwrap_or("unk")),
-
-            Operand::Imm(val) => display_signed_hex(val, f),
-            Operand::UImm(val) => display_unsigned_hex(val, f),
-
+            Operand::Immediate(val) => display_signed_hex(val, f),
+            Operand::UnsignedImmediate(val) => display_unsigned_hex(val, f),
             Operand::Bitfield(i, n) => write!(f, "{}:{}", i, i + n),
-
             Operand::Memory(mem) => write!(f, "{}", mem),
         }
     }

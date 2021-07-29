@@ -50,8 +50,8 @@ pub fn get_value(cpu: &Cpu, size: OperandSize, source: Operand) -> u32 {
             OperandSize::SixteenBit => cpu.registers[reg] & 0xFFFF,
             OperandSize::ThirtyTwoBit | OperandSize::Unsized => cpu.registers[reg],
         },
-        Operand::Imm(imm) => imm as u32,
-        Operand::UImm(imm) => imm,
+        Operand::Immediate(imm) => imm as u32,
+        Operand::UnsignedImmediate(imm) => imm,
         Operand::Memory(_) => read_mem(cpu, size, source),
         _ => panic!("The operand doesn't represent an extractable value"),
     }
@@ -88,7 +88,7 @@ pub fn write_value_to_reg(cpu: &mut Cpu, size: OperandSize, destination: Operand
 pub fn read_mem(cpu: &Cpu, size: OperandSize, source: Operand) -> u32 {
     let (space, address) = parse_memory_access(cpu, source).unwrap();
     match space {
-        MemorySpace::IMem => read_imem(cpu, address),
+        MemorySpace::Io => read_imem(cpu, address),
         MemorySpace::DMem => read_dmem(cpu, size, address),
     }
 }
@@ -97,7 +97,7 @@ pub fn read_mem(cpu: &Cpu, size: OperandSize, source: Operand) -> u32 {
 pub fn write_mem(cpu: &mut Cpu, size: OperandSize, source: Operand, destination: Operand) {
     let (space, address) = parse_memory_access(cpu, destination).unwrap();
     match space {
-        MemorySpace::IMem => panic!("Unsupported IMem write access attempted"),
+        MemorySpace::Io => panic!("Unsupported IMem write access attempted"),
         MemorySpace::DMem => write_dmem(cpu, size, address, get_value(cpu, size, source)),
     };
 }

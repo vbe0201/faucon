@@ -30,7 +30,7 @@ pub fn trap(cpu: &mut Cpu, insn: &Instruction) -> usize {
     let trap = insn.operands()[0];
 
     // Trigger the software trap.
-    if let Operand::UImm(imm) = trap {
+    if let Operand::UnsignedImmediate(imm) = trap {
         cpu.trigger_trap(Trap::from_u32(imm).unwrap());
     } else {
         unreachable!();

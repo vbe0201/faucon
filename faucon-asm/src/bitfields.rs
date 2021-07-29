@@ -36,13 +36,13 @@ pub trait MachineEncoding: Position + Sync {
 
 impl MachineEncoding for BitField<i32> {
     fn read(&self, _: u32, buf: &[u8]) -> Operand {
-        Operand::Imm(BitField::<i32>::read(self, buf))
+        Operand::Immediate(BitField::<i32>::read(self, buf))
     }
 }
 
 impl MachineEncoding for BitField<u32> {
     fn read(&self, _: u32, buf: &[u8]) -> Operand {
-        Operand::UImm(BitField::<u32>::read(self, buf))
+        Operand::UnsignedImmediate(BitField::<u32>::read(self, buf))
     }
 }
 
@@ -164,7 +164,7 @@ impl<'b> Position for RelativeAddress<'b> {
 impl<'b> MachineEncoding for RelativeAddress<'b> {
     fn read(&self, pc: u32, buf: &[u8]) -> Operand {
         let absolute_address = pc.wrapping_add(self.read_raw(buf) as u32);
-        Operand::UImm(absolute_address)
+        Operand::UnsignedImmediate(absolute_address)
     }
 }
 
@@ -478,7 +478,7 @@ mod raw {
         MemoryEncoding::RegReg(MemorySpace::DMem, &R2, &R3, 2);
     pub const MEMRRALT32: MemoryEncoding<'_> =
         MemoryEncoding::RegReg(MemorySpace::DMem, &R2, &R3, 4);
-    pub const IOR: MemoryEncoding<'_> = MemoryEncoding::Reg(MemorySpace::IMem, &R2);
-    pub const IORR: MemoryEncoding<'_> = MemoryEncoding::RegReg(MemorySpace::IMem, &R2, &R1, 4);
-    pub const IORI: MemoryEncoding<'_> = MemoryEncoding::RegImm(MemorySpace::IMem, &R2, &U8S2);
+    pub const IOR: MemoryEncoding<'_> = MemoryEncoding::Reg(MemorySpace::Io, &R2);
+    pub const IORR: MemoryEncoding<'_> = MemoryEncoding::RegReg(MemorySpace::Io, &R2, &R1, 4);
+    pub const IORI: MemoryEncoding<'_> = MemoryEncoding::RegImm(MemorySpace::Io, &R2, &U8S2);
 }
