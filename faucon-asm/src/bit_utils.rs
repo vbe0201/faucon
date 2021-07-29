@@ -79,12 +79,6 @@ fn write_uint(buf: &mut [u8], i: u32, nbytes: usize) {
     }
 }
 
-// Writes `nbytes` bytes from signed integer value `i` to `buf`.
-#[inline]
-fn write_int(buf: &mut [u8], i: i32, nbytes: usize) {
-    write_uint(buf, unextend_sign(i, nbytes), nbytes)
-}
-
 // Writes `nbytes` bytes from unsigned integer value `i` to `buf` by masking it in
 // without overriding existing contents.
 #[inline]
@@ -289,62 +283,6 @@ impl_bitfield_for!(signed i16);
 impl_bitfield_for!(unsigned u16);
 impl_bitfield_for!(signed i32);
 impl_bitfield_for!(unsigned u32);
-
-// ---- TODO: Remove this.
-
-/// A trait that defines byte encoding for individual integer types.
-///
-/// This aids in providing encoding and decoding functionality between integers
-/// and their underlying byte representations for processing Falcon machine code.
-///
-/// All encoding and decoding is done respecting little endian byte ordering.
-pub trait EncodableInteger: Sized {
-    /// Reads the integer type from a buffer of bytes.
-    fn read_from_bytes(buf: &[u8], nbytes: usize) -> Self;
-
-    /// Writes the integer type to a buffer of bytes.
-    fn write_to_bytes(self, buf: &mut [u8], mask: Option<Self>, nbytes: usize);
-}
-
-macro_rules! impl_encodable_integer_for {
-    (unsigned $ty:ty) => {
-        impl EncodableInteger for $ty {
-            fn read_from_bytes(buf: &[u8], nbytes: usize) -> Self {
-                read_uint(buf, nbytes) as $ty
-            }
-
-            fn write_to_bytes(self, buf: &mut [u8], mask: Option<Self>, nbytes: usize) {
-                match mask {
-                    None => write_uint(buf, self as u32, nbytes),
-                    Some(m) => modify_uint(buf, self as u32, m as u32, nbytes),
-                }
-            }
-        }
-    };
-    (signed $ty:ty) => {
-        impl EncodableInteger for $ty {
-            fn read_from_bytes(buf: &[u8], nbytes: usize) -> Self {
-                read_int(buf, nbytes) as $ty
-            }
-
-            fn write_to_bytes(self, buf: &mut [u8], mask: Option<Self>, nbytes: usize) {
-                match mask {
-                    None => write_int(buf, self as i32, nbytes),
-                    Some(m) => modify_int(buf, self as i32, m as i32, nbytes),
-                }
-            }
-        }
-    };
-}
-
-impl_encodable_integer_for!(unsigned u8);
-impl_encodable_integer_for!(signed i8);
-impl_encodable_integer_for!(unsigned u16);
-impl_encodable_integer_for!(signed i16);
-impl_encodable_integer_for!(unsigned u32);
-impl_encodable_integer_for!(signed i32);
-
-// ----
 
 #[cfg(test)]
 mod tests {
