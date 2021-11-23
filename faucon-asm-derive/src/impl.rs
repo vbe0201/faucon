@@ -1,25 +1,21 @@
-use std::convert::TryFrom;
-
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use syn::{parse::Error, Ident, Result};
 
-use crate::parser;
+use crate::ast::{self, Enum};
 
-// The name of the sole attribute supported by the `Instruction` macro.
-pub const ATTR: &str = "insn";
+pub fn impl_instruction(input: &syn::DeriveInput) -> Result<TokenStream> {
+    let ast = ast::get(input)?;
+    ast.validate()?;
 
-pub fn impl_instruction(ast: &syn::DeriveInput) -> Result<TokenStream> {
-    if let syn::Data::Enum(data) = &ast.data {
-        generate_lookup_tables(&ast.ident, data)
-    } else {
-        Err(Error::new(
-            Span::call_site(),
-            "#[derive(Instruction)] can only be applied to enums",
-        ))
-    }
+    generate_lookup_tables(ast)
 }
 
-fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStream> {
+fn generate_lookup_tables(ast: Enum<'_>) -> Result<TokenStream> {
+    let ty = &ast.ident;
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+
+    // Rust representations of all the opcode lookup tables we will fill with data.
+    // Those will also be quoted into the generated code for use with faucon-asm.
     let mut wi = vec![quote! { None }; 0x3];
     let mut srwi8 = vec![quote! { None }; 0x10];
     let mut srwi16 = vec![quote! { None }; 0x10];
@@ -59,7 +55,9 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
     let mut rw = vec![quote! { None }; 0x10];
     let mut rrw = vec![quote! { None }; 0x10];
 
-    let mut get_forms_match_arms = Vec::new();
+    // Prepare data for generating the `get_forms` implementation.
+    let vidents: Vec<_> = ast.variants.iter().map(|v| &v.ident).collect();
+    let mut vforms = Vec::with_capacity(ast.variants.len());
 
     // Given an opcode and a subopcode, this closure determines the appropriate opcode
     // table from the above vectors and inserts an InstructionMeta table at the index
@@ -67,7 +65,7 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
     let mut fill_table = |vname: &Ident,
                           opcode: u8,
                           subopcode: u8,
-                          operands: &mut Vec<TokenStream>,
+                          mut operands: Vec<TokenStream>,
                           forms: &mut Vec<TokenStream>| {
         let (size, a, b) = (
             (opcode >> 6) as usize,
@@ -80,13 +78,13 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
         // Since instructions have varying numbers of operands from 0 to 3, we store every
         // operand in `Option::Some` and ignore those that are `Option::None`.
         while operands.len() < 3 {
-            operands.push(quote! { ::std::option::Option::None });
+            operands.push(quote!(::std::option::Option::None));
         }
 
         let instruction_meta = {
             let meta = quote! {
                 crate::isa::InstructionMeta::new(
-                    #name::#vname,
+                    #ty::#vname,
                     #opcode,
                     #subopcode as ::std::primitive::u8,
                     [#(#operands),*],
@@ -94,7 +92,7 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
             };
             forms.push(meta.clone());
 
-            quote! { Some(#meta) }
+            quote! { ::std::option::Option::Some(#meta) }
         };
 
         match (size, a, b) {
@@ -142,29 +140,37 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
 
     // Iterate through all the variants of the enum that derives from the `Instruction` macro
     // and parse the attribute decorators to insert the instructions into the lookup tables.
-    for variant in data.variants.iter() {
+    for variant in &ast.variants {
         let vname = &variant.ident;
-        let mut get_forms_vec = Vec::new();
+        let mut forms = Vec::new();
 
-        // Parse and collect all the #[insn] decorators that are attached to this variant.
-        let mut insn_attributes = variant
-            .attrs
-            .iter()
-            .filter(|a| a.path.segments.len() == 1 && a.path.segments[0].ident == ATTR)
-            .map(|a| Attributes::try_from(a).unwrap())
-            .collect::<Vec<Attributes>>();
+        for insn in &variant.attrs.insn {
+            let opcode = insn.opcode.ok_or_else(|| {
+                Error::new_spanned(
+                    variant.original,
+                    "missing #[insn(opcode)] attribute on variant",
+                )
+            })?;
+            let subopcode = insn.subopcode.ok_or_else(|| {
+                Error::new_spanned(
+                    variant.original,
+                    "missing #[insn(subopcode)] attribute on variant",
+                )
+            })?;
+            let operands = insn
+                .operands
+                .as_ref()
+                .map(|op| {
+                    op.iter()
+                        .map(|x| quote!(::std::option::Option::Some(#x)))
+                        .collect()
+                })
+                .unwrap_or_default();
 
-        // Use the previously collected data to add the instructions to the lookup tables.
-        for Attributes {
-            opcode,
-            subopcode,
-            operands,
-        } in insn_attributes.iter_mut()
-        {
-            fill_table(vname, *opcode, *subopcode, operands, &mut get_forms_vec);
+            fill_table(vname, opcode, subopcode, operands, &mut forms);
         }
 
-        get_forms_match_arms.push(quote! { #name::#vname => ::std::vec![#(#get_forms_vec),*] });
+        vforms.push(forms);
     }
 
     Ok(quote! {
@@ -320,14 +326,14 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
             #(#rrw),*
         ];
 
-        impl #name {
+        impl #impl_generics #ty #ty_generics #where_clause {
             pub(crate) fn lookup_meta(
                 sized: std::primitive::bool,
                 a: ::std::primitive::u8,
                 b: ::std::primitive::u8,
-                subopcode: ::std::primitive::u8
+                subopcode: ::std::primitive::u8,
             ) -> ::std::option::Option<crate::isa::InstructionMeta> {
-                let b = b as std::primitive::usize;
+                let b = b as ::std::primitive::usize;
                 let subopcode = subopcode as ::std::primitive::usize;
 
                 (match (sized, a, b) {
@@ -375,39 +381,9 @@ fn generate_lookup_tables(name: &Ident, data: &syn::DataEnum) -> Result<TokenStr
 
             pub(crate) fn get_forms(&self) -> ::std::vec::Vec<crate::isa::InstructionMeta> {
                 match self {
-                    #(#get_forms_match_arms),*
+                    #(#ty::#vidents => ::std::vec![#(#vforms),*],)*
                 }
             }
         }
     })
-}
-
-#[derive(Debug)]
-struct Attributes {
-    opcode: u8,
-    subopcode: u8,
-    operands: Vec<TokenStream>,
-}
-
-impl TryFrom<&syn::Attribute> for Attributes {
-    type Error = Error;
-
-    fn try_from(attr: &syn::Attribute) -> Result<Self> {
-        let properties = parser::flatten_attribute_meta(attr)?;
-        if properties.len() < 3 {
-            return Err(Error::new(
-                attr.path.segments[0].ident.span(),
-                format!(
-                    "\"{}\" is expecting at least 3 properties: opcode, subopcode, operands",
-                    ATTR
-                ),
-            ));
-        }
-
-        Ok(Attributes {
-            opcode: parser::parse_int_meta("opcode", &properties[0])?,
-            subopcode: parser::parse_int_meta("subopcode", &properties[1])?,
-            operands: parser::parse_list_meta("operands", &properties[2])?,
-        })
-    }
 }

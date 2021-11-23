@@ -1,11 +1,11 @@
 [package]
 name = "faucon-asm-derive"
-version = "0.3.0"
+version = "0.1.0"
 authors = ["Valentin B. <valentin.be@protonmail.com>"]
-description = "Procedural macros for opcode lookup table generation in `faucon-asm`"
+description = "Procedural macros for opcode lookup table generation in faucon-asm"
 license = "Apache-2.0/MIT"
 homepage = "https://github.com/vbe0201/faucon"
-edition = "2018"
+edition = "2021"
 
 [lib]
 proc-macro = true

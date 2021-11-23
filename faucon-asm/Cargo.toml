@@ -1,14 +1,14 @@
 [package]
 name = "faucon-asm"
-version = "0.1.1"
+version = "0.1.0"
 authors = ["Valentin B. <valentin.be@protonmail.com>"]
-description = "A crate for processing NVIDIA Falcon assembly."
+description = "Crate for processing NVIDIA Falcon assembly"
 license = "Apache-2.0/MIT"
 homepage = "https://github.com/vbe0201/faucon"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-faucon-asm-derive = { path = "../faucon-asm-derive" }
+faucon-asm-derive = { path = "../faucon-asm-derive", version = "0.1.0" }
 nom = "6.2"
 nom_locate = "3.0"
 num-traits = "0.2"

@@ -14,7 +14,7 @@ macro_rules! ok {
 
 macro_rules! info {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print::<owo_colors::colors::Cyan>($title, $msg);
+        $crate::macros::print::<owo_colors::colors::Cyan>($title, $msg)
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
@@ -24,7 +24,7 @@ macro_rules! info {
 
 macro_rules! error {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print::<owo_colors::colors::Red>($title, $msg);
+        $crate::macros::print::<owo_colors::colors::Red>($title, $msg)
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {
