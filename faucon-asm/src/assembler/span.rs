@@ -1,72 +1,151 @@
-//! A span type implementation providing line and position information for parsed
-//! tokens and error messages.
+use std::fmt;
+use std::ops::{Index, Range};
 
-use std::ffi::OsString;
+use super::{interner::FileId, parser::NomSpan};
 
-use super::parser::LineSpan;
-
-/// Matches an object from the given parser and wraps it in a [`ParseSpan`].
-pub fn spanned<'a, T>(
-    mut parser: impl FnMut(LineSpan<'a>) -> nom::IResult<LineSpan<'a>, T>,
-) -> impl FnMut(LineSpan<'a>) -> nom::IResult<LineSpan<'a>, ParseSpan<T>> {
-    move |s: LineSpan<'a>| {
-        let (input, position) = nom_locate::position(s)?;
-        let (remainder, token) = parser(input)?;
-
-        Ok((
-            remainder,
-            ParseSpan::new(
-                position,
-                input.fragment().len() - remainder.fragment().len(),
-                token,
-            ),
-        ))
-    }
+#[derive(Clone, Copy, PartialEq)]
+pub struct Span {
+    file_id: FileId,
+    line: u32,
+    start_index: usize,
+    end_index: usize,
 }
 
-/// Wraps a parsed token along with information about its encoding in the
-/// input source.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ParseSpan<T> {
-    // The file from which this span originates.
-    pub(super) file: OsString,
-    // The contents of the line in which the spanned source element is.
-    pub(super) line: String,
-    // The line number in which the spanned source element is. Since the
-    // line contents and the position of the token are already known, this
-    // is mostly intended for debugging and formatting purposes.
-    pub(super) lineno: usize,
-    // The offset into the source string where the spanned token begins.
-    pub(super) offset: usize,
-    // The width of the spanned token within the input source string. This
-    // could also be referred to as the number of characters encapsulating
-    // the source element.
-    pub(super) width: usize,
-    // The spanned token object that has been parsed out of the input source.
-    pub(super) token: T,
-}
+impl Span {
+    pub const DUMMY: Span = Span {
+        file_id: FileId::DUMMY,
+        line: 0,
+        start_index: 0,
+        end_index: 0,
+    };
 
-impl<T> ParseSpan<T> {
-    /// Constructs a new [`ParseSpan`] from the line span denoting the location of
-    /// the token, the encoded width of the token and the token itself.
-    ///
-    /// This should never be called manually, refer to [`spanned`] instead.
-    pub fn new<'a>(location_span: LineSpan<'a>, width: usize, token: T) -> Self {
-        ParseSpan {
-            file: location_span.extra.file_name.to_owned(),
-            line: location_span
-                .extra
-                .get_line_contents(location_span.location_offset())
-                .to_owned(),
-            lineno: location_span.location_line() as usize,
-            offset: location_span.naive_get_utf8_column(),
-            width,
-            token,
+    pub fn new<ID: Into<FileId>>(
+        file_id: ID,
+        line: u32,
+        start_index: usize,
+        end_index: usize,
+    ) -> Self {
+        Span {
+            file_id: file_id.into(),
+            line,
+            start_index,
+            end_index,
         }
     }
 
-    /// Provides immutable access to the encapsulated token object.
-    pub fn token(&self) -> &T {
-        &self.token
+    pub fn from_nom(span: &NomSpan<'_>, width: usize) -> Self {
+        let start_index = span.naive_get_utf8_column();
+        Self {
+            file_id: span.extra.file_id,
+            line: span.location_line(),
+            start_index,
+            end_index: start_index + width,
+        }
+    }
+
+    pub fn start(&self) -> usize {
+        self.start_index
+    }
+
+    pub fn end(&self) -> usize {
+        self.end_index
+    }
+
+    pub fn width(&self) -> usize {
+        self.end_index - self.start_index
+    }
+
+    pub fn as_range(&self) -> Range<usize> {
+        self.start_index..self.end_index
+    }
+}
+
+impl fmt::Debug for Span {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Span")
+            .field(&format_args!("{}..{}", self.start_index, self.end_index))
+            .finish()
+    }
+}
+
+impl Index<Span> for str {
+    type Output = str;
+
+    fn index(&self, span: Span) -> &Self::Output {
+        self.index(span.start_index..span.end_index)
+    }
+}
+
+impl From<Span> for FileId {
+    fn from(span: Span) -> Self {
+        span.file_id
+    }
+}
+
+#[derive(PartialEq)]
+pub struct Spanned<T> {
+    node: T,
+    span: Span,
+}
+
+impl<T> Spanned<T> {
+    pub fn new(node: T, span: Span) -> Self {
+        Spanned { node, span }
+    }
+
+    pub fn boxed(node: T, span: Span) -> Spanned<Box<T>> {
+        Spanned {
+            node: Box::new(node),
+            span,
+        }
+    }
+
+    pub fn parse<'a>(
+        mut parser: impl FnMut(NomSpan<'a>) -> nom::IResult<NomSpan<'a>, T>,
+    ) -> impl FnMut(NomSpan<'a>) -> nom::IResult<NomSpan<'a>, Spanned<T>> {
+        move |s: NomSpan<'a>| {
+            let (input, position) = nom_locate::position(s)?;
+            let input_len = input.fragment().len();
+
+            let (remainder, token) = parser(input)?;
+            let span_width = input_len - remainder.fragment().len();
+
+            Ok((
+                remainder,
+                Self::new(token, Span::from_nom(&position, span_width)),
+            ))
+        }
+    }
+
+    pub fn node(&self) -> &T {
+        &self.node
+    }
+
+    pub fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
+impl<T: Clone> Clone for Spanned<T> {
+    fn clone(&self) -> Self {
+        Self {
+            node: self.node.clone(),
+            span: self.span.clone(),
+        }
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Spanned<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Spanned")
+            .field("node", &self.node)
+            .field("span", &self.span)
+            .finish()
+    }
+}
+
+impl<T> From<Spanned<T>> for FileId {
+    fn from(spanned: Spanned<T>) -> Self {
+        spanned.span().file_id
     }
 }

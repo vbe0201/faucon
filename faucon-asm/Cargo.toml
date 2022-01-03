@@ -9,6 +9,8 @@ edition = "2021"
 
 [dependencies]
 faucon-asm-derive = { path = "../faucon-asm-derive", version = "0.1.0" }
-nom = "6.2"
-nom_locate = "3.0"
+
+ahash = "0.7"
+nom = "7.1"
+nom_locate = "4.0"
 num-traits = "0.2"

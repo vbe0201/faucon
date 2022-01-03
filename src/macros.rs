@@ -4,7 +4,7 @@ use std::io::Write;
 
 macro_rules! ok {
     ($title:expr, $msg:expr) => {
-        $crate::macros::print::<owo_colors::colors::Green>($title, $msg);
+        $crate::macros::print::<owo_colors::colors::Green>($title, $msg)
     };
 
     ($title:expr, $msg:expr, $($arg:tt)*) => {

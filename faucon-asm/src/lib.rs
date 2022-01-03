@@ -80,7 +80,7 @@
 #![deny(rust_2018_idioms, rustdoc::broken_intra_doc_links)]
 #![feature(const_option)]
 
-//pub mod assembler;
+pub mod assembler;
 mod bitfields;
 mod bit_utils;
 pub mod disassembler;
@@ -91,8 +91,7 @@ pub mod operands;
 use std::fmt;
 use std::io;
 
-//use arguments::{Argument, MachineEncoding, Positional};
-//pub use assembler::*;
+pub use assembler::*;
 pub use disassembler::*;
 pub use isa::InstructionKind;
 pub use opcode::OperandSize;

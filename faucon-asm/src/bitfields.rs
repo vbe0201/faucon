@@ -92,6 +92,7 @@ impl<'b> MachineEncoding for FlagEncoding<'b> {
 }
 
 // Encodings of memory accesses to the Falcon's code or data segments.
+#[allow(clippy::enum_variant_names)]
 pub enum MemoryEncoding<'b> {
     // A memory access to either DMEM or IMEM that is evaluated as `[$reg]`.
     Reg(MemorySpace, &'b RegisterEncoding<'b>),
