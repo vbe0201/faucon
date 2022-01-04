@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["LevelFilter","A filter comparable to a verbosity `Level`."],["LevelParseError","Indicates that a string could not be parsed to a valid level."]]});

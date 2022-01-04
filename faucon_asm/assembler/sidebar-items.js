@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["AssemblerError","An error that occurred at one stage of the assembling process."]]});

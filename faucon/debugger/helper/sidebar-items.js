@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["CompletionCandidate","Wrapper around a `&'static str` to be used for completion candidates."],["Helper",""]]});

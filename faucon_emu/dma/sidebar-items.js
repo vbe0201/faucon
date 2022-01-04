@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["RequestMode","Supported request modes that the DMA engine can process."]],"struct":[["Engine","Representation of the Falcon DMA engine."],["Request","A Falcon DMA request to perform a code/data transfer."]]});

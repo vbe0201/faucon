@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["read_instruction","Disassembles an [`Instruction`] from a given [`std::io::Read`]er."]],"struct":[["Disassembler","A disassembler that pretty-prints assembly instruction mnemonics with their raw bytes and memory addresses."]]});

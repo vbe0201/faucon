@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["PROMPT",""],["VERSION",""]],"fn":[["read_input",""]],"mod":[["commands",""],["helper","Rustyline helper that will manage highlighting and command completion."]],"struct":[["Debugger","The debugger used by the faucon emulator."]]});

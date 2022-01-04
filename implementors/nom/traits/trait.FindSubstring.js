@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["nom_locate"] = [{"text":"impl&lt;T, U, X&gt; <a class=\"trait\" href=\"nom/traits/trait.FindSubstring.html\" title=\"trait nom::traits::FindSubstring\">FindSubstring</a>&lt;U&gt; for <a class=\"struct\" href=\"nom_locate/struct.LocatedSpan.html\" title=\"struct nom_locate::LocatedSpan\">LocatedSpan</a>&lt;T, X&gt; <span class=\"where fmt-newline\">where<br>&nbsp;&nbsp;&nbsp;&nbsp;T: <a class=\"trait\" href=\"nom/traits/trait.FindSubstring.html\" title=\"trait nom::traits::FindSubstring\">FindSubstring</a>&lt;U&gt;,&nbsp;</span>","synthetic":false,"types":["nom_locate::LocatedSpan"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
