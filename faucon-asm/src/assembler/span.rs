@@ -7,72 +7,85 @@ use super::{interner::FileId, parser::NomSpan};
 pub struct Span {
     file_id: FileId,
     line: u32,
-    start_index: usize,
-    end_index: usize,
+    column: usize,
+    start: usize,
+    end: usize,
 }
 
 impl Span {
     pub const DUMMY: Span = Span {
         file_id: FileId::DUMMY,
         line: 0,
-        start_index: 0,
-        end_index: 0,
+        column: 0,
+        start: 0,
+        end: 0,
     };
 
     pub fn new<ID: Into<FileId>>(
         file_id: ID,
         line: u32,
-        start_index: usize,
-        end_index: usize,
+        column: usize,
+        start: usize,
+        end: usize,
     ) -> Self {
-        Span {
+        Self {
             file_id: file_id.into(),
             line,
-            start_index,
-            end_index,
+            column,
+            start,
+            end,
         }
     }
 
     pub fn from_nom(span: &NomSpan<'_>, width: usize) -> Self {
-        let start_index = span.naive_get_utf8_column();
+        let start = span.location_offset();
         Self {
             file_id: span.extra.file_id,
             line: span.location_line(),
-            start_index,
-            end_index: start_index + width,
+            column: span.naive_get_utf8_column(),
+            start,
+            end: start + width,
         }
     }
 
     pub fn start(&self) -> usize {
-        self.start_index
+        self.start
     }
 
     pub fn end(&self) -> usize {
-        self.end_index
+        self.end
+    }
+
+    pub fn line(&self) -> u32 {
+        self.line
+    }
+
+    pub fn column(&self) -> usize {
+        self.column
     }
 
     pub fn width(&self) -> usize {
-        self.end_index - self.start_index
+        self.end - self.start
     }
 
     pub fn as_range(&self) -> Range<usize> {
-        self.start_index..self.end_index
+        self.start..self.end
     }
 }
 
 impl fmt::Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Span")
-            .field(&format_args!("{}..{}", self.start_index, self.end_index))
+            .field(&format_args!("{}..{}", self.start, self.end))
             .finish()
     }
 }
 
-impl Index<Span> for str {
+impl Index<&Span> for str {
     type Output = str;
 
-    fn index(&self, span: Span) -> &Self::Output {
-        self.index(span.start_index..span.end_index)
+    fn index(&self, span: &Span) -> &Self::Output {
+        self.index(span.start..span.end)
     }
 }
 
@@ -100,6 +113,17 @@ impl<T> Spanned<T> {
         }
     }
 
+    pub fn try_map<F, U>(self, f: F) -> Result<Spanned<U>, Spanned<T>>
+    where
+        F: FnOnce(T) -> Result<U, T>,
+    {
+        let Self { node, span } = self;
+
+        f(node)
+            .map(|node| Spanned { node, span })
+            .map_err(|node| Spanned { node, span })
+    }
+
     pub fn parse<'a>(
         mut parser: impl FnMut(NomSpan<'a>) -> nom::IResult<NomSpan<'a>, T>,
     ) -> impl FnMut(NomSpan<'a>) -> nom::IResult<NomSpan<'a>, Spanned<T>> {
@@ -124,13 +148,21 @@ impl<T> Spanned<T> {
     pub fn span(&self) -> &Span {
         &self.span
     }
+
+    pub fn into_node(self) -> T {
+        self.node
+    }
+
+    pub fn into_span(self) -> Span {
+        self.span
+    }
 }
 
 impl<T: Clone> Clone for Spanned<T> {
     fn clone(&self) -> Self {
         Self {
             node: self.node.clone(),
-            span: self.span.clone(),
+            span: self.span,
         }
     }
 }

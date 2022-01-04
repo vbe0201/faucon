@@ -33,6 +33,55 @@ impl<'c> ContextData<'c> {
     }
 }
 
+// A raw assembly statement.
+//
+// This essentially represents an individual line in the source code
+// consisting of an optional label and/or an optional expression.
+//
+// This is produced by the parser during tokenization.
+#[derive(Clone, Debug)]
+pub struct Statement<'ctx> {
+    pub label: Option<Spanned<Token<'ctx>>>, // Token::Label.
+    pub expr: Option<Expression<'ctx>>,
+}
+
+// A raw assembly expression.
+//
+// This is either a directive or an instruction mnemonic along with
+// all its data/operands.
+//
+// This is produced by the parser during tokenization.
+#[derive(Clone, Debug)]
+pub struct Expression<'ctx> {
+    pub expr: Spanned<Token<'ctx>>, // Token::Directive or Token::Mnemonic.
+    pub data: Vec<Spanned<Token<'ctx>>>, // Any other yet unmentioned Tokens.
+}
+
+impl<'ctx> Statement<'ctx> {
+    pub fn new() -> Self {
+        Self {
+            label: None,
+            expr: None,
+        }
+    }
+
+    #[must_use = "this returns the modified statement rather than altering the old value"]
+    pub fn with_label(mut self, label: Spanned<Token<'ctx>>) -> Self {
+        self.label = Some(label);
+        self
+    }
+
+    #[must_use = "this returns the modified statement rather than altering the old value"]
+    pub fn with_expr(
+        mut self,
+        expr: Spanned<Token<'ctx>>,
+        data: Vec<Spanned<Token<'ctx>>>,
+    ) -> Self {
+        self.expr = Some(Expression { expr, data });
+        self
+    }
+}
+
 pub fn start<'c, T, P>(
     file: FileId,
     mut parser: P,
@@ -44,20 +93,13 @@ where
 }
 
 // *separator_list*? ( *statement* *separator_list* )* *eof*
-pub fn do_parse(input: NomSpan<'_>) -> IResult<NomSpan<'_>, Vec<Spanned<Token<'_>>>> {
+pub fn do_parse(input: NomSpan<'_>) -> IResult<NomSpan<'_>, Vec<Statement<'_>>> {
     let (input, _) = opt(separator_list)(input)?;
     let (input, result) = fold_many0(
         pair(statement, separator_list),
         Vec::new,
-        |mut acc, ((label, inst), _)| {
-            if let Some(l) = label {
-                acc.push(l);
-            }
-            if let Some(i) = inst {
-                acc.push(i.0);
-                acc.extend(i.1);
-            }
-
+        |mut acc, (stmt, _)| {
+            acc.push(stmt);
             acc
         },
     )(input)?;
@@ -67,22 +109,27 @@ pub fn do_parse(input: NomSpan<'_>) -> IResult<NomSpan<'_>, Vec<Spanned<Token<'_
 }
 
 // *label_decl*? ( *expression* *operand** )?
-#[allow(clippy::type_complexity)]
-fn statement(
-    input: NomSpan<'_>,
-) -> IResult<
-    NomSpan<'_>,
-    (
-        Option<Spanned<Token<'_>>>,
-        Option<(Spanned<Token<'_>>, Vec<Spanned<Token<'_>>>)>,
-    ),
-> {
-    pair(
-        opt(ws0(label_decl)),
-        opt(pair(
-            expression,
-            many0(preceded(many1(whitespace), operand)),
-        )),
+fn statement(input: NomSpan<'_>) -> IResult<NomSpan<'_>, Statement<'_>> {
+    map(
+        pair(
+            opt(ws0(label_decl)),
+            opt(pair(
+                expression,
+                many0(preceded(many1(whitespace), operand)),
+            )),
+        ),
+        |(label, expr)| {
+            let mut stmt = Statement::new();
+
+            if let Some(label) = label {
+                stmt = stmt.with_label(label);
+            }
+            if let Some((expr, data)) = expr {
+                stmt = stmt.with_expr(expr, data);
+            }
+
+            stmt
+        },
     )(input)
 }
 

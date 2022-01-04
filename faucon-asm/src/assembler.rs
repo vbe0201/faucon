@@ -8,3 +8,5 @@ mod lexer;
 mod parser;
 
 mod span;
+
+mod syntax;

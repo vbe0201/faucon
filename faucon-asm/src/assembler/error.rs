@@ -1,7 +1,9 @@
+use std::fmt;
+
 use nom::Finish;
+use owo_colors::OwoColorize;
 
 use super::{
-    lexer::Token,
     parser,
     span::{Span, Spanned},
 };
@@ -13,7 +15,7 @@ use super::{
 #[derive(Debug)]
 pub struct AssemblerError {
     span: Span,
-    line: String,
+    quoted: (String, bool), // Quoted string + whether it is a fragment of a full line.
     msg: String,
 }
 
@@ -26,14 +28,29 @@ impl AssemblerError {
                 .take_while(|&c| !c.is_whitespace() && c != ';')
                 .count(),
         );
-        let line = nom_span
+        let quoted = nom_span
             .extra
             .extract_line(nom_span.location_offset())
             .to_owned();
 
         Self {
             span,
-            line,
+            quoted: (quoted, false),
+            msg: msg.to_string(),
+        }
+    }
+
+    pub(crate) fn custom<S: ToString, T>(input: &str, span: Spanned<T>, msg: S) -> Self {
+        let span = span.into_span();
+        let quoted = format!(
+            "{dots}{line}{dots}",
+            dots = "...".blue(),
+            line = &input[&span]
+        );
+
+        Self {
+            span,
+            quoted: (quoted, true),
             msg: msg.to_string(),
         }
     }
@@ -43,9 +60,9 @@ impl AssemblerError {
         &self.span
     }
 
-    /// Gets the source line in which the error occurred.
-    pub fn line(&self) -> &str {
-        &self.line
+    /// Gets the quoted string that caused the error.
+    pub fn quoted(&self) -> &str {
+        &self.quoted.0
     }
 
     /// Gets the message of this error which provides further details.
@@ -55,11 +72,25 @@ impl AssemblerError {
 
     // Consumes nom's IResult from the tokenization step and checks for errors.
     pub(crate) fn check_tokenization<'t>(
-        result: nom::IResult<parser::NomSpan<'t>, Vec<Spanned<Token<'t>>>>,
-    ) -> Result<Vec<Spanned<Token<'t>>>, Self> {
+        result: nom::IResult<parser::NomSpan<'t>, Vec<parser::Statement<'t>>>,
+    ) -> Result<Vec<parser::Statement<'t>>, Self> {
         match result.finish() {
             Ok((_, tokens)) => Ok(tokens),
             Err(e) => Err(Self::new(e.input, "Unparseable tokens detected")),
         }
     }
 }
+
+impl fmt::Display for AssemblerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "at line {}, column {}: {}",
+            self.span().line(),
+            self.span().column(),
+            self.msg
+        )
+    }
+}
+
+impl std::error::Error for AssemblerError {}

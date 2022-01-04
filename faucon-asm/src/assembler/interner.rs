@@ -1,7 +1,6 @@
-use std::collections::HashMap;
 use std::mem;
 
-use ahash::RandomState;
+use ahash::AHashMap;
 
 // https://matklad.github.io/2020/03/22/fast-simple-rust-interner.html
 // https://www.reddit.com/r/rust/comments/fn1jxf/blog_post_fast_and_simple_rust_interner/
@@ -14,7 +13,7 @@ impl FileId {
 }
 
 pub struct Interner {
-    map: HashMap<&'static str, FileId, RandomState>,
+    map: AHashMap<&'static str, FileId>,
     vec: Vec<&'static str>,
     buf: String,
     full: Vec<String>,
@@ -25,7 +24,7 @@ impl Interner {
         cap = cap.next_power_of_two();
 
         Interner {
-            map: HashMap::default(),
+            map: AHashMap::new(),
             vec: Vec::new(),
             buf: String::with_capacity(cap),
             full: Vec::new(),
