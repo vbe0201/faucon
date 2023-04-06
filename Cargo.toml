@@ -2,35 +2,9 @@
 name = "faucon"
 version = "0.1.0"
 authors = ["Valentin B. <valentin.be@protonmail.com>"]
-description = "A comprehensive tooling suite for the NVIDIA Falcon microprocessors"
-license = "Apache-2.0/MIT"
-readme = "README.md"
+description = "Comprehensive tooling suite for NVIDIA Falcon microprocessors"
+license = "ISC"
 homepage = "https://github.com/vbe0201/faucon"
-edition = "2018"
-
-[workspace]
-members = ["faucon-asm", "faucon-asm-derive", "faucon-emu"]
+edition = "2021"
 
 [dependencies]
-faucon-asm = { path = "faucon-asm" }
-faucon-emu = { path = "faucon-emu" }
-paste = "1.0.0"
-nom = "6.1"
-toml = "0.5"
-color-eyre = "0.5.2"
-
-rustyline = "6.2.0"
-rustyline-derive = "0.3.1"
-owo-colors = "1.1.3"
-
-[dependencies.clap]
-version = "2.33"
-features = ["yaml"]
-
-[dependencies.serde]
-version = "1.0"
-features = ["derive"]
-
-# Faster backtraces on debug profile
-[profile.dev.package.backtrace]
-opt-level = 3
