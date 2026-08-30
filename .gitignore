@@ -1,8 +1,3 @@
-# Rust
-/target/
-Cargo.lock
-**/*.rs.bk
-
 # Miscellaneous system files
 .DS_Store
 *~
@@ -10,13 +5,8 @@ Cargo.lock
 .env
 Thumbs.db
 
-# Editor files
-/.vs/
-/.vscode/
-/.idea/
+# Rust
+/target
 
-# Binaries
-*.bin
-
-# The faucon configuration file.
-faucon.toml
+# Nix
+.direnv

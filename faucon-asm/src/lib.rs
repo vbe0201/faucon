@@ -78,7 +78,6 @@
 //! and its representation in raw bytes.
 
 #![deny(rust_2018_idioms, rustdoc::broken_intra_doc_links)]
-#![feature(const_option)]
 
 pub mod assembler;
 mod bitfields;
