@@ -438,9 +438,9 @@ static INSTRUCTION_TABLE: [InstructionSpec; 284] = isa![
     LCALL[Unsized]: 0x3E/0x01 [U24],
 
     // Jumps to an absolute address.
-    JMP: 0xF4/0x20 [U8],
-    JMP: 0xF5/0x20 [U16],
-    JMP: 0xF9/0x04 [R2],
+    JMP:           0xF4/0x20 [U8],
+    JMP:           0xF5/0x20 [U16],
+    JMP:           0xF9/0x04 [R2],
     LJMP[Unsized]: 0x3E/0x00 [U24],
 
     // Jumps to PC-relative address when the predicate is fulfilled.
