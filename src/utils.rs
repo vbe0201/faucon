@@ -67,6 +67,7 @@ impl BitField {
     /// bitwise shift applied to the value.
     #[inline]
     pub const fn new_with_shift(start: u8, end: u8, shift: u8) -> Self {
+        debug_assert!(start <= end);
         Self {
             value: 0,
             start,
