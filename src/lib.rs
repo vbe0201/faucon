@@ -27,7 +27,7 @@
 //!
 //! TODO: Write about assembling when supported.
 
-mod assemble;
+pub mod assemble;
 
 mod disassemble;
 pub use disassemble::*;

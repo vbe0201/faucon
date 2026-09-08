@@ -73,6 +73,27 @@ impl SourceSpan {
         self.end.0 - self.start.0
     }
 
+    /// Merges two spans into a new span starting at `self` and
+    /// ending at `other`.
+    pub fn merge(self, other: Self) -> Self {
+        Self {
+            start: self.start,
+            end: other.end,
+        }
+    }
+
+    /// Removes `nbytes` from the start of the span.
+    pub fn trim_start(mut self, nbytes: u32) -> Self {
+        self.start.0 += nbytes;
+        self
+    }
+
+    /// Removes `nbytes` from the end of the span.
+    pub fn trim_end(mut self, nbytes: u32) -> Self {
+        self.end.0 -= nbytes;
+        self
+    }
+
     /// Attempts to extract a spanned substring from `input`.
     ///
     /// Returns [`None`] if the span is out of bounds for the

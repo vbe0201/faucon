@@ -1,4 +1,39 @@
-//! Miscellaneous utilities for manipulating binary data.
+//! Miscellaneous utilities shared by the codebase.
+
+/// Generates string conversion code for an enum definition.
+#[macro_export]
+macro_rules! str_enum {
+    (
+        $(#[$attr:meta])*
+        $vis:vis enum $name:ident {
+            $($(#[$var_attr:meta])* $var:ident = $str:literal),* $(,)?
+        }
+    ) => {
+        $(#[$attr])*
+        $vis enum $name {
+            $($(#[$var_attr])* $var,)*
+        }
+
+        impl ::std::str::FromStr for $name {
+            type Err = ();
+
+            fn from_str(s: &::std::primitive::str) -> ::std::result::Result<Self, Self::Err> {
+                match s {
+                    $($str => Ok(Self::$var),)*
+                    _ => Err(()),
+                }
+            }
+        }
+
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                match self {
+                    $(Self::$var => write!(f, $str),)*
+                }
+            }
+        }
+    };
+}
 
 /// Loads at most 8 input bytes to an integer in LE ordering.
 #[inline]

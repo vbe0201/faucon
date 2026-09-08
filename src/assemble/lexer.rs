@@ -32,7 +32,7 @@ pub enum Token {
     Dollar,
 
     /// An identifier.
-    Identifer,
+    Identifier,
     /// A string literal.
     String,
     /// A number literal.
@@ -46,7 +46,7 @@ pub enum Token {
 
 #[inline]
 fn is_ident1(c: char) -> bool {
-    c.is_ascii_alphabetic()
+    c.is_ascii_alphabetic() || c == '_'
 }
 
 #[inline]
@@ -78,7 +78,6 @@ fn is_ident2(c: char) -> bool {
 #[derive(Clone, Debug)]
 pub struct Lexer<'src> {
     source: CharIndices<'src>,
-    eof_emitted: bool,
 }
 
 impl<'src> Lexer<'src> {
@@ -88,33 +87,27 @@ impl<'src> Lexer<'src> {
 
         Self {
             source: source.char_indices(),
-            eof_emitted: false,
         }
     }
 
-    #[inline]
     fn offset(&self) -> u32 {
         self.source.offset() as u32
     }
 
-    #[inline]
     fn peek(&self) -> char {
         let mut it = self.source.clone();
         it.next().map(|v| v.1).unwrap_or(EOF_CHAR)
     }
 
-    #[inline]
     fn peek2(&self) -> char {
         let mut it = self.source.clone();
         it.next().and(it.next()).map(|v| v.1).unwrap_or(EOF_CHAR)
     }
 
-    #[inline]
     fn reached_eof(&self) -> bool {
         self.peek() == EOF_CHAR
     }
 
-    #[inline]
     fn consume(&mut self) -> char {
         self.source.next().map(|v| v.1).unwrap_or(EOF_CHAR)
     }
@@ -143,26 +136,20 @@ impl<'src> Lexer<'src> {
 
     fn whitespace(&mut self) -> Option<Spanned<Token>> {
         let mut token = None;
-        if self.eof_emitted {
-            return token;
-        }
 
         loop {
             match self.peek() {
                 // Handle semicolons and turn newlines into semicolons as
                 // well. Multiple semicolons in a whitespace sequence are
                 // coalesced into a single semicolon token.
-                ';' | '\n' | EOF_CHAR => {
+                ';' | '\n' => {
                     let pos = self.offset();
                     token = Some(Spanned {
                         span: SourceSpan::from(pos..pos),
                         value: Token::Semicolon,
                     });
 
-                    if self.consume() == EOF_CHAR {
-                        self.eof_emitted = true;
-                        break;
-                    }
+                    self.consume();
                 }
 
                 // Other whitespace can be trivially ignored.
@@ -217,18 +204,8 @@ impl<'src> Lexer<'src> {
             _ => 10,
         };
 
-        loop {
-            let c = self.peek();
-            if c == '_' {
-                self.consume();
-                continue;
-            }
-
-            if c.is_digit(radix) {
-                self.consume();
-            } else {
-                break;
-            }
+        while self.peek().is_digit(radix) {
+            self.consume();
         }
 
         Token::Number
@@ -239,7 +216,7 @@ impl<'src> Lexer<'src> {
             self.consume();
         }
 
-        Token::Identifer
+        Token::Identifier
     }
 
     fn scan(&mut self) -> Spanned<Token> {

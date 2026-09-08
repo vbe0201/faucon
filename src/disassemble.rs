@@ -2,97 +2,6 @@ use std::fmt;
 
 use crate::isa;
 
-fn mnemonic(opcode: isa::Opcode) -> &'static str {
-    match opcode {
-        isa::Opcode::CMPU => "cmpu",
-        isa::Opcode::CMPS => "cmps",
-        isa::Opcode::CMP => "cmp",
-        isa::Opcode::ADD => "add",
-        isa::Opcode::CCR => "ccr",
-        isa::Opcode::ADC => "adc",
-        isa::Opcode::SUB => "sub",
-        isa::Opcode::SBB => "sbb",
-        isa::Opcode::SHL => "shl",
-        isa::Opcode::SHR => "shr",
-        isa::Opcode::SAR => "sar",
-        isa::Opcode::SHLC => "shlc",
-        isa::Opcode::SHRC => "shrc",
-        isa::Opcode::NOT => "not",
-        isa::Opcode::NEG => "neg",
-        isa::Opcode::HSWAP => "hswap",
-        isa::Opcode::SETHI => "sethi",
-        isa::Opcode::CLEAR => "clear",
-        isa::Opcode::TEST => "test",
-        isa::Opcode::MULU => "mulu",
-        isa::Opcode::MULS => "muls",
-        isa::Opcode::SEXT => "sext",
-        isa::Opcode::AND => "and",
-        isa::Opcode::OR => "or",
-        isa::Opcode::XOR => "xor",
-        isa::Opcode::XBIT => "xbit",
-        isa::Opcode::BSET => "bset",
-        isa::Opcode::BCLR => "bclr",
-        isa::Opcode::BTGL => "btgl",
-        isa::Opcode::DIV => "div",
-        isa::Opcode::MOD => "mod",
-        isa::Opcode::SETP => "setp",
-        isa::Opcode::EXTR => "extr",
-        isa::Opcode::EXTRS => "extrs",
-        isa::Opcode::INS => "ins",
-        isa::Opcode::MOV => "mov",
-        isa::Opcode::LD => "ld",
-        isa::Opcode::ST => "st",
-        isa::Opcode::PUSH => "push",
-        isa::Opcode::POP => "pop",
-        isa::Opcode::MPUSH => "mpush",
-        isa::Opcode::MPOP => "mpop",
-        isa::Opcode::MPOPADD => "mpopadd",
-        isa::Opcode::MPOPRET => "mpopret",
-        isa::Opcode::MPOPADDRET => "mpopaddret",
-        isa::Opcode::CALL => "call",
-        isa::Opcode::LCALL => "lcall",
-        isa::Opcode::JMP => "jmp",
-        isa::Opcode::LJMP => "ljmp",
-        isa::Opcode::BP => "bp",
-        isa::Opcode::BC => "bc",
-        isa::Opcode::BO => "bo",
-        isa::Opcode::BS => "bs",
-        isa::Opcode::BZ => "bz",
-        isa::Opcode::BA => "ba",
-        isa::Opcode::BNA => "bna",
-        isa::Opcode::BRA => "bra",
-        isa::Opcode::BNP => "bnp",
-        isa::Opcode::BNC => "bnc",
-        isa::Opcode::BNO => "bno",
-        isa::Opcode::BNS => "bns",
-        isa::Opcode::BNZ => "bnz",
-        isa::Opcode::BG => "bg",
-        isa::Opcode::BLE => "ble",
-        isa::Opcode::BL => "bl",
-        isa::Opcode::BGE => "bge",
-        isa::Opcode::BCMPE => "bcmpe",
-        isa::Opcode::BCMPNE => "bcmpne",
-        isa::Opcode::RET => "ret",
-        isa::Opcode::HALT => "halt",
-        isa::Opcode::SLEEP => "sleep",
-        isa::Opcode::IMBLK => "imblk",
-        isa::Opcode::IMTAG => "imtag",
-        isa::Opcode::IMINV => "iminv",
-        isa::Opcode::IRET => "iret",
-        isa::Opcode::TRAP => "trap",
-        isa::Opcode::IMLD => "imld",
-        isa::Opcode::DMLD => "dmld",
-        isa::Opcode::DMST => "dmst",
-        isa::Opcode::IMWAIT => "imwait",
-        isa::Opcode::DMWAIT => "dmwait",
-        isa::Opcode::DMFENCE => "dmfence",
-        isa::Opcode::IOWR => "iowr",
-        isa::Opcode::IOWRS => "iowrs",
-        isa::Opcode::IORD => "iord",
-        isa::Opcode::IORDS => "iords",
-    }
-}
-
 fn size_suffix(size: isa::OperandSize) -> &'static str {
     match size {
         isa::OperandSize::EightBit => ".b",
@@ -103,7 +12,7 @@ fn size_suffix(size: isa::OperandSize) -> &'static str {
 }
 
 fn special_reg_name(reg: isa::Register) -> &'static str {
-    static NAMES: [&'static str; 16] = [
+    static NAMES: [&str; 16] = [
         "iv0", "iv1", "iv2", "ev", "sp", "pc", "imb", "dmb", "csw", "ccr", "sec", "ctx", "exci",
         "sec1", "imb1", "dmb1",
     ];
@@ -112,7 +21,7 @@ fn special_reg_name(reg: isa::Register) -> &'static str {
 }
 
 fn flag_name(flag: isa::Flag) -> &'static str {
-    static NAMES: [&'static str; 32] = [
+    static NAMES: [&str; 32] = [
         "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "c", "o", "s", "z", "??", "??", "??", "??",
         "ie0", "ie1", "ie2", "??", "is0", "is1", "is2", "??", "ea", "??", "??", "??", "??", "??",
         "??", "??",
@@ -175,7 +84,7 @@ fn format_bits(bits: isa::BitRange, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 }
 
 fn format_instruction(insn: &isa::Instruction, pc: u32, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}{}", mnemonic(insn.opcode), size_suffix(insn.size))?;
+    write!(f, "{}{}", insn.opcode, size_suffix(insn.size))?;
     for operand in &insn.operands {
         if let isa::Operand::None = operand {
             break;
